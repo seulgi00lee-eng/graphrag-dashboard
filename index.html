@@ -493,34 +493,31 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       <!-- 관코드 -->
       <div class="perm-field">
         <div class="perm-label">관코드 <span class="perm-required">*</span></div>
-        <div class="perm-code-wrap">
-          <select class="perm-code-select" id="permCodeSelect" multiple size="4">
-            <option value="101">101</option>
-            <option value="102">102</option>
-            <option value="103">103</option>
-            <option value="104">104</option>
-            <option value="105">105</option>
-            <option value="106">106</option>
-            <option value="107">107</option>
-            <option value="108">108</option>
-            <option value="109">109</option>
-            <option value="110">110</option>
-            <option value="201">201</option>
-            <option value="202">202</option>
-            <option value="203">203</option>
-            <option value="204">204</option>
-            <option value="205">205</option>
-            <option value="206">206</option>
-            <option value="301">301</option>
-            <option value="302">302</option>
-            <option value="303">303</option>
-            <option value="304">304</option>
-            <option value="316">316</option>
-          </select>
-          <span class="perm-code-or">또는</span>
-          <input class="perm-code-input" id="permCodeInput" type="text" placeholder="예: 101,104">
+        <div id="permCodeCheckboxes" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:12px;border:1px solid #d0d0dc;border-radius:8px;background:#fafafa;max-height:160px;overflow-y:auto;">
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="101" style="accent-color:#6c5ce7;cursor:pointer;"> 101</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="102" style="accent-color:#6c5ce7;cursor:pointer;"> 102</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="103" style="accent-color:#6c5ce7;cursor:pointer;"> 103</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="104" style="accent-color:#6c5ce7;cursor:pointer;"> 104</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="105" style="accent-color:#6c5ce7;cursor:pointer;"> 105</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="106" style="accent-color:#6c5ce7;cursor:pointer;"> 106</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="107" style="accent-color:#6c5ce7;cursor:pointer;"> 107</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="108" style="accent-color:#6c5ce7;cursor:pointer;"> 108</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="109" style="accent-color:#6c5ce7;cursor:pointer;"> 109</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="110" style="accent-color:#6c5ce7;cursor:pointer;"> 110</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="201" style="accent-color:#6c5ce7;cursor:pointer;"> 201</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="202" style="accent-color:#6c5ce7;cursor:pointer;"> 202</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="203" style="accent-color:#6c5ce7;cursor:pointer;"> 203</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="204" style="accent-color:#6c5ce7;cursor:pointer;"> 204</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="205" style="accent-color:#6c5ce7;cursor:pointer;"> 205</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="206" style="accent-color:#6c5ce7;cursor:pointer;"> 206</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="301" style="accent-color:#6c5ce7;cursor:pointer;"> 301</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="302" style="accent-color:#6c5ce7;cursor:pointer;"> 302</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="303" style="accent-color:#6c5ce7;cursor:pointer;"> 303</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="304" style="accent-color:#6c5ce7;cursor:pointer;"> 304</label>
+          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="316" style="accent-color:#6c5ce7;cursor:pointer;"> 316</label>
         </div>
-        <div class="perm-hint">드롭박스에서 Ctrl(Mac: ⌘) 클릭으로 다중 선택 가능 · 직접 입력 시 쉼표로 구분</div>
+        <div class="perm-hint">클릭으로 다중 선택 가능 · 직접 입력 시 아래에 쉼표로 구분 입력</div>
+        <input class="perm-input" id="permCodeInput" type="text" placeholder="예: 101,104  (직접 입력)" style="margin-top:7px;">
       </div>
       <!-- 오류 메시지 -->
       <div id="permErr" style="display:none;font-size:12px;color:#e74c3c;font-weight:600;margin-top:-8px;margin-bottom:8px;"></div>
@@ -1928,6 +1925,11 @@ function resetPermForm() {
   if (permCodeInput) permCodeInput.value = '';
   var sel = document.getElementById('permCodeSelect');
   if (sel) { for (var i=0; i<sel.options.length; i++) sel.options[i].selected = false; }
+  // 체크박스 초기화
+  document.querySelectorAll('#permCodeCheckboxes input[type=checkbox]').forEach(function(cb){
+    cb.checked = false;
+    cb.closest('label').style.background = 'transparent';
+  });
   var errEl = document.getElementById('permErr');
   if (errEl) errEl.style.display = 'none';
   var permBody = document.getElementById('permBody');
@@ -1943,8 +1945,8 @@ function submitPermRequest() {
   var role = document.getElementById('permRole').value;
   var dept = document.getElementById('permDept').value;
   var codeInput = document.getElementById('permCodeInput').value.trim();
-  var sel = document.getElementById('permCodeSelect');
-  var selectedCodes = Array.from(sel.options).filter(function(o){ return o.selected; }).map(function(o){ return o.value; });
+  var checkedBoxes = document.querySelectorAll('#permCodeCheckboxes input[type=checkbox]:checked');
+  var selectedCodes = Array.from(checkedBoxes).map(function(cb){ return cb.value; });
   var allCodes = selectedCodes.length > 0 ? selectedCodes.join(',') : codeInput;
   var errEl = document.getElementById('permErr');
   if (!name) { errEl.textContent='이름을 입력해주세요.'; errEl.style.display='block'; return; }
