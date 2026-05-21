@@ -28,6 +28,37 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
 
 /* ── 헤더 ── */
 .header{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:0.5px solid var(--border);background:var(--bg2);}
+.period-bar{display:flex;align-items:center;gap:12px;padding:10px 28px;background:var(--bg2);border-bottom:0.5px solid var(--border);font-size:12px;}
+.period-label{color:var(--text3);font-weight:600;font-size:11px;letter-spacing:0.3px;}
+.period-select{background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text);font-family:'Nanum Gothic','나눔고딕',sans-serif;outline:none;cursor:pointer;font-weight:500;}
+.period-badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;}
+.period-badge.has-data{background:rgba(46,196,160,0.15);color:#2ec4a0;}
+.period-badge.no-data{background:rgba(240,96,128,0.12);color:#f06080;}
+.period-badge.current{background:rgba(108,92,231,0.15);color:#6c5ce7;}
+.period-divider{width:1px;height:16px;background:var(--border2);}
+.period-compare{display:flex;align-items:center;gap:8px;}
+.period-nav-btn{background:var(--bg3);border:0.5px solid var(--border2);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--text2);cursor:pointer;font-family:'Nanum Gothic','나눔고딕',sans-serif;font-weight:600;}
+.period-nav-btn:hover{border-color:var(--purple);color:var(--purple);}
+.period-info-chip{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:rgba(108,92,231,0.08);color:var(--text2);}
+/* 데이터 관리 탭 */
+.data-section{margin-bottom:20px;}
+.data-section-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.data-month-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px;}
+.data-month-cell{padding:10px 8px;border-radius:8px;border:1px solid var(--border);text-align:center;cursor:pointer;transition:all 0.15s;font-size:12px;}
+.data-month-cell.has-data{background:rgba(46,196,160,0.1);border-color:rgba(46,196,160,0.4);color:#2ec4a0;font-weight:700;}
+.data-month-cell.no-data{background:var(--bg3);color:var(--text3);font-weight:500;}
+.data-month-cell.current-month{background:rgba(108,92,231,0.12);border-color:var(--purple);color:var(--purple);font-weight:700;}
+.data-month-cell:hover{border-color:var(--purple);}
+.upload-zone{border:1.5px dashed var(--border2);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:border-color 0.2s;}
+.upload-zone:hover{border-color:var(--purple);}
+.upload-zone-icon{font-size:28px;margin-bottom:8px;}
+.upload-zone-text{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px;}
+.upload-zone-sub{font-size:11px;color:var(--text3);}
+.data-stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.data-stat{background:var(--bg3);border-radius:8px;padding:12px 14px;border:0.5px solid var(--border);}
+.data-stat-label{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.3px;margin-bottom:4px;}
+.data-stat-val{font-size:18px;font-weight:700;color:var(--text);}
+.data-stat-sub{font-size:10px;color:var(--text3);margin-top:2px;}
 .header-left{display:flex;align-items:center;gap:12px;}
 .logo{width:28px;height:28px;background:var(--purple);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}
 .header-title{font-size:15px;font-weight:600;color:var(--text);}
@@ -580,6 +611,40 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
   </div>
 </div>
 
+<!-- 기간 선택 바 -->
+<div class="period-bar" id="periodBar" style="display:none;">
+  <span class="period-label">기준 월</span>
+  <select class="period-select" id="periodYear" onchange="updatePeriod()">
+    <option value="2025">2025년</option>
+    <option value="2026" selected>2026년</option>
+    <option value="2027">2027년</option>
+  </select>
+  <select class="period-select" id="periodMonth" onchange="updatePeriod()">
+    <option value="1" selected>1월</option>
+    <option value="2">2월</option>
+    <option value="3">3월</option>
+    <option value="4">4월</option>
+    <option value="5">5월</option>
+    <option value="6">6월</option>
+    <option value="7">7월</option>
+    <option value="8">8월</option>
+    <option value="9">9월</option>
+    <option value="10">10월</option>
+    <option value="11">11월</option>
+    <option value="12">12월</option>
+  </select>
+  <span class="period-badge current" id="periodStatusBadge">📌 현재 기준월</span>
+  <div class="period-divider"></div>
+  <button class="period-nav-btn" onclick="movePeriod(-1)">◀ 이전 월</button>
+  <button class="period-nav-btn" onclick="movePeriod(1)">다음 월 ▶</button>
+  <div class="period-divider"></div>
+  <span class="period-info-chip" id="periodInfoChip">데이터 보유: 1개월</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+    <span style="font-size:11px;color:var(--text3);">누적 관리 기간</span>
+    <span style="font-size:12px;font-weight:700;color:var(--purple)" id="periodRangeLabel">2026.01 ~ 2026.01</span>
+  </div>
+</div>
+
 <!-- 탭 네비게이션 -->
 <div class="tab-nav">
   <button class="tab-btn active" data-tab="summary">📊 전체 서머리</button>
@@ -847,6 +912,28 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
         </div>
       </div>
 
+      <!-- ── 전월/당월 비교 ── -->
+      <div class="card" id="compareCard-summary">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="card-title" style="margin-bottom:0;">📈 전월/당월 비교 — 전체 건물</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:var(--text3);font-weight:600;">기준 월</span>
+            <select id="cmpYear-summary" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('summary')">
+              <option value="2025">2025년</option>
+              <option value="2026" selected>2026년</option>
+              <option value="2027">2027년</option>
+            </select>
+            <select id="cmpMonth-summary" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('summary')">
+              <option value="1" selected>1월</option><option value="2">2월</option><option value="3">3월</option>
+              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+              <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+            </select>
+          </div>
+        </div>
+        <div id="compareBody-summary"></div>
+      </div>
+
     
 </div><!-- /tab-summary -->
 
@@ -992,6 +1079,29 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
         </div>
         <button class="corr-submit" onclick="submitCorr('b1')">수정요청 제출</button>
       </div>
+
+      <!-- ── 전월/당월 비교 ── -->
+      <div class="card" id="compareCard-b1">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="card-title" style="margin-bottom:0;">📈 전월/당월 비교 — N타워 6층</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:var(--text3);font-weight:600;">기준 월</span>
+            <select id="cmpYear-b1" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b1')">
+              <option value="2025">2025년</option>
+              <option value="2026" selected>2026년</option>
+              <option value="2027">2027년</option>
+            </select>
+            <select id="cmpMonth-b1" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b1')">
+              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+              <option value="10">10월</option><option value="11" >11월</option><option value="12">12월</option>
+            </select>
+          </div>
+        </div>
+        <div id="compareBody-b1"></div>
+      </div>
+
 </div><!-- /tab-b1 -->
 
 
@@ -1116,6 +1226,29 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
         </div>
         <button class="corr-submit" onclick="submitCorr('b2')">수정요청 제출</button>
       </div>
+
+      <!-- ── 전월/당월 비교 ── -->
+      <div class="card" id="compareCard-b2">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="card-title" style="margin-bottom:0;">📈 전월/당월 비교 — 다운타운 12층</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:var(--text3);font-weight:600;">기준 월</span>
+            <select id="cmpYear-b2" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b2')">
+              <option value="2025">2025년</option>
+              <option value="2026" selected>2026년</option>
+              <option value="2027">2027년</option>
+            </select>
+            <select id="cmpMonth-b2" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b2')">
+              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+              <option value="10">10월</option><option value="11" >11월</option><option value="12">12월</option>
+            </select>
+          </div>
+        </div>
+        <div id="compareBody-b2"></div>
+      </div>
+
 </div><!-- /tab-b2 -->
 
 
@@ -1239,6 +1372,29 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
         </div>
         <button class="corr-submit" onclick="submitCorr('b3')">수정요청 제출</button>
       </div>
+
+      <!-- ── 전월/당월 비교 ── -->
+      <div class="card" id="compareCard-b3">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="card-title" style="margin-bottom:0;">📈 전월/당월 비교 — 수내동빌딩</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:var(--text3);font-weight:600;">기준 월</span>
+            <select id="cmpYear-b3" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b3')">
+              <option value="2025">2025년</option>
+              <option value="2026" selected>2026년</option>
+              <option value="2027">2027년</option>
+            </select>
+            <select id="cmpMonth-b3" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b3')">
+              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+              <option value="10">10월</option><option value="11" >11월</option><option value="12">12월</option>
+            </select>
+          </div>
+        </div>
+        <div id="compareBody-b3"></div>
+      </div>
+
 </div><!-- /tab-b3 -->
 
 
@@ -1351,6 +1507,29 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
         </div>
         <button class="corr-submit" onclick="submitCorr('b4')">수정요청 제출</button>
       </div>
+
+      <!-- ── 전월/당월 비교 ── -->
+      <div class="card" id="compareCard-b4">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="card-title" style="margin-bottom:0;">📈 전월/당월 비교 — 정자</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:var(--text3);font-weight:600;">기준 월</span>
+            <select id="cmpYear-b4" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b4')">
+              <option value="2025">2025년</option>
+              <option value="2026" selected>2026년</option>
+              <option value="2027">2027년</option>
+            </select>
+            <select id="cmpMonth-b4" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b4')">
+              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+              <option value="10">10월</option><option value="11" >11월</option><option value="12">12월</option>
+            </select>
+          </div>
+        </div>
+        <div id="compareBody-b4"></div>
+      </div>
+
 </div><!-- /tab-b4 -->
 
 
@@ -1467,6 +1646,29 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
         </div>
         <button class="corr-submit" onclick="submitCorr('b5')">수정요청 제출</button>
       </div>
+
+      <!-- ── 전월/당월 비교 ── -->
+      <div class="card" id="compareCard-b5">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="card-title" style="margin-bottom:0;">📈 전월/당월 비교 — 다운타운 8층</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:var(--text3);font-weight:600;">기준 월</span>
+            <select id="cmpYear-b5" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b5')">
+              <option value="2025">2025년</option>
+              <option value="2026" selected>2026년</option>
+              <option value="2027">2027년</option>
+            </select>
+            <select id="cmpMonth-b5" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b5')">
+              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+              <option value="10">10월</option><option value="11" >11월</option><option value="12">12월</option>
+            </select>
+          </div>
+        </div>
+        <div id="compareBody-b5"></div>
+      </div>
+
 </div><!-- /tab-b5 -->
 
 
@@ -1574,6 +1776,29 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
         </div>
         <button class="corr-submit" onclick="submitCorr('b6')">수정요청 제출</button>
       </div>
+
+      <!-- ── 전월/당월 비교 ── -->
+      <div class="card" id="compareCard-b6">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="card-title" style="margin-bottom:0;">📈 전월/당월 비교 — N타워 9층</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:var(--text3);font-weight:600;">기준 월</span>
+            <select id="cmpYear-b6" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b6')">
+              <option value="2025">2025년</option>
+              <option value="2026" selected>2026년</option>
+              <option value="2027">2027년</option>
+            </select>
+            <select id="cmpMonth-b6" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b6')">
+              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+              <option value="10">10월</option><option value="11" >11월</option><option value="12">12월</option>
+            </select>
+          </div>
+        </div>
+        <div id="compareBody-b6"></div>
+      </div>
+
 </div><!-- /tab-b6 -->
 
 <!-- ═══════════════ 다운타운 6층 탭 ═══════════════ -->
@@ -1693,6 +1918,29 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
         </div>
         <button class="corr-submit" onclick="submitCorr('b7')">수정요청 제출</button>
       </div>
+
+      <!-- ── 전월/당월 비교 ── -->
+      <div class="card" id="compareCard-b7">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="card-title" style="margin-bottom:0;">📈 전월/당월 비교 — 다운타운 6층</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:var(--text3);font-weight:600;">기준 월</span>
+            <select id="cmpYear-b7" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b7')">
+              <option value="2025">2025년</option>
+              <option value="2026" selected>2026년</option>
+              <option value="2027">2027년</option>
+            </select>
+            <select id="cmpMonth-b7" class="period-select" style="font-size:12px;padding:5px 8px;" onchange="renderCompare('b7')">
+              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+              <option value="10">10월</option><option value="11" >11월</option><option value="12">12월</option>
+            </select>
+          </div>
+        </div>
+        <div id="compareBody-b7"></div>
+      </div>
+
 </div><!-- /tab-b7 -->
 
 <!-- ══════════════════════════════════════
@@ -1700,6 +1948,144 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
 ══════════════════════════════════════ -->
 <div id="tab-admin" class="tab-content">
   <div style="padding:20px 0;display:flex;flex-direction:column;gap:20px;">
+
+    <!-- ── 월별 데이터 현황 ── -->
+    <div class="card">
+      <div class="card-title">📅 월별 데이터 현황</div>
+
+      <!-- 연도 선택 -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <select class="period-select" id="adminYear" onchange="renderDataCalendar()" style="font-size:13px;padding:7px 12px;">
+          <option value="2025">2025년</option>
+          <option value="2026" selected>2026년</option>
+          <option value="2027">2027년</option>
+        </select>
+        <span style="font-size:12px;color:var(--text3);">월을 클릭하면 해당 월 데이터를 관리할 수 있습니다.</span>
+      </div>
+
+      <!-- 누적 통계 -->
+      <div class="data-stat-row" id="dataStatRow">
+        <div class="data-stat">
+          <div class="data-stat-label">데이터 보유 월수</div>
+          <div class="data-stat-val" id="statMonthCount">1개월</div>
+          <div class="data-stat-sub">2026년 기준</div>
+        </div>
+        <div class="data-stat">
+          <div class="data-stat-label">최초 등록 월</div>
+          <div class="data-stat-val" id="statFirstMonth">2026.01</div>
+          <div class="data-stat-sub">누적 관리 시작</div>
+        </div>
+        <div class="data-stat">
+          <div class="data-stat-label">최근 업데이트</div>
+          <div class="data-stat-val" id="statLastUpdate">2026.01</div>
+          <div class="data-stat-sub">마지막 등록 월</div>
+        </div>
+        <div class="data-stat">
+          <div class="data-stat-label">반기 보고서</div>
+          <div class="data-stat-val" id="statReportReady" style="color:var(--text3);">준비중</div>
+          <div class="data-stat-sub">6개월 이상 시 활성화</div>
+        </div>
+      </div>
+
+      <!-- 월별 캘린더 -->
+      <div class="data-month-grid" id="dataCalendar"></div>
+
+      <!-- 범례 -->
+      <div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--text3);">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(46,196,160,0.3);margin-right:4px;"></span>데이터 있음</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:rgba(108,92,231,0.2);margin-right:4px;"></span>현재 기준월</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--bg3);border:1px solid var(--border);margin-right:4px;"></span>데이터 없음</span>
+      </div>
+    </div>
+
+    <!-- ── 데이터 등록 ── -->
+    <div class="card">
+      <div class="card-title">📥 월별 데이터 등록</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+        <!-- 등록 폼 -->
+        <div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <select class="period-select" id="inputYear" style="flex:1;font-size:13px;padding:7px 10px;">
+              <option value="2025">2025년</option>
+              <option value="2026" selected>2026년</option>
+              <option value="2027">2027년</option>
+            </select>
+            <select class="period-select" id="inputMonth" style="flex:1;font-size:13px;padding:7px 10px;">
+              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+              <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+            </select>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">임차료 합계 (원)</div>
+          <input type="number" id="inputTotalRent" placeholder="예: 90536845" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;color:var(--text);background:var(--bg3);outline:none;font-family:'Nanum Gothic',sans-serif;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">총 관리 면적 (평)</div>
+          <input type="number" id="inputTotalArea" placeholder="예: 1035.6" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;color:var(--text);background:var(--bg3);outline:none;font-family:'Nanum Gothic',sans-serif;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">총 강의실 수</div>
+          <input type="number" id="inputTotalRooms" placeholder="예: 122" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;color:var(--text);background:var(--bg3);outline:none;font-family:'Nanum Gothic',sans-serif;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;">메모</div>
+          <input type="text" id="inputMemo" placeholder="예: 정자 계약 갱신, N타워 평단가 인상 등" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;color:var(--text);background:var(--bg3);outline:none;font-family:'Nanum Gothic',sans-serif;margin-bottom:14px;">
+          <button onclick="saveMonthData()" style="width:100%;padding:11px;background:var(--purple);border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:'Nanum Gothic',sans-serif;">💾 저장</button>
+          <div id="saveMsg" style="display:none;margin-top:8px;font-size:12px;font-weight:600;text-align:center;padding:6px;border-radius:6px;"></div>
+        </div>
+
+        <!-- 안내 -->
+        <div style="background:var(--bg3);border-radius:10px;padding:18px;border:0.5px solid var(--border);">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:12px;">📌 데이터 관리 안내</div>
+          <div style="font-size:12px;color:var(--text3);line-height:1.9;">
+            <div>• 매월 말 기준 데이터를 입력하세요</div>
+            <div>• 같은 월 재등록 시 덮어쓰기됩니다</div>
+            <div>• 데이터는 이 브라우저에 저장됩니다</div>
+            <div style="margin-top:8px;padding:8px;background:rgba(108,92,231,0.08);border-radius:6px;color:var(--purple);font-weight:600;">
+              🔜 다음 단계: Supabase 연동 시<br>모든 기기에서 공유 가능
+            </div>
+            <div style="margin-top:8px;padding:8px;background:rgba(46,196,160,0.08);border-radius:6px;color:#2ec4a0;font-weight:600;">
+              📊 6개월 누적 시<br>반기 보고서 자동 생성 활성화
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 반기 보고서 ── -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="card-title" style="margin-bottom:0;">📊 반기 보고서</div>
+        <span id="reportBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:rgba(158,158,158,0.15);color:var(--text3);">6개월 이상 데이터 필요</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+        <div>
+          <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:6px;">보고서 기간</div>
+          <select class="period-select" id="reportPeriod" style="width:100%;font-size:13px;padding:8px 10px;">
+            <option value="2026H1">2026년 상반기 (1~6월)</option>
+            <option value="2026H2">2026년 하반기 (7~12월)</option>
+            <option value="2025H1">2025년 상반기 (1~6월)</option>
+            <option value="2025H2">2025년 하반기 (7~12월)</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end;">
+          <button onclick="generateReport()" id="reportBtn" disabled style="width:100%;padding:9px;background:var(--text3);border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:not-allowed;font-family:'Nanum Gothic',sans-serif;">📋 보고서 생성</button>
+        </div>
+      </div>
+      <div id="reportPreview" style="display:none;background:var(--bg3);border-radius:10px;padding:16px;border:0.5px solid var(--border);">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;">보고서 미리보기</div>
+        <div id="reportContent"></div>
+      </div>
+      <div style="background:rgba(108,92,231,0.05);border-radius:8px;padding:12px 14px;border:0.5px solid rgba(108,92,231,0.15);">
+        <div style="font-size:11px;color:var(--purple);font-weight:700;margin-bottom:6px;">📋 자동 생성 항목 (6개월 데이터 확보 시)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;color:var(--text3);">
+          <span>✓ 월별 임차료 추이 차트</span>
+          <span>✓ 평단가 변동 분석</span>
+          <span>✓ 강의실 가동률 추이</span>
+          <span>✓ 유휴비용 현황</span>
+          <span>✓ 건물별 비용 비중</span>
+          <span>✓ 전기 대비 증감</span>
+          <span>✓ 문제 건물 자동 식별</span>
+          <span>✓ 개선 권고사항</span>
+        </div>
+      </div>
+    </div>
 
     <!-- 로그인 이력 -->
     <div class="card">
@@ -1968,10 +2354,213 @@ function buildHeatmap(bid) {
   if(legendEl) legendEl.innerHTML = legHtml;
 }
 
-/* ── 탭 전환 ── */
+/* ── 기간 선택 & 누적 데이터 관리 ── */
 
+// 초기 데이터 (2026년 1월 = 현재 하드코딩 데이터)
+var MONTH_DATA_REGISTRY = JSON.parse(localStorage.getItem('month_data_registry') || '{}');
+// 2026-01이 없으면 기본값 등록
+if (!MONTH_DATA_REGISTRY['2026-01']) {
+  MONTH_DATA_REGISTRY['2026-01'] = {
+    totalRent: 90536845, totalArea: 1035.6, totalRooms: 122,
+    memo: '기준 데이터 (AI DAY v2)',
+    registeredAt: '2026-01-01'
+  };
+  localStorage.setItem('month_data_registry', JSON.stringify(MONTH_DATA_REGISTRY));
+}
 
-// ── 탭 전환 이벤트 위임 ────────────────────────────────
+var currentPeriodYear = 2026;
+var currentPeriodMonth = 1;
+
+function getPeriodKey(y, m) { return y + '-' + String(m).padStart(2,'0'); }
+
+function updatePeriod() {
+  currentPeriodYear  = parseInt(document.getElementById('periodYear').value);
+  currentPeriodMonth = parseInt(document.getElementById('periodMonth').value);
+  var key = getPeriodKey(currentPeriodYear, currentPeriodMonth);
+  var badge = document.getElementById('periodStatusBadge');
+  var chip  = document.getElementById('periodInfoChip');
+  var keys  = Object.keys(MONTH_DATA_REGISTRY).sort();
+
+  if (key === '2026-01') {
+    badge.className = 'period-badge current';
+    badge.textContent = '📌 현재 기준월';
+  } else if (MONTH_DATA_REGISTRY[key]) {
+    badge.className = 'period-badge has-data';
+    badge.textContent = '✅ 데이터 있음';
+  } else {
+    badge.className = 'period-badge no-data';
+    badge.textContent = '⚪ 데이터 없음';
+  }
+
+  chip.textContent = '데이터 보유: ' + keys.length + '개월';
+  if (keys.length > 0) {
+    document.getElementById('periodRangeLabel').textContent =
+      keys[0].replace('-','.') + ' ~ ' + keys[keys.length-1].replace('-','.');
+  }
+}
+
+function movePeriod(dir) {
+  var m = currentPeriodMonth + dir;
+  var y = currentPeriodYear;
+  if (m < 1)  { m = 12; y--; }
+  if (m > 12) { m = 1;  y++; }
+  currentPeriodYear  = y;
+  currentPeriodMonth = m;
+  document.getElementById('periodYear').value  = y;
+  document.getElementById('periodMonth').value = m;
+  updatePeriod();
+}
+
+function renderDataCalendar() {
+  var year = parseInt(document.getElementById('adminYear').value);
+  var grid = document.getElementById('dataCalendar');
+  var months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  var html = '';
+  var hasCount = 0;
+  months.forEach(function(label, i) {
+    var key = getPeriodKey(year, i+1);
+    var isCurrent = (year === 2026 && i === 0);
+    var hasData = !!MONTH_DATA_REGISTRY[key];
+    if (hasData) hasCount++;
+    var cls = isCurrent ? 'data-month-cell current-month' : (hasData ? 'data-month-cell has-data' : 'data-month-cell no-data');
+    var icon = isCurrent ? '📌' : (hasData ? '✅' : '○');
+    var sub  = hasData ? (MONTH_DATA_REGISTRY[key].totalRent / 10000).toFixed(0) + '만' : '미등록';
+    html += '<div class="' + cls + '" onclick="selectDataMonth(' + year + ',' + (i+1) + ')">'
+      + '<div style="font-size:14px;margin-bottom:3px;">' + icon + '</div>'
+      + '<div style="font-weight:700;">' + label + '</div>'
+      + '<div style="font-size:10px;margin-top:2px;opacity:0.8;">' + sub + '</div>'
+      + '</div>';
+  });
+  grid.innerHTML = html;
+
+  // 통계 업데이트
+  var allKeys = Object.keys(MONTH_DATA_REGISTRY).sort();
+  document.getElementById('statMonthCount').textContent = allKeys.length + '개월';
+  document.getElementById('statFirstMonth').textContent = allKeys.length ? allKeys[0].replace('-','.') : '-';
+  document.getElementById('statLastUpdate').textContent = allKeys.length ? allKeys[allKeys.length-1].replace('-','.') : '-';
+
+  // 보고서 버튼 활성화
+  var reportReady = allKeys.length >= 6;
+  document.getElementById('statReportReady').textContent = reportReady ? allKeys.length + '개월 ✅' : allKeys.length + '개월 (6개월 필요)';
+  document.getElementById('statReportReady').style.color = reportReady ? '#2ec4a0' : 'var(--text3)';
+  var reportBtn = document.getElementById('reportBtn');
+  var reportBadge = document.getElementById('reportBadge');
+  if (reportReady) {
+    reportBtn.disabled = false;
+    reportBtn.style.background = 'var(--purple)';
+    reportBtn.style.cursor = 'pointer';
+    reportBadge.style.background = 'rgba(46,196,160,0.15)';
+    reportBadge.style.color = '#2ec4a0';
+    reportBadge.textContent = '✅ 보고서 생성 가능';
+  }
+}
+
+function selectDataMonth(year, month) {
+  document.getElementById('inputYear').value  = year;
+  document.getElementById('inputMonth').value = month;
+  var key = getPeriodKey(year, month);
+  if (MONTH_DATA_REGISTRY[key]) {
+    var d = MONTH_DATA_REGISTRY[key];
+    document.getElementById('inputTotalRent').value  = d.totalRent;
+    document.getElementById('inputTotalArea').value  = d.totalArea;
+    document.getElementById('inputTotalRooms').value = d.totalRooms;
+    document.getElementById('inputMemo').value       = d.memo || '';
+  } else {
+    document.getElementById('inputTotalRent').value  = '';
+    document.getElementById('inputTotalArea').value  = '';
+    document.getElementById('inputTotalRooms').value = '';
+    document.getElementById('inputMemo').value       = '';
+  }
+}
+
+function saveMonthData() {
+  var year  = parseInt(document.getElementById('inputYear').value);
+  var month = parseInt(document.getElementById('inputMonth').value);
+  var rent  = parseFloat(document.getElementById('inputTotalRent').value);
+  var area  = parseFloat(document.getElementById('inputTotalArea').value);
+  var rooms = parseInt(document.getElementById('inputTotalRooms').value);
+  var memo  = document.getElementById('inputMemo').value.trim();
+  var msg   = document.getElementById('saveMsg');
+
+  if (!rent || !area || !rooms) {
+    msg.style.display = 'block';
+    msg.style.background = 'rgba(240,96,128,0.1)';
+    msg.style.color = '#f06080';
+    msg.textContent = '임차료, 면적, 강의실 수를 모두 입력해주세요.';
+    return;
+  }
+
+  var key = getPeriodKey(year, month);
+  MONTH_DATA_REGISTRY[key] = {
+    totalRent: rent, totalArea: area, totalRooms: rooms,
+    memo: memo, registeredAt: new Date().toLocaleDateString('ko-KR')
+  };
+  localStorage.setItem('month_data_registry', JSON.stringify(MONTH_DATA_REGISTRY));
+
+  msg.style.display = 'block';
+  msg.style.background = 'rgba(46,196,160,0.1)';
+  msg.style.color = '#2ec4a0';
+  msg.textContent = year + '년 ' + month + '월 데이터가 저장되었습니다.';
+  setTimeout(function(){ msg.style.display='none'; }, 3000);
+
+  renderDataCalendar();
+  updatePeriod();
+}
+
+function generateReport() {
+  var keys = Object.keys(MONTH_DATA_REGISTRY).sort();
+  if (keys.length < 1) return;
+  var periodVal = document.getElementById('reportPeriod').value;
+  var year = parseInt(periodVal.substring(0,4));
+  var half = periodVal.substring(4);
+  var startM = half === 'H1' ? 1 : 7;
+  var endM   = half === 'H1' ? 6 : 12;
+
+  var periodKeys = keys.filter(function(k) {
+    var y = parseInt(k.split('-')[0]);
+    var m = parseInt(k.split('-')[1]);
+    return y === year && m >= startM && m <= endM;
+  });
+
+  var preview = document.getElementById('reportPreview');
+  var content = document.getElementById('reportContent');
+  preview.style.display = 'block';
+
+  if (periodKeys.length === 0) {
+    content.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px;">해당 기간 데이터가 없습니다.</div>';
+    return;
+  }
+
+  var rows = periodKeys.map(function(k) {
+    var d = MONTH_DATA_REGISTRY[k];
+    var m = k.split('-');
+    var ppp = Math.round(d.totalRent / d.totalArea);
+    return '<tr>'
+      + '<td>' + m[0] + '.' + m[1] + '</td>'
+      + '<td style="text-align:right;color:var(--purple);font-weight:600;">' + d.totalRent.toLocaleString() + '원</td>'
+      + '<td style="text-align:right;">' + d.totalArea + '평</td>'
+      + '<td style="text-align:right;">' + ppp.toLocaleString() + '원</td>'
+      + '<td style="text-align:right;">' + d.totalRooms + '개</td>'
+      + '<td style="color:var(--text3);font-size:11px;">' + (d.memo || '-') + '</td>'
+      + '</tr>';
+  }).join('');
+
+  var totalRents = periodKeys.map(function(k){ return MONTH_DATA_REGISTRY[k].totalRent; });
+  var avgRent = Math.round(totalRents.reduce(function(a,b){return a+b;},0) / totalRents.length);
+
+  content.innerHTML =
+    '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">'
+    + year + '년 ' + (half==='H1'?'상':'하') + '반기 임차료 현황 (' + periodKeys.length + '개월)'
+    + '</div>'
+    + '<table class="log-table" style="margin-bottom:12px;">'
+    + '<thead><tr><th>월</th><th style="text-align:right">임차료</th><th style="text-align:right">면적</th><th style="text-align:right">평단가</th><th style="text-align:right">강의실</th><th>메모</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody>'
+    + '</table>'
+    + '<div style="padding:10px 12px;background:rgba(108,92,231,0.06);border-radius:8px;font-size:12px;color:var(--text2);">'
+    + '📊 ' + periodKeys.length + '개월 평균 임차료: <strong style="color:var(--purple)">' + avgRent.toLocaleString() + '원</strong>'
+    + (periodKeys.length < 6 ? ' &nbsp;|&nbsp; <span style="color:var(--amber)">⚠ ' + (6-periodKeys.length) + '개월 더 쌓이면 완전한 반기 분석 가능</span>' : ' &nbsp;|&nbsp; <span style="color:#2ec4a0">✅ 반기 분석 완료</span>')
+    + '</div>';
+}
 
 function resetPermForm() {
   var permName = document.getElementById('permName');
@@ -2135,6 +2724,137 @@ function applyBuildingFilter() {
   });
 }
 
+/* ── 전월/당월 비교 ── */
+var BUILDING_KEYS = ['summary','b1','b2','b3','b4','b5','b6','b7'];
+
+// 건물별 기준 임차료 (2026-01 하드코딩 기준)
+var BUILDING_BASE = {
+  summary: { rent: 90536845, area: 1035.6, rooms: 122, ppp: 87423 },
+  b1: { rent: 13593400, area: 130.8, rooms: 20, ppp: 103925 },
+  b2: { rent: 8800000,  area: 112.1, rooms: 14, ppp: 78501  },
+  b3: { rent: 17370045, area: 209.7, rooms: 23, ppp: 82833  },
+  b4: { rent: 11660000, area: 154.0, rooms: 20, ppp: 75714  },
+  b5: { rent: 13750000, area: 161.2, rooms: 28, ppp: 85298  },
+  b6: { rent: 13593400, area: 130.8, rooms: 7,  ppp: 103925 },
+  b7: { rent: 11770000, area: 137.0, rooms: 10, ppp: 85912  },
+};
+
+function renderCompare(suffix) {
+  var body = document.getElementById('compareBody-' + suffix);
+  if (!body) return;
+
+  var year  = parseInt(document.getElementById('cmpYear-'  + suffix).value);
+  var month = parseInt(document.getElementById('cmpMonth-' + suffix).value);
+
+  var curKey  = getPeriodKey(year, month);
+  var prevM   = month - 1 < 1 ? 12 : month - 1;
+  var prevY   = month - 1 < 1 ? year - 1 : year;
+  var prevKey = getPeriodKey(prevY, prevM);
+
+  // 당월 데이터
+  var curData  = MONTH_DATA_REGISTRY[curKey]  || (curKey  === '2026-01' ? BUILDING_BASE[suffix] : null);
+  var prevData = MONTH_DATA_REGISTRY[prevKey] || (prevKey === '2026-01' ? BUILDING_BASE[suffix] : null);
+
+  // 전월·당월 모두 없는 경우
+  if (!curData && !prevData) {
+    body.innerHTML = '<div style="text-align:center;padding:24px;font-size:12px;color:var(--text3);">해당 기간 데이터가 없습니다.<br>관리자 탭에서 월별 데이터를 등록해주세요.</div>';
+    return;
+  }
+
+  function arrow(cur, prev, unit, inverse) {
+    if (!cur || !prev) return '<span style="color:var(--text3)">-</span>';
+    var diff = cur - prev;
+    var pct  = prev !== 0 ? ((diff / prev) * 100).toFixed(1) : 0;
+    var up   = diff > 0;
+    var good = inverse ? !up : up;
+    var color = diff === 0 ? 'var(--text3)' : (good ? '#2ec4a0' : '#f06080');
+    var sign  = diff > 0 ? '+' : '';
+    return '<span style="color:' + color + ';font-weight:700;">'
+      + (diff > 0 ? '▲' : diff < 0 ? '▼' : '–') + ' '
+      + sign + (unit === '원' ? Math.abs(diff).toLocaleString() : Math.abs(diff).toLocaleString())
+      + unit + ' (' + sign + pct + '%)</span>';
+  }
+
+  function fmtRent(v) { return v ? v.toLocaleString() + '원' : '-'; }
+  function fmtArea(v) { return v ? v + '평' : '-'; }
+  function fmtPpp(v)  {
+    if (v && v.ppp) return v.ppp.toLocaleString() + '원';
+    if (v && v.totalRent && v.totalArea) return Math.round(v.totalRent / v.totalArea).toLocaleString() + '원';
+    return '-';
+  }
+  function fmtRooms(v) { return v ? (v.rooms || v.totalRooms || '-') + '개' : '-'; }
+
+  var curRent  = curData  ? (curData.totalRent  || curData.rent)  : null;
+  var prevRent = prevData ? (prevData.totalRent || prevData.rent) : null;
+  var curArea  = curData  ? (curData.totalArea  || curData.area)  : null;
+  var prevArea = prevData ? (prevData.totalArea || prevData.area) : null;
+  var curRooms = curData  ? (curData.totalRooms || curData.rooms) : null;
+  var prevRooms= prevData ? (prevData.totalRooms|| prevData.rooms): null;
+  var curPpp   = curRent && curArea  ? Math.round(curRent  / curArea)  : (curData  && curData.ppp  ? curData.ppp  : null);
+  var prevPpp  = prevRent && prevArea? Math.round(prevRent / prevArea) : (prevData && prevData.ppp ? prevData.ppp : null);
+
+  body.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px;">'
+
+    // 임차료
+    + '<div style="background:var(--bg3);border-radius:10px;padding:14px;border:0.5px solid var(--border);">'
+    + '<div style="font-size:10px;color:var(--text3);font-weight:700;margin-bottom:6px;letter-spacing:0.3px;">월 임차료</div>'
+    + '<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">전월 ' + prevY + '.' + String(prevM).padStart(2,'0') + '</div>'
+    + '<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;">' + (prevRent ? prevRent.toLocaleString() + '원' : '-') + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">당월 ' + year + '.' + String(month).padStart(2,'0') + '</div>'
+    + '<div style="font-size:14px;font-weight:700;color:var(--purple);margin-bottom:8px;">' + (curRent ? curRent.toLocaleString() + '원' : '-') + '</div>'
+    + '<div style="font-size:12px;">' + arrow(curRent, prevRent, '원', false) + '</div>'
+    + '</div>'
+
+    // 평단가
+    + '<div style="background:var(--bg3);border-radius:10px;padding:14px;border:0.5px solid var(--border);">'
+    + '<div style="font-size:10px;color:var(--text3);font-weight:700;margin-bottom:6px;letter-spacing:0.3px;">평단가 (원/평)</div>'
+    + '<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">전월 ' + prevY + '.' + String(prevM).padStart(2,'0') + '</div>'
+    + '<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;">' + (prevPpp ? prevPpp.toLocaleString() + '원' : '-') + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">당월 ' + year + '.' + String(month).padStart(2,'0') + '</div>'
+    + '<div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px;">' + (curPpp ? curPpp.toLocaleString() + '원' : '-') + '</div>'
+    + '<div style="font-size:12px;">' + arrow(curPpp, prevPpp, '원', false) + '</div>'
+    + '</div>'
+
+    // 면적
+    + '<div style="background:var(--bg3);border-radius:10px;padding:14px;border:0.5px solid var(--border);">'
+    + '<div style="font-size:10px;color:var(--text3);font-weight:700;margin-bottom:6px;letter-spacing:0.3px;">관리 면적</div>'
+    + '<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">전월 ' + prevY + '.' + String(prevM).padStart(2,'0') + '</div>'
+    + '<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;">' + (prevArea ? prevArea + '평' : '-') + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">당월 ' + year + '.' + String(month).padStart(2,'0') + '</div>'
+    + '<div style="font-size:14px;font-weight:700;color:var(--teal);margin-bottom:8px;">' + (curArea ? curArea + '평' : '-') + '</div>'
+    + '<div style="font-size:12px;">' + arrow(curArea, prevArea, '평', true) + '</div>'
+    + '</div>'
+
+    // 강의실
+    + '<div style="background:var(--bg3);border-radius:10px;padding:14px;border:0.5px solid var(--border);">'
+    + '<div style="font-size:10px;color:var(--text3);font-weight:700;margin-bottom:6px;letter-spacing:0.3px;">강의실 수</div>'
+    + '<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">전월 ' + prevY + '.' + String(prevM).padStart(2,'0') + '</div>'
+    + '<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;">' + (prevRooms ? prevRooms + '개' : '-') + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">당월 ' + year + '.' + String(month).padStart(2,'0') + '</div>'
+    + '<div style="font-size:14px;font-weight:700;color:var(--blue);margin-bottom:8px;">' + (curRooms ? curRooms + '개' : '-') + '</div>'
+    + '<div style="font-size:12px;">' + arrow(curRooms, prevRooms, '개', true) + '</div>'
+    + '</div>'
+
+    + '</div>'
+
+    // 메모
+    + (curData && (curData.memo) ?
+      '<div style="padding:8px 12px;background:rgba(108,92,231,0.05);border-radius:7px;border:0.5px solid rgba(108,92,231,0.15);font-size:12px;color:var(--text2);">📝 ' + (curData.memo) + '</div>'
+      : '<div style="padding:8px 12px;background:var(--bg3);border-radius:7px;font-size:12px;color:var(--text3);text-align:center;">데이터가 1개월뿐이면 전월 비교가 표시되지 않습니다. 다음 달 데이터 등록 후 비교 가능합니다.</div>')
+    ;
+}
+
+function initAllCompare() {
+  BUILDING_KEYS.forEach(function(suffix) {
+    var yearEl = document.getElementById('cmpYear-' + suffix);
+    var monthEl = document.getElementById('cmpMonth-' + suffix);
+    if (yearEl) yearEl.value = 2026;
+    if (monthEl) monthEl.value = 1;
+    renderCompare(suffix);
+  });
+}
+
 function switchTab(id) {
   var panes = document.querySelectorAll('.tab-content');
   for (var i = 0; i < panes.length; i++) panes[i].classList.remove('active');
@@ -2156,6 +2876,7 @@ function switchTab(id) {
 // 탭 버튼 + 카드 클릭 — window.onload로 DOM 완전 로드 후 실행
 window.addEventListener('load', function() {
   applyBuildingFilter(); // 초기 전체 조회
+  initAllCompare();      // 전월/당월 비교 초기화
 
   // ── 권한요청 모달 이벤트 ──
   var permBtn = document.getElementById('authPermBtn');
@@ -2947,6 +3668,8 @@ function doLogin() {
     document.getElementById('adminTab').style.display = 'block';
     renderLogTab();
   }
+  document.getElementById('periodBar').style.display = 'flex';
+  updatePeriod();
   applyTabPermissions(user);
 }
 
@@ -2954,8 +3677,9 @@ function doLogout() {
   if (!confirm('로그아웃 하시겠습니까?')) return;
   if (currentUser) saveLoginLog(currentUser, '로그아웃');
   currentUser = null;
-  document.getElementById('logBtn').style.display = 'none';
+  document.getElementById('logBtn') && (document.getElementById('logBtn').style.display = 'none');
   document.getElementById('adminTab').style.display = 'none';
+  document.getElementById('periodBar').style.display = 'none';
   document.getElementById('authOverlay').style.display = 'flex';
   document.getElementById('userInfoBar').style.display = 'none';
   document.getElementById('authId').value = '';
@@ -3029,6 +3753,13 @@ switchTab = function(id) {
     return;
   }
   _origSwitchTab(id);
+  if (id === 'admin') {
+    renderDataCalendar();
+    renderLogTab();
+  }
+  // 탭 전환 시 해당 탭 비교 렌더링
+  var suffix = id === 'summary' ? 'summary' : id;
+  setTimeout(function() { renderCompare(suffix); }, 50);
 };
 
 // 카드 클릭 권한 체크
