@@ -446,12 +446,12 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
     <button class="auth-btn" id="authLoginBtn">로그인</button>
     <div class="auth-err" id="authErr">아이디 또는 비밀번호를 확인해주세요.</div>
     <div class="auth-divider"><span>계정이 없으신가요?</span></div>
-    <button class="auth-req-btn" id="authPermBtn">🔑 권한 요청하기</button>
+    <button class="auth-req-btn" id="authPermBtn" onclick="document.getElementById('permOverlay').classList.add('open')">🔑 권한 요청하기</button>
   </div>
 </div>
 
 <!-- 권한요청 모달 -->
-<div class="perm-overlay" id="permOverlay">
+<div class="perm-overlay" id="permOverlay" onclick="if(event.target===this){this.classList.remove('open');resetPermForm();}">
   <div class="perm-modal" id="permModal">
     <div class="perm-head">
       <div>
@@ -526,8 +526,8 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       <div id="permErr" style="display:none;font-size:12px;color:#e74c3c;font-weight:600;margin-top:-8px;margin-bottom:8px;"></div>
     </div>
     <div class="perm-footer" id="permFooter">
-      <button class="perm-btn-cancel" id="permCancelBtn">취소</button>
-      <button class="perm-btn-submit" id="permSubmitBtn">요청 제출</button>
+      <button class="perm-btn-cancel" id="permCancelBtn" onclick="document.getElementById('permOverlay').classList.remove('open');resetPermForm();">취소</button>
+      <button class="perm-btn-submit" id="permSubmitBtn" onclick="submitPermRequest()">요청 제출</button>
     </div>
   </div>
 </div>
@@ -1936,6 +1936,35 @@ function resetPermForm() {
   if (permFooter) permFooter.style.display = 'flex';
   var succ = document.getElementById('permSuccess');
   if (succ) succ.remove();
+}
+
+function submitPermRequest() {
+  var name = document.getElementById('permName').value.trim();
+  var role = document.getElementById('permRole').value;
+  var dept = document.getElementById('permDept').value;
+  var codeInput = document.getElementById('permCodeInput').value.trim();
+  var sel = document.getElementById('permCodeSelect');
+  var selectedCodes = Array.from(sel.options).filter(function(o){ return o.selected; }).map(function(o){ return o.value; });
+  var allCodes = selectedCodes.length > 0 ? selectedCodes.join(',') : codeInput;
+  var errEl = document.getElementById('permErr');
+  if (!name) { errEl.textContent='이름을 입력해주세요.'; errEl.style.display='block'; return; }
+  if (!role) { errEl.textContent='직책을 선택해주세요.'; errEl.style.display='block'; return; }
+  if (!dept) { errEl.textContent='사업부를 선택해주세요.'; errEl.style.display='block'; return; }
+  if (!allCodes) { errEl.textContent='관코드를 선택하거나 입력해주세요.'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+  var reqs = JSON.parse(localStorage.getItem('perm_requests') || '[]');
+  reqs.push({ name:name, role:role, dept:dept, codes:allCodes, requestedAt:new Date().toLocaleString('ko-KR') });
+  localStorage.setItem('perm_requests', JSON.stringify(reqs));
+  document.getElementById('permBody').style.display = 'none';
+  document.getElementById('permFooter').style.display = 'none';
+  var succ = document.createElement('div');
+  succ.id = 'permSuccess';
+  succ.className = 'perm-success';
+  succ.innerHTML = '<div class="perm-success-icon">✅</div>'
+    + '<div class="perm-success-title">요청이 접수되었습니다</div>'
+    + '<div class="perm-success-sub">' + name + '님의 권한 요청이 접수되었습니다.<br>관리자 승인 후 계정이 발급됩니다.</div>'
+    + '<button onclick="document.getElementById(\'permOverlay\').classList.remove(\'open\');resetPermForm();" style="margin-top:20px;padding:10px 28px;background:#6c5ce7;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:\'Nanum Gothic\',sans-serif;">확인</button>';
+  document.getElementById('permModal').appendChild(succ);
 }
 
 /* ── 로그인 로그 ── */
