@@ -570,7 +570,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
     </div>
   </div>
   <span class="badge">AI DAY v2</span>
-  <button id="logBtn" onclick="openLog()" style="display:none;background:rgba(0,0,0,0.05);border:0.5px solid rgba(0,0,0,0.12);border-radius:20px;padding:4px 14px;font-size:11px;color:#555566;cursor:pointer;font-family:'Nanum Gothic','나눔고딕',sans-serif;font-weight:600;">🗂 로그 이력</button>
   <div class="user-info-bar" id="userInfoBar" style="display:none;" onclick="doLogout()">
     <div class="user-role-dot" id="userRoleDot"></div>
     <span id="userNameDisplay"></span>
@@ -589,6 +588,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
   <button class="tab-btn" data-tab="b5">🏢 다운타운 8층</button>
   <button class="tab-btn" data-tab="b6">🏢 N타워 9층</button>
   <button class="tab-btn" data-tab="b7">🏢 다운타운 6층</button>
+  <button class="tab-btn" data-tab="admin" id="adminTab" style="display:none;margin-left:auto;color:#6c5ce7;border-bottom-color:transparent;">🔐 관리자</button>
 </div>
 
 <div class="main">
@@ -1641,8 +1641,58 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       </div>
 </div><!-- /tab-b7 -->
 
+<!-- ══════════════════════════════════════
+     TAB: 관리자 (이슬기 전용)
+══════════════════════════════════════ -->
+<div id="tab-admin" class="tab-content">
+  <div style="padding:20px 0;display:flex;flex-direction:column;gap:20px;">
 
-  </div><!-- /left -->
+    <!-- 로그인 이력 -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="card-title" style="margin-bottom:0;">🗂 로그인 이력</div>
+        <div style="display:flex;gap:8px;">
+          <span id="logHeadSub" style="font-size:11px;color:var(--text3);align-self:center;"></span>
+          <button onclick="var c=confirm('로그인 이력을 전체 삭제하시겠습니까?');if(c){localStorage.removeItem('login_logs');renderLogTab();}" style="padding:5px 12px;background:#fff;border:1px solid #d0d0dc;border-radius:6px;font-size:11px;font-weight:600;color:#e74c3c;cursor:pointer;font-family:'Nanum Gothic',sans-serif;">초기화</button>
+          <button onclick="renderLogTab()" style="padding:5px 12px;background:var(--purple);border:none;border-radius:6px;font-size:11px;font-weight:600;color:#fff;cursor:pointer;font-family:'Nanum Gothic',sans-serif;">새로고침</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="log-table" id="logTable">
+          <thead>
+            <tr>
+              <th>일시</th><th>이름</th><th>아이디</th><th>직책</th><th>구분</th>
+            </tr>
+          </thead>
+          <tbody id="logTbody"></tbody>
+        </table>
+        <div class="log-empty" id="logEmpty" style="display:none;">로그인 이력이 없습니다.</div>
+      </div>
+    </div>
+
+    <!-- 권한요청 이력 -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="card-title" style="margin-bottom:0;">🔑 권한 요청 이력</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="var c=confirm('권한요청 이력을 전체 삭제하시겠습니까?');if(c){localStorage.removeItem('perm_requests');renderLogTab();}" style="padding:5px 12px;background:#fff;border:1px solid #d0d0dc;border-radius:6px;font-size:11px;font-weight:600;color:#e74c3c;cursor:pointer;font-family:'Nanum Gothic',sans-serif;">초기화</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="log-table" id="reqTable">
+          <thead>
+            <tr>
+              <th>요청일시</th><th>이름</th><th>직책</th><th>사업부</th><th>관코드</th><th>상태</th>
+            </tr>
+          </thead>
+          <tbody id="reqTbody"></tbody>
+        </table>
+        <div class="log-empty" id="reqEmpty" style="display:none;">권한 요청 내역이 없습니다.</div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /tab-admin -->
 
   <!-- ── 우측 채팅 패널 ── -->
   <div class="right">
@@ -1866,69 +1916,27 @@ function buildHeatmap(bid) {
 
 
 // ── 탭 전환 이벤트 위임 ────────────────────────────────
-/* ── 권한요청 모달 ── */
-document.getElementById('authPermBtn').addEventListener('click', function() {
-  document.getElementById('permOverlay').classList.add('open');
-});
-document.getElementById('permCancelBtn').addEventListener('click', function() {
-  document.getElementById('permOverlay').classList.remove('open');
-  resetPermForm();
-});
-document.getElementById('permOverlay').addEventListener('click', function(e) {
-  if (e.target === this) { this.classList.remove('open'); resetPermForm(); }
-});
 
 function resetPermForm() {
-  document.getElementById('permName').value = '';
-  document.getElementById('permRole').value = '';
-  document.getElementById('permDept').value = '';
-  document.getElementById('permCodeInput').value = '';
+  var permName = document.getElementById('permName');
+  var permRole = document.getElementById('permRole');
+  var permDept = document.getElementById('permDept');
+  var permCodeInput = document.getElementById('permCodeInput');
+  if (permName) permName.value = '';
+  if (permRole) permRole.value = '';
+  if (permDept) permDept.value = '';
+  if (permCodeInput) permCodeInput.value = '';
   var sel = document.getElementById('permCodeSelect');
-  for (var i=0; i<sel.options.length; i++) sel.options[i].selected = false;
-  document.getElementById('permErr').style.display = 'none';
-  document.getElementById('permBody').style.display = 'block';
-  document.getElementById('permFooter').style.display = 'flex';
-  // 성공 화면이 있으면 제거
+  if (sel) { for (var i=0; i<sel.options.length; i++) sel.options[i].selected = false; }
+  var errEl = document.getElementById('permErr');
+  if (errEl) errEl.style.display = 'none';
+  var permBody = document.getElementById('permBody');
+  var permFooter = document.getElementById('permFooter');
+  if (permBody) permBody.style.display = 'block';
+  if (permFooter) permFooter.style.display = 'flex';
   var succ = document.getElementById('permSuccess');
   if (succ) succ.remove();
 }
-
-document.getElementById('permSubmitBtn').addEventListener('click', function() {
-  var name = document.getElementById('permName').value.trim();
-  var role = document.getElementById('permRole').value;
-  var dept = document.getElementById('permDept').value;
-  var codeInput = document.getElementById('permCodeInput').value.trim();
-  var sel = document.getElementById('permCodeSelect');
-  var selectedCodes = Array.from(sel.options).filter(function(o){ return o.selected; }).map(function(o){ return o.value; });
-  var allCodes = selectedCodes.length > 0 ? selectedCodes.join(',') : codeInput;
-  var errEl = document.getElementById('permErr');
-
-  if (!name) { errEl.textContent = '이름을 입력해주세요.'; errEl.style.display='block'; return; }
-  if (!role) { errEl.textContent = '직책을 선택해주세요.'; errEl.style.display='block'; return; }
-  if (!dept) { errEl.textContent = '사업부를 선택해주세요.'; errEl.style.display='block'; return; }
-  if (!allCodes) { errEl.textContent = '관코드를 선택하거나 입력해주세요.'; errEl.style.display='block'; return; }
-  errEl.style.display = 'none';
-
-  // 요청 저장 (localStorage)
-  var reqs = JSON.parse(localStorage.getItem('perm_requests') || '[]');
-  reqs.push({
-    name: name, role: role, dept: dept, codes: allCodes,
-    requestedAt: new Date().toLocaleString('ko-KR')
-  });
-  localStorage.setItem('perm_requests', JSON.stringify(reqs));
-
-  // 성공 화면
-  document.getElementById('permBody').style.display = 'none';
-  document.getElementById('permFooter').style.display = 'none';
-  var succ = document.createElement('div');
-  succ.id = 'permSuccess';
-  succ.className = 'perm-success';
-  succ.innerHTML = '<div class="perm-success-icon">✅</div>'
-    + '<div class="perm-success-title">요청이 접수되었습니다</div>'
-    + '<div class="perm-success-sub">' + name + '님의 권한 요청이 접수되었습니다.<br>관리자 승인 후 계정이 발급됩니다.</div>'
-    + '<button onclick="document.getElementById(\'permOverlay\').classList.remove(\'open\');resetPermForm();" style="margin-top:20px;padding:10px 28px;background:#6c5ce7;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:\'Nanum Gothic\',sans-serif;">확인</button>';
-  document.getElementById('permModal').appendChild(succ);
-});
 
 /* ── 로그인 로그 ── */
 function saveLoginLog(user, action) {
@@ -1944,10 +1952,16 @@ function saveLoginLog(user, action) {
   localStorage.setItem('login_logs', JSON.stringify(logs));
 }
 
-function openLog() {
+function renderLogTab() {
   var logs = JSON.parse(localStorage.getItem('login_logs') || '[]');
+  var reqs = JSON.parse(localStorage.getItem('perm_requests') || '[]');
   var tbody = document.getElementById('logTbody');
   var empty = document.getElementById('logEmpty');
+  var reqTbody = document.getElementById('reqTbody');
+  var reqEmpty = document.getElementById('reqEmpty');
+  if (!tbody) return;
+
+  // 로그인 이력
   document.getElementById('logHeadSub').textContent = '총 ' + logs.length + '건 (최근 200건 보관)';
   tbody.innerHTML = '';
   if (logs.length === 0) {
@@ -1958,21 +1972,32 @@ function openLog() {
       var tr = document.createElement('tr');
       tr.innerHTML = '<td>' + l.dt + '</td>'
         + '<td style="font-weight:700">' + l.name + '</td>'
-        + '<td style="color:#6c5ce7">' + l.id + '</td>'
+        + '<td style="color:var(--purple)">' + l.id + '</td>'
         + '<td>' + l.role + '</td>'
         + '<td><span class="' + (l.action==='로그인' ? 'log-badge-in' : 'log-badge-out') + '">' + l.action + '</span></td>';
       tbody.appendChild(tr);
     });
   }
-  document.getElementById('logOverlay').classList.add('open');
-}
 
-document.getElementById('logClose').addEventListener('click', function() {
-  document.getElementById('logOverlay').classList.remove('open');
-});
-document.getElementById('logOverlay').addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('open');
-});
+  // 권한요청 이력
+  if (!reqTbody) return;
+  reqTbody.innerHTML = '';
+  if (reqs.length === 0) {
+    reqEmpty.style.display = 'block';
+  } else {
+    reqEmpty.style.display = 'none';
+    reqs.forEach(function(r) {
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + r.requestedAt + '</td>'
+        + '<td style="font-weight:700">' + r.name + '</td>'
+        + '<td>' + r.role + '</td>'
+        + '<td>' + r.dept + '</td>'
+        + '<td style="color:var(--purple)">' + r.codes + '</td>'
+        + '<td><span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:#fff3e0;color:#e65100;">대기중</span></td>';
+      tbody.appendChild(tr);
+    });
+  }
+}
 
 function switchTab(id) {
 var BUILDING_TABLE_DATA = [
@@ -2042,6 +2067,51 @@ function switchTab(id) {
 // 탭 버튼 + 카드 클릭 — window.onload로 DOM 완전 로드 후 실행
 window.addEventListener('load', function() {
   applyBuildingFilter(); // 초기 전체 조회
+
+  // ── 권한요청 모달 이벤트 ──
+  var permBtn = document.getElementById('authPermBtn');
+  var permOverlay = document.getElementById('permOverlay');
+  var permCancelBtn = document.getElementById('permCancelBtn');
+  var permSubmitBtn = document.getElementById('permSubmitBtn');
+
+  if (permBtn) permBtn.addEventListener('click', function() {
+    permOverlay.classList.add('open');
+  });
+  if (permCancelBtn) permCancelBtn.addEventListener('click', function() {
+    permOverlay.classList.remove('open');
+    resetPermForm();
+  });
+  if (permOverlay) permOverlay.addEventListener('click', function(e) {
+    if (e.target === this) { this.classList.remove('open'); resetPermForm(); }
+  });
+  if (permSubmitBtn) permSubmitBtn.addEventListener('click', function() {
+    var name = document.getElementById('permName').value.trim();
+    var role = document.getElementById('permRole').value;
+    var dept = document.getElementById('permDept').value;
+    var codeInput = document.getElementById('permCodeInput').value.trim();
+    var sel = document.getElementById('permCodeSelect');
+    var selectedCodes = Array.from(sel.options).filter(function(o){ return o.selected; }).map(function(o){ return o.value; });
+    var allCodes = selectedCodes.length > 0 ? selectedCodes.join(',') : codeInput;
+    var errEl = document.getElementById('permErr');
+    if (!name) { errEl.textContent='이름을 입력해주세요.'; errEl.style.display='block'; return; }
+    if (!role) { errEl.textContent='직책을 선택해주세요.'; errEl.style.display='block'; return; }
+    if (!dept) { errEl.textContent='사업부를 선택해주세요.'; errEl.style.display='block'; return; }
+    if (!allCodes) { errEl.textContent='관코드를 선택하거나 입력해주세요.'; errEl.style.display='block'; return; }
+    errEl.style.display = 'none';
+    var reqs = JSON.parse(localStorage.getItem('perm_requests') || '[]');
+    reqs.push({ name:name, role:role, dept:dept, codes:allCodes, requestedAt:new Date().toLocaleString('ko-KR') });
+    localStorage.setItem('perm_requests', JSON.stringify(reqs));
+    document.getElementById('permBody').style.display = 'none';
+    document.getElementById('permFooter').style.display = 'none';
+    var succ = document.createElement('div');
+    succ.id = 'permSuccess';
+    succ.className = 'perm-success';
+    succ.innerHTML = '<div class="perm-success-icon">✅</div>'
+      + '<div class="perm-success-title">요청이 접수되었습니다</div>'
+      + '<div class="perm-success-sub">' + name + '님의 권한 요청이 접수되었습니다.<br>관리자 승인 후 계정이 발급됩니다.</div>'
+      + '<button onclick="document.getElementById(\'permOverlay\').classList.remove(\'open\');resetPermForm();" style="margin-top:20px;padding:10px 28px;background:#6c5ce7;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:\'Nanum Gothic\',sans-serif;">확인</button>';
+    document.getElementById('permModal').appendChild(succ);
+  });
   var tabNav = document.querySelector('.tab-nav');
   if (tabNav) {
     tabNav.onclick = function(e) {
@@ -2783,7 +2853,11 @@ function doLogin() {
   badge.textContent = ROLE_LABEL[user.role];
   badge.className = 'auth-badge ' + (user.role==='hq' ? 'badge-hq' : 'badge-dir');
   document.getElementById('userRoleDot').style.background = ROLE_COLOR[user.role];
-  if (user.role === 'hq') document.getElementById('logBtn').style.display = 'block';
+  // 관리자 탭: seulgi00lee만 표시
+  if (user.id === 'seulgi00lee') {
+    document.getElementById('adminTab').style.display = 'block';
+    renderLogTab();
+  }
   applyTabPermissions(user);
 }
 
@@ -2792,6 +2866,7 @@ function doLogout() {
   if (currentUser) saveLoginLog(currentUser, '로그아웃');
   currentUser = null;
   document.getElementById('logBtn').style.display = 'none';
+  document.getElementById('adminTab').style.display = 'none';
   document.getElementById('authOverlay').style.display = 'flex';
   document.getElementById('userInfoBar').style.display = 'none';
   document.getElementById('authId').value = '';
