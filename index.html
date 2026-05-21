@@ -2726,17 +2726,178 @@ function generateReport() {
     '📍 전체 평균 평단가 <strong>' + avgPpp.toLocaleString() + '원/평</strong> · 총 관리 면적 <strong>' + BUILDING_TABLE_DATA.reduce(function(s,b){return s+b.area;},0).toFixed(1) + '평</strong>'
   ];
 
-  /* ── 렌더링 ── */
-  var sec = function(title, body) {
-    return '<div style="margin-bottom:20px;">'
-      + '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;padding:6px 0;border-bottom:1.5px solid var(--border);">' + title + '</div>'
-      + body + '</div>';
+  /* ── 5~8. 건물별 상세 분석 (ROOM_DATA 기반) ── */
+  var DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
+  var DAY_LABELS = ['월','화','수','목','금','토','일'];
+  var ROOM_KEY_MAP = {
+    sunaedong:'수내동빌딩', ntower6:'N타워 6층', downtown12:'다운타운 12층',
+    jungja:'정자', downtown8:'다운타운 8층', ntower9:'N타워 9층', downtown6:'다운타운 6층'
   };
-  var tbl = function(head, body) {
-    return '<div style="overflow-x:auto;"><table class="log-table" style="margin-bottom:0;">'
-      + '<thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>';
-  };
-  var th = function(t, r) { return '<th' + (r?' style="text-align:right"':'') + '>' + t + '</th>'; };
+
+  var buildingDetailHTML = '';
+
+  Object.keys(ROOM_DATA).forEach(function(bkey) {
+    var bld   = ROOM_DATA[bkey];
+    var rooms = bld.rooms;
+    var totalArea = bld.area;
+    var rent  = bld.rent;
+    var ppp   = Math.round(rent / totalArea);
+
+    /* ── 캠퍼스 목록 추출 ── */
+    var campusSet = {};
+    rooms.forEach(function(r) {
+      var days = Object.values(r.schedule);
+      days.forEach(function(d) {
+        if (!d || d === 'MIX') return;
+        if (!campusSet[d]) campusSet[d] = { typeArea:{}, usedDays:new Set(), rooms:[] };
+      });
+      // 주된 캠퍼스 결정 (MIX가 아닌 단일 캠퍼스)
+      var mainCampus = r.campus && !r.campus.includes('MIX') && r.campus !== '미사용' ? r.campus : null;
+      var allCampuses = new Set();
+      days.forEach(function(d){ if(d && d!=='MIX') allCampuses.add(d); });
+
+      allCampuses.forEach(function(c) {
+        if (!campusSet[c]) campusSet[c] = { typeArea:{A:0,B:0,C:0,D:0,E:0}, usedDays:new Set(), rooms:[] };
+        var cs = campusSet[c];
+        if (r.type) cs.typeArea[r.type] = (cs.typeArea[r.type]||0) + r.area;
+        days.forEach(function(d,i){ if(d===c||d==='MIX') cs.usedDays.add(DAYS[i]); });
+        if (!cs.rooms.includes(r.id)) cs.rooms.push(r.id);
+      });
+    });
+
+    /* ── 캠퍼스별 공간 유형 면적 & 배부 금액 ── */
+    var campusNames = Object.keys(campusSet).filter(function(c){ return c !== '미사용'; });
+    if (campusNames.length === 0) return;
+
+    // 전체 사용 면적 (미사용 제외)
+    var usedArea = rooms.reduce(function(s,r){ return s + (r.campus==='미사용'?0:r.area); }, 0);
+
+    // 캠퍼스별 배부 금액 계산 (사용 면적 비례)
+    var campusRows = campusNames.map(function(c) {
+      var cs = campusSet[c];
+      var totalCampusArea = Object.values(cs.typeArea).reduce(function(a,b){return a+b;},0);
+      var share = usedArea > 0 ? totalCampusArea / usedArea : 0;
+      var allocated = Math.round(rent * share);
+      var usedDayCount = cs.usedDays.size;
+      var utilizationRate = Math.round((usedDayCount / 7) * 100);
+
+      // 유형별 금액
+      var typeAmounts = {};
+      Object.keys(cs.typeArea).forEach(function(t) {
+        if (cs.typeArea[t] > 0) {
+          typeAmounts[t] = Math.round(rent * (cs.typeArea[t] / usedArea));
+        }
+      });
+
+      return {
+        name: c,
+        typeArea: cs.typeArea,
+        totalArea: totalCampusArea,
+        share: share,
+        allocated: allocated,
+        usedDays: cs.usedDays,
+        utilizationRate: utilizationRate,
+        typeAmounts: typeAmounts,
+        rooms: cs.rooms
+      };
+    }).sort(function(a,b){ return b.allocated - a.allocated; });
+
+    /* ── 요일별 가동률 ── */
+    var dayUtil = DAYS.map(function(d, i) {
+      var used = rooms.filter(function(r){ return r.schedule[d] && r.campus !== '미사용'; }).length;
+      var total = rooms.filter(function(r){ return r.campus !== '미사용'; }).length;
+      var rate = total > 0 ? Math.round(used/total*100) : 0;
+      return { label: DAY_LABELS[i], used: used, total: total, rate: rate };
+    });
+    var avgDayUtil = Math.round(dayUtil.reduce(function(s,d){return s+d.rate;},0) / 7);
+    var worstDay = dayUtil.slice().sort(function(a,b){return a.rate-b.rate;})[0];
+    var bestDay  = dayUtil.slice().sort(function(a,b){return b.rate-a.rate;})[0];
+
+    /* ── 강의실 운영 분석 ── */
+    var unusedRooms = rooms.filter(function(r){ return r.campus === '미사용'; });
+    var mixRooms    = rooms.filter(function(r){ return r.campus && r.campus.includes('MIX'); });
+    var singleRooms = rooms.filter(function(r){ return r.campus && !r.campus.includes('MIX') && r.campus !== '미사용'; });
+
+    var operationGrade, operationMsg;
+    if (avgDayUtil >= 80) {
+      operationGrade = '✅ 우수'; operationMsg = '전반적으로 강의실 가동률이 높고 공간 활용이 효율적입니다.';
+    } else if (avgDayUtil >= 60) {
+      operationGrade = '🟡 양호'; operationMsg = '전반적으로 양호하나 ' + worstDay.label + '요일(' + worstDay.rate + '%) 가동률이 낮아 개선 여지가 있습니다.';
+    } else if (avgDayUtil >= 40) {
+      operationGrade = '🟠 주의'; operationMsg = '가동률이 낮은 편입니다. 특히 ' + worstDay.label + '요일(' + worstDay.rate + '%) 유휴 공간이 발생하고 있습니다.';
+    } else {
+      operationGrade = '🔴 미흡'; operationMsg = '강의실 가동률이 매우 낮습니다. 공간 재배치 또는 추가 캠퍼스 배정 검토가 필요합니다.';
+    }
+
+    /* ── HTML 렌더링 ── */
+    // 캠퍼스별 배부 테이블
+    var cRows = campusRows.map(function(c) {
+      var typeStr = ['A','B','C','D','E'].filter(function(t){ return c.typeArea[t]>0; })
+        .map(function(t){ return '임차'+t+' '+c.typeArea[t].toFixed(1)+'평'; }).join(' / ');
+      var typeAmtStr = Object.keys(c.typeAmounts).map(function(t){
+        return '<span style="font-size:10px;padding:1px 5px;background:rgba(108,92,231,0.08);border-radius:3px;">임차'+t+' '+c.typeAmounts[t].toLocaleString()+'원</span>';
+      }).join(' ');
+      return '<tr>'
+        + '<td style="font-weight:700">' + c.name + '</td>'
+        + '<td style="font-size:11px;color:var(--text3);">' + typeStr + '</td>'
+        + '<td style="text-align:right;">' + c.typeArea.A>0?c.typeArea.A.toFixed(1):'-' + '평</td>'
+        + '<td style="text-align:right;font-size:11px;">' + typeAmtStr + '</td>'
+        + '<td style="text-align:right;color:var(--purple);font-weight:700;">' + c.allocated.toLocaleString() + '원</td>'
+        + '<td style="text-align:right;">' + (c.share*100).toFixed(1) + '%</td>'
+        + '<td style="text-align:right;color:' + (c.utilizationRate>=70?'#2ec4a0':c.utilizationRate>=50?'var(--amber)':'#f06080') + ';font-weight:700;">' + c.utilizationRate + '%</td>'
+        + '</tr>';
+    }).join('');
+
+    // 요일별 가동률 바
+    var dayBars = dayUtil.map(function(d) {
+      var color = d.rate >= 70 ? '#2ec4a0' : d.rate >= 50 ? '#f0b040' : '#f06080';
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;">'
+        + '<div style="font-size:10px;color:var(--text3);font-weight:600;">' + d.label + '</div>'
+        + '<div style="width:100%;background:var(--bg3);border-radius:4px;height:60px;display:flex;align-items:flex-end;overflow:hidden;">'
+        + '<div style="width:100%;height:' + d.rate + '%;background:' + color + ';border-radius:4px;transition:height 0.3s;"></div>'
+        + '</div>'
+        + '<div style="font-size:11px;font-weight:700;color:' + color + ';">' + d.rate + '%</div>'
+        + '<div style="font-size:10px;color:var(--text3);">' + d.used + '/' + d.total + '</div>'
+        + '</div>';
+    }).join('');
+
+    buildingDetailHTML +=
+      '<div style="margin-bottom:28px;padding-bottom:20px;border-bottom:1.5px solid var(--border);">'
+      + '<div style="font-size:13px;font-weight:700;color:var(--purple);margin-bottom:14px;">🏢 ' + bld.name
+      + ' <span style="font-size:11px;color:var(--text3);font-weight:500;">| ' + rent.toLocaleString() + '원 · ' + totalArea + '평 · ' + ppp.toLocaleString() + '원/평</span></div>'
+
+      // 캠퍼스별 배부
+      + '<div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;">■ 캠퍼스별 공간유형 면적 분포 · 배부 금액</div>'
+      + '<div style="overflow-x:auto;margin-bottom:14px;"><table class="log-table" style="margin-bottom:0;">'
+      + '<thead><tr><th>캠퍼스/관</th><th>공간유형 면적</th><th style="text-align:right">사용면적</th><th>유형별 배부금액</th><th style="text-align:right">최종배부</th><th style="text-align:right">비중</th><th style="text-align:right">가동률</th></tr></thead>'
+      + '<tbody>' + cRows + '</tbody></table></div>'
+
+      // 요일별 가동률
+      + '<div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;">■ 요일별 강의실 가동률 (평균 ' + avgDayUtil + '%)</div>'
+      + '<div style="display:flex;gap:6px;margin-bottom:14px;height:100px;">' + dayBars + '</div>'
+
+      // 운영 분석
+      + '<div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;">■ 강의실 운영 분석</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;">'
+      + '<div style="padding:8px 10px;background:var(--bg3);border-radius:7px;font-size:11px;">'
+      + '<div style="color:var(--text3);margin-bottom:3px;">평균 가동률</div>'
+      + '<div style="font-weight:700;color:' + (avgDayUtil>=70?'#2ec4a0':avgDayUtil>=50?'var(--amber)':'#f06080') + ';font-size:14px;">' + avgDayUtil + '%</div></div>'
+      + '<div style="padding:8px 10px;background:var(--bg3);border-radius:7px;font-size:11px;">'
+      + '<div style="color:var(--text3);margin-bottom:3px;">최고 요일</div>'
+      + '<div style="font-weight:700;color:#2ec4a0;font-size:14px;">' + bestDay.label + ' ' + bestDay.rate + '%</div></div>'
+      + '<div style="padding:8px 10px;background:var(--bg3);border-radius:7px;font-size:11px;">'
+      + '<div style="color:var(--text3);margin-bottom:3px;">최저 요일</div>'
+      + '<div style="font-weight:700;color:#f06080;font-size:14px;">' + worstDay.label + ' ' + worstDay.rate + '%</div></div>'
+      + '<div style="padding:8px 10px;background:var(--bg3);border-radius:7px;font-size:11px;">'
+      + '<div style="color:var(--text3);margin-bottom:3px;">미사용 호실</div>'
+      + '<div style="font-weight:700;color:' + (unusedRooms.length>0?'#f06080':'#2ec4a0') + ';font-size:14px;">' + unusedRooms.length + '개</div></div>'
+      + '</div>'
+      + '<div style="padding:10px 12px;border-left:3px solid ' + (avgDayUtil>=70?'#2ec4a0':avgDayUtil>=50?'#f0b040':'#f06080') + ';border-radius:0 7px 7px 0;background:var(--bg3);font-size:12px;color:var(--text2);">'
+      + '<strong>' + operationGrade + '</strong> — ' + operationMsg
+      + (unusedRooms.length > 0 ? ' 미사용 호실 ' + unusedRooms.map(function(r){return r.id;}).join(', ') + ' 활용 방안 검토 필요.' : '')
+      + '</div>'
+      + '</div>';
+  });
 
   content.innerHTML =
     '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border);">'
@@ -2757,25 +2918,23 @@ function generateReport() {
       }).join('')
     + '</div>'
 
-    // 월별 추이
     + sec('① 월별 임차료 추이',
         tbl([th('월'),th('임차료',1),th('면적',1),th('평단가',1),th('강의실',1),th('메모')].join(''), monthRows))
 
-    // 지역별
     + sec('② 지역별 현황',
         tbl([th('지역'),th('건물'),th('임차료',1),th('비중',1),th('면적',1),th('평단가',1),th('강의실',1)].join(''), regionRows))
 
-    // 건물별
     + sec('③ 건물별 상세',
         tbl([th('지역'),th('건물'),th('층수'),th('임차료',1),th('비중',1),th('면적',1),th('평단가',1),th('평균대비',1),th('강의실',1)].join(''), buildingRows))
 
-    // 인사이트
     + sec('④ 자동 인사이트',
         '<div style="display:flex;flex-direction:column;gap:8px;">'
         + insights.map(function(i){
             return '<div style="padding:9px 12px;background:rgba(108,92,231,0.05);border-left:3px solid var(--purple);border-radius:0 6px 6px 0;font-size:12px;color:var(--text2);">' + i + '</div>';
           }).join('')
-        + '</div>');
+        + '</div>')
+
+    + sec('⑤ 건물별 캠퍼스 · 강의실 운영 상세', buildingDetailHTML);
 }
 
 function resetPermForm() {
