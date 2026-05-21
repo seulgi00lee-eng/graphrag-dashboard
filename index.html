@@ -1,0 +1,3345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graph RAG · 전체 건물 임차료 대시보드 v2</title>
+<style>
+:root {
+  --bg: #f5f5f7;
+  --bg2: #ffffff;
+  --bg3: #eeeef0;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.14);
+  --text: #1a1a2e;
+  --text2: #555566;
+  --text3: #999aaa;
+  --purple: #6c5ce7;
+  --purple2: #5549c0;
+  --teal: #00a884;
+  --amber: #d4820a;
+  --blue: #2563eb;
+  --red: #dc2626;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔고딕',sans-serif;font-size:14px;min-height:100vh;}
+
+/* ── 헤더 ── */
+.header{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:0.5px solid var(--border);background:var(--bg2);}
+.header-left{display:flex;align-items:center;gap:12px;}
+.logo{width:28px;height:28px;background:var(--purple);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}
+.header-title{font-size:15px;font-weight:600;color:var(--text);}
+.header-sub{font-size:11px;color:var(--text2);margin-top:1px;}
+.badge{font-size:10px;padding:3px 10px;border-radius:20px;background:rgba(139,127,240,0.15);border:0.5px solid rgba(139,127,240,0.4);color:var(--purple);}
+
+/* ── 탭 네비게이션 ── */
+.tab-nav{display:flex;align-items:center;gap:0;padding:0 28px;background:var(--bg2);border-bottom:0.5px solid var(--border);overflow-x:auto;}
+.tab-btn{padding:12px 18px;font-size:12px;font-weight:500;color:var(--text3);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap;flex-shrink:0;}
+.tab-btn:hover{color:var(--text2);}
+.tab-btn.active{color:var(--purple);border-bottom-color:var(--purple);}
+.tab-content{display:none;}
+.tab-content.active{display:flex;flex-direction:column;min-height:0;}
+
+/* ── 레이아웃 ── */
+.main{display:grid;grid-template-columns:1fr 340px;height:calc(100vh - 105px);}
+.left{overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px;height:100%;min-height:0;}
+.right{border-left:0.5px solid var(--border);display:flex;flex-direction:column;background:#fafafa;}
+
+/* ── KPI ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.kpi-row-6{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.kpi{background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;padding:14px 16px;}
+.kpi-label{font-size:10px;color:var(--text2);margin-bottom:6px;letter-spacing:0.3px;}
+.kpi-val{font-size:20px;font-weight:600;color:var(--text);}
+.kpi-val-sm{font-size:16px;font-weight:600;color:var(--text);}
+.kpi-sub{font-size:10px;color:var(--text3);margin-top:4px;}
+.kpi.accent-purple{border-left:2px solid var(--purple);}
+.kpi.accent-teal{border-left:2px solid var(--teal);}
+.kpi.accent-amber{border-left:2px solid var(--amber);}
+.kpi.accent-blue{border-left:2px solid var(--blue);}
+.kpi.accent-red{border-left:2px solid var(--red);}
+
+/* ── 카드 ── */
+.card{background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;padding:16px;}
+.card-title{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:14px;letter-spacing:0.3px;text-transform:uppercase;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+/* ── 바 차트 ── */
+.bar-item{margin-bottom:12px;}
+.bar-item:last-child{margin-bottom:0;}
+.bar-meta{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
+.bar-name{font-size:13px;color:var(--text);}
+.bar-val{font-size:12px;color:var(--text2);}
+.bar-track{height:8px;background:rgba(0,0,0,0.05);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width 0.8s cubic-bezier(.4,0,.2,1);}
+.bar-stack{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:6px;}
+.bar-stack span{height:100%;}
+
+/* ── 범례 ── */
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;}
+.leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+
+/* ── 테이블 ── */
+.space-table{width:100%;border-collapse:collapse;font-size:12px;}
+.space-table th{font-size:10px;color:var(--text3);font-weight:400;padding:4px 8px;border-bottom:0.5px solid var(--border);text-align:left;}
+.space-table td{padding:7px 8px;border-bottom:0.5px solid rgba(255,255,255,0.04);color:var(--text);}
+.space-table tr:last-child td{border-bottom:none;}
+.space-table tr.total-row td{border-top:0.5px solid var(--border2);font-weight:600;color:var(--teal);}
+
+/* ── 건물 카드 (서머리용) ── */
+.building-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start;}
+.building-card{background:#ffffff;border:0.5px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:border-color 0.2s;overflow:hidden;}.building-card *{pointer-events:none;}
+.building-card:hover{border-color:var(--purple);}
+.bc-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.bc-area{font-size:11px;color:var(--text2);margin-bottom:10px;}
+.bc-rent{font-size:18px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.bc-ppp{font-size:10px;color:var(--text3);}
+.bc-bar{height:4px;background:rgba(0,0,0,0.05);border-radius:2px;margin:10px 0 8px;}
+.bc-bar-fill{height:100%;max-height:4px;border-radius:2px;}
+.bc-chips{display:flex;gap:4px;flex-wrap:wrap;}
+.bc-chip{font-size:9px;padding:1px 6px;border-radius:3px;font-weight:500;}
+
+/* ── 칩 ── */
+.type-chip{display:inline-block;font-size:10px;padding:1px 7px;border-radius:3px;font-weight:600;}
+.chip-A{background:rgba(74,158,240,0.15);color:#4a9ef0;}
+.chip-B{background:rgba(240,176,64,0.15);color:#f0b040;}
+.chip-C{background:rgba(46,196,160,0.15);color:#2ec4a0;}
+.chip-E{background:rgba(0,0,0,0.05);color:var(--text2);}
+
+/* ── 히트맵 ── */
+.heatmap-cell{height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;}
+
+/* ── 채팅 패널 ── */
+.chat-header{padding:14px 16px 12px;border-bottom:0.5px solid var(--border);}
+.chat-header-title{font-size:12px;font-weight:500;color:var(--text);margin-bottom:2px;display:flex;align-items:center;gap:6px;}
+.chat-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.chat-header-sub{font-size:10px;color:var(--text3);}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
+.msg{display:flex;flex-direction:column;gap:4px;}
+.msg.user{align-items:flex-end;}
+.msg.ai{align-items:flex-start;}
+.msg-bubble{max-width:90%;padding:10px 13px;border-radius:10px;font-size:12px;line-height:1.6;}
+.msg.user .msg-bubble{background:var(--purple2);color:#fff;border-radius:10px 10px 2px 10px;}
+.msg.ai .msg-bubble{background:var(--bg);border:0.5px solid var(--border);color:var(--text);border-radius:10px 10px 10px 2px;}
+.msg-time{font-size:9px;color:var(--text3);}
+.thinking{display:flex;gap:4px;align-items:center;padding:10px 13px;}
+.thinking span{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:bounce 1.2s infinite;}
+.thinking span:nth-child(2){animation-delay:0.2s;}
+.thinking span:nth-child(3){animation-delay:0.4s;}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+.chat-input-area{padding:12px 16px;border-top:0.5px solid var(--border);display:flex;flex-direction:column;gap:8px;}
+.demo-btns{display:flex;flex-direction:column;gap:5px;}
+.demo-btn{background:var(--bg);border:0.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:11px;color:var(--text2);cursor:pointer;text-align:left;transition:all 0.15s;line-height:1.4;}
+.demo-btn:hover{border-color:var(--purple);color:var(--purple);background:rgba(139,127,240,0.06);}
+.input-row{display:flex;gap:6px;}
+.chat-input{flex:1;background:var(--bg);border:0.5px solid var(--border2);border-radius:7px;padding:8px 12px;font-size:12px;color:var(--text);outline:none;font-family:'Nanum Gothic','나눔고딕',sans-serif;}
+.chat-input:focus{border-color:var(--purple);}
+.send-btn{background:var(--purple);border:none;border-radius:7px;padding:8px 14px;color:#fff;font-size:12px;cursor:pointer;transition:opacity 0.15s;white-space:nowrap;}
+.send-btn:hover{opacity:0.85;}
+.send-btn:disabled{opacity:0.4;cursor:not-allowed;}
+#key-status-bar{padding:6px 16px;font-size:10px;display:flex;align-items:center;justify-content:space-between;}
+.rpt-bar{padding:10px 16px;border-top:0.5px solid var(--border);background:var(--bg);display:flex;gap:8px;flex-shrink:0;}.rpt-btn{flex:1;padding:9px 0;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;transition:opacity 0.15s;}.rpt-btn:hover{opacity:0.85;}.rpt-btn:disabled{opacity:0.4;cursor:not-allowed;}.rpt-btn.pdf{background:var(--red);color:#fff;}.rpt-btn.ntn{background:var(--purple);color:#fff;}.rmb{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;}.rmd{background:#ffffff;border:0.5px solid rgba(0,0,0,0.12);border-radius:14px;width:560px;max-width:92vw;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}.rmh{padding:18px 22px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}.rmht{font-size:14px;font-weight:600;}.rmcl{background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;line-height:1;padding:0 4px;}.rmb2{padding:18px 22px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:16px;background:#ffffff;}.rst{font-size:10px;color:var(--text2);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px;}.rtb{width:100%;border-collapse:collapse;font-size:12px;}.rtb th{font-size:10px;color:var(--text3);font-weight:400;padding:4px 8px;border-bottom:0.5px solid var(--border);text-align:left;}.rtb td{padding:6px 8px;border-bottom:0.5px solid rgba(255,255,255,0.04);color:var(--text);}.rtb tr:last-child td{border-bottom:none;}.rtb .rtt td{border-top:0.5px solid rgba(255,255,255,0.14);font-weight:600;color:var(--teal);}.aib{background:rgba(108,92,231,0.06);border:0.5px solid rgba(108,92,231,0.2);border-radius:8px;padding:12px 14px;font-size:11px;color:var(--text2);line-height:1.8;}.aibl{font-size:10px;color:var(--purple);margin-bottom:5px;font-weight:500;}.rmf{padding:12px 22px;border-top:0.5px solid var(--border);display:flex;gap:8px;flex-shrink:0;}.rfb{flex:1;padding:9px 0;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;}.rfb.pdf{background:var(--red);color:#fff;}.rfb.ntn{background:var(--purple);color:#fff;}.rfb:disabled{opacity:0.5;cursor:not-allowed;}.rpt-bar{padding:10px 16px;border-top:0.5px solid var(--border);background:var(--bg);display:flex;gap:8px;flex-shrink:0;}.rpt-btn{flex:1;padding:9px 0;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;transition:opacity 0.15s;}.rpt-btn:hover{opacity:0.85;}.rpt-btn:disabled{opacity:0.4;cursor:not-allowed;}.rpt-btn.pdf{background:var(--red);color:#fff;}.rpt-btn.ntn{background:var(--purple);color:#fff;}.rmb{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;}.rmd{background:#ffffff;border:0.5px solid rgba(0,0,0,0.12);border-radius:14px;width:560px;max-width:92vw;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}.rmh{padding:18px 22px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}.rmht{font-size:14px;font-weight:600;}.rmcl{background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;line-height:1;padding:0 4px;}.rmb2{padding:18px 22px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:16px;background:#ffffff;}.rst{font-size:10px;color:var(--text2);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px;}.rtb{width:100%;border-collapse:collapse;font-size:12px;}.rtb th{font-size:10px;color:var(--text3);font-weight:400;padding:4px 8px;border-bottom:0.5px solid var(--border);text-align:left;}.rtb td{padding:6px 8px;border-bottom:0.5px solid rgba(255,255,255,0.04);color:var(--text);}.rtb tr:last-child td{border-bottom:none;}.rtb .rtt td{border-top:0.5px solid rgba(255,255,255,0.14);font-weight:600;color:var(--teal);}.aib{background:rgba(108,92,231,0.06);border:0.5px solid rgba(108,92,231,0.2);border-radius:8px;padding:12px 14px;font-size:11px;color:var(--text2);line-height:1.8;}.aibl{font-size:10px;color:var(--purple);margin-bottom:5px;font-weight:500;}.rmf{padding:12px 22px;border-top:0.5px solid var(--border);display:flex;gap:8px;flex-shrink:0;}.rfb{flex:1;padding:9px 0;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;}.rfb.pdf{background:var(--red);color:#fff;}.rfb.ntn{background:var(--purple);color:#fff;}.rfb:disabled{opacity:0.5;cursor:not-allowed;}
+
+.rc-summary{padding:10px 14px;background:rgba(139,127,240,0.08);border-radius:8px;border:0.5px solid rgba(139,127,240,0.2);font-size:12px;color:#9896a8;margin-bottom:12px;}
+.rc-summary strong{color:#8b7ff0;}
+
+
+
+
+
+
+
+
+
+
+.rc-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.rc-field{display:flex;flex-direction:column;gap:5px;}
+.rc-field label{font-size:10px;color:#9896a8;letter-spacing:0.4px;text-transform:uppercase;}
+.rc-input,.rc-select{background:#ffffff;border:0.5px solid rgba(0,0,0,0.14);border-radius:7px;padding:9px 12px;font-size:13px;color:#e8e6f0;outline:none;font-family:'Nanum Gothic','나눔고딕',sans-serif;width:100%;}
+.rc-input:focus,.rc-select:focus{border-color:#8b7ff0;}
+.rc-select option{background:#ffffff;}
+.rc-days{display:flex;gap:6px;flex-wrap:wrap;}
+.rc-day{padding:5px 11px;border:0.5px solid rgba(255,255,255,0.12);border-radius:6px;font-size:12px;color:#9896a8;cursor:pointer;background:transparent;transition:all .15s;}
+.rc-day.on{background:rgba(139,127,240,0.2);border-color:#8b7ff0;color:#8b7ff0;}
+.rc-search-btn{width:100%;padding:11px;background:#8b7ff0;border:none;border-radius:8px;font-size:13px;font-weight:600;color:#fff;cursor:pointer;margin-top:4px;}
+.rc-search-btn:hover{background:#7c70d8;}
+.rc-divider{height:0.5px;background:rgba(0,0,0,0.06);margin:14px 0;}
+.rc-summary{padding:10px 14px;background:rgba(139,127,240,0.08);border-radius:8px;border:0.5px solid rgba(139,127,240,0.2);font-size:12px;color:#9896a8;margin-bottom:12px;line-height:1.7;}
+.rc-result-title{font-size:10px;color:#9896a8;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px;}
+.rc-results{display:flex;flex-direction:column;gap:6px;}
+.rc-room{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:#1e1e27;border-radius:7px;border:0.5px solid rgba(255,255,255,0.06);}
+.rc-room.avail{border-left:3px solid #2ec4a0;}
+.rc-room.busy{border-left:3px solid rgba(255,255,255,0.08);opacity:.5;}
+.rc-room-name{font-size:13px;color:#e8e6f0;font-weight:500;}
+.rc-room-meta{font-size:10px;color:#5a5868;margin-top:2px;}
+.rc-room-status{font-size:10px;font-weight:600;padding:3px 9px;border-radius:4px;}
+.rc-room-status.avail{background:rgba(46,196,160,0.15);color:#2ec4a0;}
+.rc-room-status.busy{background:rgba(0,0,0,0.05);color:#5a5868;}
+.rc-empty{text-align:center;padding:20px;color:#5a5868;font-size:13px;}
+
+.rc-btn{position:fixed;bottom:24px;right:24px;background:#8b7ff0;color:#fff;border:none;border-radius:12px;padding:12px 20px;font-size:13px;font-weight:600;cursor:pointer;z-index:500;box-shadow:0 4px 20px rgba(139,127,240,0.35);}
+.rc-btn:hover{background:#7c70d8;}
+.rc-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:1000;display:flex;align-items:center;justify-content:center;}
+.rc-modal{background:#17171d;border:0.5px solid rgba(255,255,255,0.14);border-radius:16px;width:620px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+.rc-head{padding:20px 24px 16px;border-bottom:0.5px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;}
+.rc-title{font-size:15px;font-weight:600;color:#e8e6f0;}
+.rc-close{background:none;border:none;color:#9896a8;font-size:20px;cursor:pointer;}
+.rc-body{padding:20px 24px;overflow-y:auto;flex:1;}
+.rc-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.rc-field{display:flex;flex-direction:column;gap:5px;}
+.rc-field label{font-size:10px;color:#9896a8;letter-spacing:0.4px;text-transform:uppercase;}
+.rc-input,.rc-select{background:#ffffff;border:0.5px solid rgba(0,0,0,0.14);border-radius:7px;padding:9px 12px;font-size:13px;color:#e8e6f0;outline:none;font-family:'Nanum Gothic','나눔고딕',sans-serif;}
+.rc-input:focus,.rc-select:focus{border-color:#8b7ff0;}
+.rc-select option{background:#ffffff;}
+.rc-days{display:flex;gap:6px;flex-wrap:wrap;}
+.rc-day{padding:6px 12px;border:0.5px solid rgba(255,255,255,0.12);border-radius:6px;font-size:12px;color:#9896a8;cursor:pointer;background:transparent;transition:all .15s;}
+.rc-day.on{background:rgba(139,127,240,0.2);border-color:#8b7ff0;color:#8b7ff0;}
+.rc-search-btn{width:100%;padding:11px;background:#8b7ff0;border:none;border-radius:8px;font-size:13px;font-weight:600;color:#fff;cursor:pointer;margin-top:6px;}
+.rc-search-btn:hover{background:#7c70d8;}
+.rc-divider{height:0.5px;background:rgba(0,0,0,0.06);margin:14px 0;}
+.rc-result-title{font-size:10px;color:#9896a8;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px;}
+.rc-results{display:flex;flex-direction:column;gap:7px;}
+.rc-room{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f0f0f4;border-radius:8px;border:0.5px solid rgba(255,255,255,0.06);}
+.rc-room.avail{border-left:3px solid #2ec4a0;}
+.rc-room.busy{border-left:3px solid rgba(255,255,255,0.1);opacity:.5;}
+.rc-room-info{display:flex;flex-direction:column;gap:2px;}
+.rc-room-name{font-size:13px;color:#e8e6f0;font-weight:500;}
+.rc-room-meta{font-size:11px;color:#5a5868;}
+.rc-room-status{font-size:10px;font-weight:600;padding:3px 10px;border-radius:4px;}
+.rc-room-status.avail{background:rgba(46,196,160,0.15);color:#2ec4a0;}
+.rc-room-status.busy{background:rgba(0,0,0,0.05);color:#5a5868;}
+.rc-empty{text-align:center;padding:24px;color:#5a5868;font-size:13px;}
+.rc-summary{padding:10px 14px;background:rgba(139,127,240,0.08);border-radius:8px;border:0.5px solid rgba(139,127,240,0.2);font-size:12px;color:#9896a8;margin-bottom:12px;}
+.rc-summary strong{color:#8b7ff0;}
+
+.room-check-btn{display:block;width:100%;margin:14px 0 0;padding:13px 20px;background:rgba(139,127,240,0.18);border:1px solid rgba(139,127,240,0.4);border-radius:10px;color:#e8e6f0;font-size:13px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;}
+.room-check-btn:hover{background:rgba(139,127,240,0.28);border-color:rgba(139,127,240,0.7);}
+.room-check-icon{width:22px;height:22px;background:#8b7ff0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex-shrink:0;font-weight:700;}
+.room-check-panel{display:none;margin-top:0;padding:18px 20px;background:#f8f8fa;border:1px solid rgba(108,92,231,0.3);border-top:none;border-radius:0 0 10px 10px;}
+.room-check-panel.open{display:block;}
+.rc-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.rc-field{display:flex;flex-direction:column;gap:5px;}
+.rc-field label{font-size:10px;color:#9896a8;letter-spacing:0.4px;text-transform:uppercase;}
+.rc-input,.rc-select{background:#ffffff;border:0.5px solid rgba(0,0,0,0.14);border-radius:7px;padding:9px 12px;font-size:13px;color:#e8e6f0;outline:none;font-family:'Nanum Gothic','나눔고딕',sans-serif;width:100%;}
+.rc-select option{background:#ffffff;}
+.rc-days{display:flex;gap:6px;flex-wrap:wrap;}
+.rc-day{padding:5px 11px;border:0.5px solid rgba(255,255,255,0.12);border-radius:6px;font-size:12px;color:#9896a8;cursor:pointer;background:transparent;transition:all .15s;}
+.rc-day.on{background:rgba(139,127,240,0.2);border-color:#8b7ff0;color:#8b7ff0;}
+.rc-search-btn{width:100%;padding:11px;background:#8b7ff0;border:none;border-radius:8px;font-size:13px;font-weight:600;color:#fff;cursor:pointer;margin-top:4px;}
+.rc-search-btn:hover{background:#7c70d8;}
+.rc-divider{height:0.5px;background:rgba(0,0,0,0.06);margin:14px 0;}
+.rc-summary-box{padding:10px 14px;background:rgba(108,92,231,0.06);border-radius:8px;border:0.5px solid rgba(108,92,231,0.2);font-size:12px;color:#9896a8;margin-bottom:12px;line-height:1.7;}
+.rc-result-title{font-size:10px;color:#9896a8;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px;}
+.rc-results{display:flex;flex-direction:column;gap:6px;}
+.rc-room{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:#f5f5f7;border-radius:7px;border-left:3px solid transparent;}
+.rc-room.avail{border-left-color:#2ec4a0;}
+.rc-room.busy{opacity:.45;}
+.rc-room-name{font-size:13px;color:#e8e6f0;font-weight:500;}
+.rc-room-meta{font-size:10px;color:#5a5868;margin-top:2px;}
+.rc-status{font-size:10px;font-weight:600;padding:3px 9px;border-radius:4px;}
+.rc-status.avail{background:rgba(46,196,160,0.15);color:#2ec4a0;}
+.rc-status.busy{background:rgba(0,0,0,0.05);color:#5a5868;}
+.rc-empty{text-align:center;padding:20px;color:#5a5868;font-size:13px;}
+
+.auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.auth-box{background:#ffffff;border:0.5px solid rgba(0,0,0,0.12);border-radius:16px;padding:36px 40px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.15);}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;}
+.auth-logo-icon{width:32px;height:32px;background:#8b7ff0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;}
+.auth-logo-text{font-size:13px;font-weight:600;color:#1a1a2e;}
+.auth-logo-sub{font-size:11px;color:#555566;margin-top:1px;}
+.auth-title{font-size:18px;font-weight:600;color:#1a1a2e;margin-bottom:6px;}
+.auth-sub{font-size:12px;color:#555566;margin-bottom:24px;}
+.auth-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.auth-field label{font-size:11px;color:#555566;letter-spacing:0.3px;}
+.auth-input{background:#f8f8fa;border:0.5px solid rgba(0,0,0,0.14);border-radius:8px;padding:10px 14px;font-size:13px;color:#e8e6f0;outline:none;font-family:'Nanum Gothic','나눔고딕',sans-serif;width:100%;}
+.auth-input:focus{border-color:#6c5ce7;}
+.auth-btn{width:100%;padding:12px;background:#6c5ce7;border:none;border-radius:8px;font-size:13px;font-weight:600;color:#fff;cursor:pointer;margin-top:6px;}
+.auth-btn:hover{background:#5549c0;}
+.auth-err{font-size:11px;color:#f06080;margin-top:8px;display:none;text-align:center;}
+.auth-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;margin-left:6px;}
+.badge-hq{background:rgba(139,127,240,0.2);color:#8b7ff0;}
+.badge-dir{background:rgba(46,196,160,0.2);color:#2ec4a0;}
+.user-info-bar{display:flex;align-items:center;gap:8px;padding:4px 12px;background:rgba(0,0,0,0.04);border-radius:20px;font-size:11px;color:#9896a8;cursor:pointer;}
+.user-info-bar:hover{background:rgba(0,0,0,0.06);}
+.user-role-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.locked-tab{opacity:0.35;pointer-events:none;position:relative;}
+.locked-tab::after{content:'🔒';font-size:9px;margin-left:3px;}
+
+.req-fab{position:fixed;bottom:28px;right:28px;z-index:800;background:#3d5a99;color:#fff;border:none;border-radius:50px;padding:12px 20px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(61,90,153,0.35);display:flex;align-items:center;gap:8px;font-family:'Nanum Gothic','나눔고딕',sans-serif;}
+.req-fab:hover{background:#2e4482;}
+.req-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:900;display:none;align-items:center;justify-content:center;}
+.req-overlay.open{display:flex;}
+.req-modal{background:#fff;border-radius:14px;width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.18);font-family:'Nanum Gothic','나눔고딕',sans-serif;}
+.req-head{padding:20px 24px 16px;border-bottom:1px solid #e2e6ea;display:flex;align-items:center;justify-content:space-between;}
+.req-head-title{font-size:15px;font-weight:700;color:#2c3e50;}
+.req-head-sub{font-size:11px;color:#95a5a6;margin-top:2px;}
+.req-close{background:none;border:none;font-size:18px;color:#95a5a6;cursor:pointer;padding:0 4px;}
+.req-body{padding:20px 24px;}
+.req-field{margin-bottom:16px;}
+.req-label{font-size:11px;font-weight:700;color:#5d6d7e;letter-spacing:0.3px;margin-bottom:6px;display:flex;align-items:center;gap:4px;}
+.req-label .req-required{color:#c0392b;font-size:12px;}
+.req-select{width:100%;padding:9px 12px;border:1px solid #cdd2d8;border-radius:8px;font-size:13px;color:#2c3e50;background:#fff;outline:none;font-family:'Nanum Gothic','나눔고딕',sans-serif;cursor:pointer;}
+.req-select:focus{border-color:#3d5a99;}
+.req-select:disabled{background:#f4f6f9;color:#95a5a6;cursor:not-allowed;}
+.req-input{width:100%;padding:9px 12px;border:1px solid #cdd2d8;border-radius:8px;font-size:13px;color:#2c3e50;background:#fff;outline:none;font-family:'Nanum Gothic','나눔고딕',sans-serif;}
+.req-input:focus{border-color:#3d5a99;}
+.req-days{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px;}
+.req-day-chk{display:none;}
+.req-day-lbl{padding:6px 12px;border:1px solid #cdd2d8;border-radius:6px;font-size:12px;color:#5d6d7e;cursor:pointer;user-select:none;transition:all .12s;}
+.req-day-chk:checked + .req-day-lbl{background:#3d5a99;border-color:#3d5a99;color:#fff;font-weight:700;}
+.req-detail-box{background:#f8f9fa;border-radius:8px;padding:14px 16px;margin-top:4px;border:1px solid #e2e6ea;}
+.req-detail-box .req-field{margin-bottom:12px;}
+.req-detail-box .req-field:last-child{margin-bottom:0;}
+.req-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.req-textarea{width:100%;padding:9px 12px;border:1px solid #cdd2d8;border-radius:8px;font-size:13px;color:#2c3e50;background:#fff;outline:none;font-family:'Nanum Gothic','나눔고딕',sans-serif;resize:vertical;min-height:72px;}
+.req-textarea:focus{border-color:#3d5a99;}
+.req-footer{padding:16px 24px;border-top:1px solid #e2e6ea;display:flex;justify-content:flex-end;gap:10px;}
+.req-btn-cancel{padding:9px 18px;border:1px solid #cdd2d8;border-radius:8px;background:#fff;font-size:13px;color:#5d6d7e;cursor:pointer;font-family:'Nanum Gothic','나눔고딕',sans-serif;}
+.req-btn-submit{padding:9px 20px;border:none;border-radius:8px;background:#3d5a99;font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:'Nanum Gothic','나눔고딕',sans-serif;}
+.req-btn-submit:hover{background:#2e4482;}
+.req-btn-submit:disabled{background:#95a5a6;cursor:not-allowed;}
+.req-success{text-align:center;padding:32px 24px;}
+.req-success-icon{font-size:40px;margin-bottom:12px;}
+.req-success-title{font-size:16px;font-weight:700;color:#2c3e50;margin-bottom:6px;}
+.req-success-sub{font-size:12px;color:#95a5a6;line-height:1.6;}
+
+/* ── 수정요청 패널 ── */
+.corr-btn{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#fff;border:1px solid #e2e6ea;border-radius:8px;font-size:12px;font-weight:600;color:#3d5a99;cursor:pointer;margin:12px 0 0;width:100%;transition:all .15s;}
+.corr-btn:hover{background:#f0f4ff;border-color:#3d5a99;}
+.corr-btn-icon{width:20px;height:20px;background:#3d5a99;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;flex-shrink:0;}
+.corr-panel{display:none;background:#fff;border:1px solid #e2e6ea;border-radius:0 0 10px 10px;padding:20px;margin-top:0;}
+.corr-panel.open{display:block;}
+.corr-section{margin-bottom:16px;}
+.corr-label{font-size:11px;color:#5d6d7e;letter-spacing:0.3px;margin-bottom:5px;font-weight:600;}
+.corr-select{width:100%;background:#f8f9fa;border:1px solid #e2e6ea;border-radius:7px;padding:9px 12px;font-size:12px;color:#2c3e50;outline:none;font-family:'Nanum Gothic',sans-serif;cursor:pointer;}
+.corr-select:focus{border-color:#3d5a99;}
+.corr-input{width:100%;background:#f8f9fa;border:1px solid #e2e6ea;border-radius:7px;padding:9px 12px;font-size:12px;color:#2c3e50;outline:none;font-family:'Nanum Gothic',sans-serif;}
+.corr-input:focus{border-color:#3d5a99;}
+.corr-days{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+.corr-day{padding:5px 11px;border:1px solid #e2e6ea;border-radius:6px;font-size:11px;color:#5d6d7e;cursor:pointer;background:#f8f9fa;transition:all .15s;user-select:none;}
+.corr-day.on{background:#3d5a99;border-color:#3d5a99;color:#fff;}
+.corr-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.corr-sub{display:none;margin-top:10px;padding:14px;background:#f8f9fa;border-radius:8px;border:1px solid #e9ecef;}
+.corr-sub.show{display:block;}
+.corr-textarea{width:100%;background:#f8f9fa;border:1px solid #e2e6ea;border-radius:7px;padding:9px 12px;font-size:12px;color:#2c3e50;outline:none;font-family:'Nanum Gothic',sans-serif;resize:vertical;min-height:64px;}
+.corr-submit{width:100%;padding:11px;background:#3d5a99;border:none;border-radius:8px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;margin-top:4px;font-family:'Nanum Gothic',sans-serif;}
+.corr-submit:hover{background:#2e4482;}
+.corr-divider{height:1px;background:#e9ecef;margin:14px 0;}
+.corr-done{display:none;text-align:center;padding:20px;color:#17a589;font-size:13px;font-weight:600;}
+
+/* ── 호실 타임테이블 ── */
+.tt-wrap{margin:16px 0 0;}
+.tt-title{font-size:11px;color:var(--text2);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:10px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.tt-legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.tt-leg{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);}
+.tt-leg-dot{width:8px;height:8px;border-radius:2px;}
+.tt-table{width:100%;border-collapse:collapse;font-size:11px;}
+.tt-table th{padding:5px 8px;font-weight:600;color:var(--text2);font-size:10px;letter-spacing:0.3px;border-bottom:1px solid var(--border);text-align:center;}
+.tt-table th.tt-room-col{text-align:left;min-width:80px;}
+.tt-table td{padding:4px 6px;border-bottom:1px solid var(--border);text-align:center;vertical-align:middle;}
+.tt-table td.tt-room-name{text-align:left;font-weight:600;color:var(--text);font-size:11px;padding-left:0;}
+.tt-cell{display:inline-flex;align-items:center;justify-content:center;border-radius:4px;padding:3px 6px;font-size:10px;font-weight:600;min-width:36px;height:24px;}
+.tt-empty{background:#f0f0f4;color:#bbb;font-size:9px;}
+.tt-idle{background:#f8f0e8;color:#d4820a;border:1px dashed #d4820a;font-size:9px;}
+.tt-mix{background:#f0eeff;color:#6c5ce7;border:1px solid rgba(108,92,231,0.3);}
+.tt-c-101{background:#e8f5e9;color:#2e7d32;}
+.tt-c-106{background:#e3f2fd;color:#1565c0;}
+.tt-c-206{background:#fce4ec;color:#880e4f;}
+.tt-c-224{background:#f3e5f5;color:#6a1b9a;}
+.tt-c-301{background:#e0f2f1;color:#00695c;}
+.tt-c-302{background:#e8eaf6;color:#283593;}
+.tt-c-303{background:#fff8e1;color:#f57f17;}
+.tt-c-304{background:#fbe9e7;color:#bf360c;}
+.tt-c-316{background:#e8f5e9;color:#1b5e20;}
+.tt-c-soo{background:#e1f5fe;color:#01579b;}
+.tt-c-mid{background:#f9fbe7;color:#33691e;}
+.tt-c-teddy{background:#fff3e0;color:#e65100;}
+.tt-c-sas{background:#fce4ec;color:#880e4f;}
+.tt-c-other{background:#f5f5f5;color:#555;}
+.tt-row:hover{background:rgba(0,0,0,0.02);}
+.tt-avail-badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;background:#e8f5e9;color:#2e7d32;font-weight:600;margin-left:6px;}
+</style>
+</head>
+<body>
+
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">G</div>
+      <div>
+        <div class="auth-logo-text">Graph RAG 대시보드</div>
+        <div class="auth-logo-sub">임차료 배부 현황 시스템</div>
+      </div>
+    </div>
+    <div class="auth-title">로그인</div>
+    <div class="auth-sub">권한에 따라 조회 가능한 캠퍼스가 다릅니다.</div>
+    <div class="auth-field">
+      <label>아이디</label>
+      <input class="auth-input" type="text" id="authId" placeholder="아이디 입력" autocomplete="username">
+    </div>
+    <div class="auth-field">
+      <label>비밀번호</label>
+      <input class="auth-input" type="password" id="authPw" placeholder="비밀번호 입력" autocomplete="current-password">
+    </div>
+    <button class="auth-btn" id="authLoginBtn">로그인</button>
+    <div class="auth-err" id="authErr">아이디 또는 비밀번호를 확인해주세요.</div>
+  </div>
+</div>
+
+<!-- 헤더 -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">G</div>
+    <div>
+      <div class="header-title">Graph RAG · 전체 건물 임차료 대시보드</div>
+      <div class="header-sub">7개 건물 · 2026년 1월 기준 · 총 1,035.6평 · 월 90,536,845원</div>
+    </div>
+  </div>
+  <span class="badge">AI DAY v2</span>
+  <div class="user-info-bar" id="userInfoBar" style="display:none;" onclick="doLogout()">
+    <div class="user-role-dot" id="userRoleDot"></div>
+    <span id="userNameDisplay"></span>
+    <span id="userRoleBadge" class="auth-badge"></span>
+    <span style="color:#5a5868;font-size:10px;">로그아웃</span>
+  </div>
+</div>
+
+<!-- 탭 네비게이션 -->
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="summary">📊 전체 서머리</button>
+  <button class="tab-btn" data-tab="b1">🏢 N타워 6층</button>
+  <button class="tab-btn" data-tab="b2">🏢 다운타운 12층</button>
+  <button class="tab-btn" data-tab="b3">🏢 수내동빌딩</button>
+  <button class="tab-btn" data-tab="b4">🏢 정자</button>
+  <button class="tab-btn" data-tab="b5">🏢 다운타운 8층</button>
+  <button class="tab-btn" data-tab="b6">🏢 N타워 9층</button>
+  <button class="tab-btn" data-tab="b7">🏢 다운타운 6층</button>
+</div>
+
+<div class="main">
+  <div class="left">
+
+    <!-- ══════════════════════════════════════
+         TAB: 전체 서머리
+    ══════════════════════════════════════ -->
+    <div id="tab-summary" class="tab-content active">
+
+      <!-- KPI 전체 합계 -->
+      <div class="kpi-row">
+        <div class="kpi accent-purple">
+          <div class="kpi-label">총 월 임차료</div>
+          <div class="kpi-val">9,054만</div>
+          <div class="kpi-sub">6개 건물 합계 (VAT포함)</div>
+        </div>
+        <div class="kpi accent-teal">
+          <div class="kpi-label">총 관리 면적</div>
+          <div class="kpi-val">1,035.6평</div>
+          <div class="kpi-sub">6개 건물 합산</div>
+        </div>
+        <div class="kpi accent-amber">
+          <div class="kpi-label">평균 평당 단가</div>
+          <div class="kpi-val">87,423원</div>
+          <div class="kpi-sub">전체 가중 평균</div>
+        </div>
+        <div class="kpi accent-blue">
+          <div class="kpi-label">총 강의실 수</div>
+          <div class="kpi-val">122개</div>
+          <div class="kpi-sub">6개 건물 합산</div>
+        </div>
+      </div>
+      <button class="room-check-btn" id="rcBtn">
+        <div class="room-check-icon">+</div>
+        강의실 가용성 조회 — 신규 반 개설 시 사용 가능 호실 확인
+        <span style="margin-left:auto;font-size:11px;color:#9896a8;" id="rcArrow">▼</span>
+      </button>
+      <div class="room-check-panel" id="rcPanel">
+        <div class="rc-form">
+          <div class="rc-field" style="grid-column:1/-1;">
+            <label>건물 선택</label>
+            <select class="rc-select" id="rcBuilding">
+              <option value="all">🔍 전체 건물 통합 조회 (7개 건물)</option>
+              <option value="sunaedong">수내동빌딩 (3·4층)</option>
+              <option value="ntower6">N타워빌딩 6층</option>
+              <option value="downtown12">다운타운 12층</option>
+              <option value="jungja">정자 (백궁·시그마)</option>
+              <option value="downtown8">다운타운 8층</option>
+              <option value="ntower9">N타워 9층</option>
+              <option value="downtown6">다운타운 6층</option>
+            </select>
+          </div>
+          <div class="rc-field">
+            <label>수업 시작 시간</label>
+            <input class="rc-input" type="time" id="rcStart" value="15:50">
+          </div>
+          <div class="rc-field">
+            <label>수업 종료 시간</label>
+            <input class="rc-input" type="time" id="rcEnd" value="18:20">
+          </div>
+          <div class="rc-field" style="grid-column:1/-1;">
+            <label>수업 요일</label>
+            <div class="rc-days">
+              <button class="rc-day on" data-d="mon">월</button>
+              <button class="rc-day" data-d="tue">화</button>
+              <button class="rc-day on" data-d="wed">수</button>
+              <button class="rc-day" data-d="thu">목</button>
+              <button class="rc-day on" data-d="fri">금</button>
+              <button class="rc-day" data-d="sat">토</button>
+              <button class="rc-day" data-d="sun">일</button>
+            </div>
+          </div>
+        </div>
+        <button class="rc-search-btn" id="rcSearch">사용 가능한 강의실 조회</button>
+        <div id="rcResults"></div>
+      </div>
+
+
+
+      <!-- 건물별 임차료 바 차트 -->
+      <div class="card">
+        <div class="card-title">건물별 월 임차료 현황</div>
+        <div class="bar-item">
+          <div class="bar-meta"><span class="bar-name">수내동빌딩 (3·4층)</span><span class="bar-val">17,370,045원 · 209.7평</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:100%;background:#2ec4a0"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-meta"><span class="bar-name">다운타운 8층</span><span class="bar-val">13,750,000원 · 161.2평</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:79.2%;background:#8b7ff0"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-meta"><span class="bar-name">N타워빌딩 6층</span><span class="bar-val">13,593,400원 · 130.8평</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:78.3%;background:#f0b040"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-meta"><span class="bar-name">N타워 9층</span><span class="bar-val">13,593,400원 · 130.8평</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:78.3%;background:#4a9ef0"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-meta"><span class="bar-name">정자 (백궁·시그마)</span><span class="bar-val">11,660,000원 · 154평</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:67.1%;background:#f06080"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-meta"><span class="bar-name">다운타운 12층</span><span class="bar-val">8,800,000원 · 112.1평</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:50.7%;background:#9896a8"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-meta"><span class="bar-name">다운타운 6층</span><span class="bar-val">11,770,000원 · 137평</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:67.8%;background:#e87040"></div></div>
+        </div>
+      </div>
+
+      <!-- 건물 카드 그리드 -->
+      <div class="building-grid">
+
+        <div class="building-card" data-tab="b1">
+          <div class="bc-name">🏢 N타워빌딩 6층</div>
+          <div class="bc-area">130.8평 · 20개 호실 · 캠퍼스 5개</div>
+          <div class="bc-rent">13,593,400원</div>
+          <div class="bc-ppp">평단가 103,925원/평</div>
+          <div class="bc-bar"><div class="bc-bar-fill" style="width:78.3%;background:#f0b040"></div></div>
+          <div class="bc-chips">
+            <span class="bc-chip" style="background:rgba(74,158,240,0.15);color:#4a9ef0">A형 10.4평</span>
+            <span class="bc-chip" style="background:rgba(240,176,64,0.15);color:#f0b040">B형 53.7평</span>
+          </div>
+        </div>
+
+        <div class="building-card" data-tab="b2">
+          <div class="bc-name">🏢 다운타운 12층</div>
+          <div class="bc-area">112.1평 · 14개 호실 · 캠퍼스 4개</div>
+          <div class="bc-rent">8,800,000원</div>
+          <div class="bc-ppp">평단가 78,501원/평</div>
+          <div class="bc-bar"><div class="bc-bar-fill" style="width:50.7%;background:#9896a8"></div></div>
+          <div class="bc-chips">
+            <span class="bc-chip" style="background:rgba(74,158,240,0.15);color:#4a9ef0">A형 7.3평</span>
+            <span class="bc-chip" style="background:rgba(240,176,64,0.15);color:#f0b040">B형 21.9평</span>
+          </div>
+        </div>
+
+        <div class="building-card" data-tab="b3">
+          <div class="bc-name">🏢 수내동빌딩 (3·4층)</div>
+          <div class="bc-area">209.7평 · 23개 호실 · 초등수아</div>
+          <div class="bc-rent">17,370,045원</div>
+          <div class="bc-ppp">평단가 82,833원/평</div>
+          <div class="bc-bar"><div class="bc-bar-fill" style="width:100%;background:#2ec4a0"></div></div>
+          <div class="bc-chips">
+            <span class="bc-chip" style="background:rgba(74,158,240,0.15);color:#4a9ef0">A형 89.4평</span>
+            <span class="bc-chip" style="background:rgba(46,196,160,0.15);color:#2ec4a0">C형 23.7평</span>
+          </div>
+        </div>
+
+        <div class="building-card" data-tab="b4">
+          <div class="bc-name">🏢 정자 (백궁·시그마)</div>
+          <div class="bc-area">154평 · 20개 호실 · 캠퍼스 4개</div>
+          <div class="bc-rent">11,660,000원</div>
+          <div class="bc-ppp">평단가 75,714원/평</div>
+          <div class="bc-bar"><div class="bc-bar-fill" style="width:67.1%;background:#f06080"></div></div>
+          <div class="bc-chips">
+            <span class="bc-chip" style="background:rgba(74,158,240,0.15);color:#4a9ef0">A형 44.5평</span>
+            <span class="bc-chip" style="background:rgba(240,176,64,0.15);color:#f0b040">B형 53.4평</span>
+          </div>
+        </div>
+
+        <div class="building-card" data-tab="b5">
+          <div class="bc-name">🏢 다운타운 8층</div>
+          <div class="bc-area">161.2평 · 28개 호실 · 캠퍼스 5개</div>
+          <div class="bc-rent">13,750,000원</div>
+          <div class="bc-ppp">평단가 85,298원/평</div>
+          <div class="bc-bar"><div class="bc-bar-fill" style="width:79.2%;background:#8b7ff0"></div></div>
+          <div class="bc-chips">
+            <span class="bc-chip" style="background:rgba(240,176,64,0.15);color:#f0b040">B형 58.0평</span>
+            <span class="bc-chip" style="background:rgba(0,0,0,0.05);color:#9896a8">공용부</span>
+          </div>
+        </div>
+
+        <div class="building-card" data-tab="b6">
+          <div class="bc-name">🏢 N타워 9층</div>
+          <div class="bc-area">130.8평 · 7개 호실 · 중등수아</div>
+          <div class="bc-rent">13,593,400원</div>
+          <div class="bc-ppp">평단가 103,925원/평</div>
+          <div class="bc-bar"><div class="bc-bar-fill" style="width:78.3%;background:#4a9ef0"></div></div>
+          <div class="bc-chips">
+            <span class="bc-chip" style="background:rgba(74,158,240,0.15);color:#4a9ef0">A형 44.6평</span>
+            <span class="bc-chip" style="background:rgba(46,196,160,0.15);color:#2ec4a0">C형 19.2평</span>
+          </div>
+        </div>
+
+        <!-- 다운타운 6층 카드 -->
+        <div class="building-card" data-tab="b7">
+          <div class="bc-name">🏢 다운타운 6층</div>
+          <div class="bc-area">137평 · 10개 호실 · 캠퍼스 3개</div>
+          <div class="bc-rent">11,770,000원</div>
+          <div class="bc-ppp">평단가 85,912원/평</div>
+          <div class="bc-bar"><div class="bc-bar-fill" style="width:67.8%;background:#e87040"></div></div>
+          <div class="bc-chips">
+            <span class="bc-chip" style="background:rgba(232,112,64,0.15);color:#e87040">A형 34.7평</span>
+            <span class="bc-chip" style="background:rgba(240,176,64,0.15);color:#f0b040">B형 30.9평</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 전체 비교 테이블 -->
+      <div class="card">
+        <div class="card-title">건물별 핵심 지표 비교</div>
+        <table class="space-table">
+          <thead>
+            <tr>
+              <th>건물</th><th>면적(평)</th><th>월 임차료</th><th>평단가(원/평)</th><th>호실수</th><th>A형(평)</th><th>B형(평)</th><th>C형(평)</th><th>유휴비용</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>N타워 6층</td><td>130.8</td><td style="color:var(--amber)">13,593,400</td><td>103,925</td><td>20</td><td>10.4</td><td>53.7</td><td>-</td><td style="color:var(--red)">935,326</td></tr>
+            <tr><td>다운타운 12층</td><td>112.1</td><td style="color:var(--text2)">8,800,000</td><td>78,501</td><td>14</td><td>7.3</td><td>21.9</td><td>-</td><td style="color:var(--red)">1,478,387</td></tr>
+            <tr><td>수내동빌딩</td><td>209.7</td><td style="color:var(--teal)">17,370,045</td><td>82,833</td><td>23</td><td>89.4</td><td>-</td><td>23.7</td><td style="color:var(--text3)">0</td></tr>
+            <tr><td>정자</td><td>154.0</td><td style="color:var(--red)">11,660,000</td><td>75,714</td><td>20</td><td>44.5</td><td>53.4</td><td>-</td><td style="color:var(--amber)">495,388</td></tr>
+            <tr><td>다운타운 8층</td><td>161.2</td><td style="color:var(--purple)">13,750,000</td><td>85,298</td><td>28</td><td>-</td><td>58.0</td><td>-</td><td style="color:var(--amber)">126,792</td></tr>
+            <tr><td>N타워 9층</td><td>130.8</td><td style="color:var(--blue)">13,593,400</td><td>103,925</td><td>7</td><td>44.6</td><td>-</td><td>19.2</td><td style="color:var(--text3)">0</td></tr>
+            <tr><td>다운타운 6층</td><td>137</td><td style="color:var(--red)">11,770,000</td><td>85,912</td><td>10</td><td>34.7</td><td>30.9</td><td>-</td><td style="color:var(--amber)">368,196</td></tr>
+            <tr class="total-row"><td>합계/평균</td><td>1,035.6</td><td>90,536,845</td><td>87,423</td><td>122</td><td>230.9</td><td>217.9</td><td>42.9</td><td>3,404,089</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:10px;padding:8px 12px;background:rgba(240,96,128,0.08);border-radius:7px;border:0.5px solid rgba(240,96,128,0.2)">
+          <span style="font-size:10px;color:var(--red)">⚠ 주의</span>
+          <span style="font-size:11px;color:var(--text2);margin-left:6px">총 유휴비용 3,035,893원 — N타워 6층(935K)·다운타운 12층(1,478K) 비중 높음. 공간 활용도 개선 검토 필요</span>
+        </div>
+      </div>
+
+    
+</div><!-- /tab-summary -->
+
+
+    <!-- ══════════════════════════════════════
+         TAB: N타워빌딩 6층
+    ══════════════════════════════════════ -->
+    <div id="tab-b1" class="tab-content">
+            <div class="kpi-row">
+        <div class="kpi accent-purple">
+          <div class="kpi-label">월 임차료</div>
+          <div class="kpi-val">1,359만</div>
+          <div class="kpi-sub">VAT포함 · 130.8평</div>
+        </div>
+        <div class="kpi accent-amber">
+          <div class="kpi-label">평당 단가</div>
+          <div class="kpi-val">103,925</div>
+          <div class="kpi-sub">원/평 · 6개 건물 최고</div>
+        </div>
+        <div class="kpi accent-teal">
+          <div class="kpi-label">배부 캠퍼스</div>
+          <div class="kpi-val">5개</div>
+          <div class="kpi-sub">106 · 224 · 301 · 303 · 304</div>
+        </div>
+        <div class="kpi accent-blue">
+          <div class="kpi-label">공간 유형</div>
+          <div class="kpi-val">A · B</div>
+          <div class="kpi-sub">전용 · 공용</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">캠퍼스별 배부 (강의실 직접비)</div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">304</span><span class="bar-val">1,957,303원</span></div>
+            <div class="bar-stack"><span style="width:55%;background:#4a9ef0"></span><span style="width:45%;background:#2e7ab0"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">106</span><span class="bar-val">2,782,290원</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#f0b040"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">224</span><span class="bar-val">637,652원</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#8b7ff0"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">301</span><span class="bar-val">188,685원</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#2ec4a0"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">303</span><span class="bar-val">160,342원</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#f06080"></span></div>
+          </div>
+          <div style="margin-top:10px;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">공용부 풀 (미배분)</div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>유휴비용</span><span>935,326원</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>잔여공용부 (66.7평)</span><span>6,931,803원</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">공간 유형 면적 분포</div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">전용 A형</span><span class="bar-val">10.4평 (8%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:8%;background:#4a9ef0"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">공용 B형 (MIX)</span><span class="bar-val">53.7평 (41%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:41%;background:#f0b040"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">잔여공용부</span><span class="bar-val">66.7평 (51%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:51%;background:#444"></div></div>
+          </div>
+          <div style="margin-top:12px;padding:8px 12px;background:rgba(240,176,64,0.08);border-radius:6px;border:0.5px solid rgba(240,176,64,0.2)">
+            <div style="font-size:10px;color:var(--amber)">⚠ 평단가 최고 건물</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:3px">103,925원/평으로 전체 평균(87,660원) 대비 18.5% 높음. B형 유휴 935K 최적화 필요.</div>
+          </div>
+        </div>
+      </div>
+    <div class="card" style="margin-top:0"><div class="card-title">요일별 사용 패턴 — 전체 호실</div><div id="hmap-b1" style="overflow-x:auto;"></div><div class="legend" style="margin-top:10px" id="hmap-b1-legend"></div></div>
+
+      <!-- 수정요청 -->
+
+      <!-- 타임테이블 -->
+      <div class="card" style="padding:20px;">
+        <div id="tt-container-b1"></div>
+      </div>
+      <button class="corr-btn" id="corrBtn_b1" onclick="toggleCorrPanel('b1')">
+        <div class="corr-btn-icon">✏</div>
+        강의실·시간표 수정요청
+        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b1">▼</span>
+      </button>
+      <div class="corr-panel" id="corrPanel_b1">
+        <div class="corr-section">
+          <div class="corr-label">호실 선택</div>
+          <select class="corr-select" id="corrRoom_b1"><option value="">호실 선택</option></select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 구분</div>
+          <select class="corr-select" id="corrCat_b1" onchange="updateCorrSubList('b1')">
+            <option value="">구분 선택</option>
+            <option value="room">강의실 사용 현황 오류</option>
+            <option value="schedule">시간표 오류</option>
+            <option value="cost">배부금액 오류</option>
+            <option value="campus">캠퍼스 정보 오류</option>
+          </select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 유형</div>
+          <select class="corr-select" id="corrSubSel_b1" onchange="updateCorrSub('b1')">
+            <option value="">오류 유형 선택</option>
+          </select>
+        </div>
+        <div id="corrDetail_b1" class="corr-sub"></div>
+        <div class="corr-divider"></div>
+        <div class="corr-section">
+          <div class="corr-label">메모 (선택)</div>
+          <textarea class="corr-textarea" id="corrMemo_b1" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
+        </div>
+        <button class="corr-submit" onclick="submitCorr('b1')">수정요청 제출</button>
+      </div>
+</div><!-- /tab-b1 -->
+
+
+    <!-- ══════════════════════════════════════
+         TAB: 다운타운 12층
+    ══════════════════════════════════════ -->
+    <div id="tab-b2" class="tab-content">
+            <div class="kpi-row">
+        <div class="kpi accent-purple">
+          <div class="kpi-label">월 임차료</div>
+          <div class="kpi-val">880만</div>
+          <div class="kpi-sub">VAT포함 · 112.1평</div>
+        </div>
+        <div class="kpi accent-teal">
+          <div class="kpi-label">평당 단가</div>
+          <div class="kpi-val">78,501</div>
+          <div class="kpi-sub">원/평 · 6개 건물 최저</div>
+        </div>
+        <div class="kpi accent-teal">
+          <div class="kpi-label">배부 캠퍼스</div>
+          <div class="kpi-val">4개</div>
+          <div class="kpi-sub">301 · 302 · 303 · 316</div>
+        </div>
+        <div class="kpi accent-blue">
+          <div class="kpi-label">공간 유형</div>
+          <div class="kpi-val">A · B</div>
+          <div class="kpi-sub">전용 · 공용</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">캠퍼스별 배부</div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">303</span><span class="bar-val">573,060원 (A형)</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#4a9ef0"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">316</span><span class="bar-val">107,812원 (B형)</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#f0b040"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">302</span><span class="bar-val">104,295원 (B형)</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#8b7ff0"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">301</span><span class="bar-val">28,685원 (B형)</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#2ec4a0"></span></div>
+          </div>
+          <div style="margin-top:10px;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">공용부 풀 (미배분)</div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>B형 유휴비용</span><span style="color:var(--red)">1,478,387원</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>잔여공용부 (82.9평)</span><span>6,507,761원</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">공간 유형 면적 분포</div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">전용 A형</span><span class="bar-val">7.3평 (6.5%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:6.5%;background:#4a9ef0"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">공용 B형 (MIX)</span><span class="bar-val">21.9평 (19.5%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:19.5%;background:#f0b040"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">잔여공용부</span><span class="bar-val">82.9평 (74%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:74%;background:#444"></div></div>
+          </div>
+          <div style="margin-top:12px;padding:8px 12px;background:rgba(240,96,128,0.08);border-radius:6px;border:0.5px solid rgba(240,96,128,0.2)">
+            <div style="font-size:10px;color:var(--red)">⚠ 유휴비용 최대 건물</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:3px">B형 유휴 1,478,387원 — 전체 6개 건물 중 최대. 강의실 활용율 제고 필요.</div>
+          </div>
+        </div>
+      </div>
+    <div class="card" style="margin-top:0"><div class="card-title">요일별 사용 패턴 — 전체 호실</div><div id="hmap-b2" style="overflow-x:auto;"></div><div class="legend" style="margin-top:10px" id="hmap-b2-legend"></div></div>
+
+      <!-- 수정요청 -->
+
+      <!-- 타임테이블 -->
+      <div class="card" style="padding:20px;">
+        <div id="tt-container-b2"></div>
+      </div>
+      <button class="corr-btn" id="corrBtn_b2" onclick="toggleCorrPanel('b2')">
+        <div class="corr-btn-icon">✏</div>
+        강의실·시간표 수정요청
+        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b2">▼</span>
+      </button>
+      <div class="corr-panel" id="corrPanel_b2">
+        <div class="corr-section">
+          <div class="corr-label">호실 선택</div>
+          <select class="corr-select" id="corrRoom_b2"><option value="">호실 선택</option></select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 구분</div>
+          <select class="corr-select" id="corrCat_b2" onchange="updateCorrSubList('b2')">
+            <option value="">구분 선택</option>
+            <option value="room">강의실 사용 현황 오류</option>
+            <option value="schedule">시간표 오류</option>
+            <option value="cost">배부금액 오류</option>
+            <option value="campus">캠퍼스 정보 오류</option>
+          </select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 유형</div>
+          <select class="corr-select" id="corrSubSel_b2" onchange="updateCorrSub('b2')">
+            <option value="">오류 유형 선택</option>
+          </select>
+        </div>
+        <div id="corrDetail_b2" class="corr-sub"></div>
+        <div class="corr-divider"></div>
+        <div class="corr-section">
+          <div class="corr-label">메모 (선택)</div>
+          <textarea class="corr-textarea" id="corrMemo_b2" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
+        </div>
+        <button class="corr-submit" onclick="submitCorr('b2')">수정요청 제출</button>
+      </div>
+</div><!-- /tab-b2 -->
+
+
+    <!-- ══════════════════════════════════════
+         TAB: 수내동빌딩
+    ══════════════════════════════════════ -->
+    <div id="tab-b3" class="tab-content">
+            <div class="kpi-row">
+        <div class="kpi accent-purple">
+          <div class="kpi-label">월 임차료</div>
+          <div class="kpi-val">1,737만</div>
+          <div class="kpi-sub">VAT포함 · 209.7평</div>
+        </div>
+        <div class="kpi accent-teal">
+          <div class="kpi-label">평당 단가</div>
+          <div class="kpi-val">82,833</div>
+          <div class="kpi-sub">원/평 · 면적 최대 건물</div>
+        </div>
+        <div class="kpi accent-teal">
+          <div class="kpi-label">배부 캠퍼스</div>
+          <div class="kpi-val">1개</div>
+          <div class="kpi-sub">초등수아</div>
+        </div>
+        <div class="kpi accent-blue">
+          <div class="kpi-label">공간 유형</div>
+          <div class="kpi-val">A · C</div>
+          <div class="kpi-sub">전용 · 자습실</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">캠퍼스별 배부</div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">초등수아</span><span class="bar-val">9,368,393원</span></div>
+            <div class="bar-stack"><span style="width:53.9%;background:#2ec4a0"></span><span style="width:11.3%;background:#1a8f72"></span></div>
+          </div>
+          <div style="margin-top:10px;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">공용부 풀 (미배분)</div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>잔여공용부 (96.6평)</span><span>8,001,652원</span></div>
+          </div>
+          <div style="margin-top:8px;padding:8px 12px;background:rgba(46,196,160,0.08);border-radius:6px;border:0.5px solid rgba(46,196,160,0.2)">
+            <span style="font-size:10px;color:var(--teal)">✓ 단일 캠퍼스 운영</span>
+            <span style="font-size:11px;color:var(--text2);margin-left:6px">초등수아 전용 — 배분 복잡도 낮음</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">공간 유형 면적 분포</div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">전용 A형</span><span class="bar-val">89.4평 (42.6%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:42.6%;background:#4a9ef0"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">자습실 C형</span><span class="bar-val">23.7평 (11.3%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:11.3%;background:#2ec4a0"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">잔여공용부</span><span class="bar-val">96.6평 (46.1%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:46.1%;background:#444"></div></div>
+          </div>
+          <div style="margin-top:12px;padding:8px 12px;background:rgba(46,196,160,0.08);border-radius:6px;border:0.5px solid rgba(46,196,160,0.2)">
+            <div style="font-size:10px;color:var(--teal)">✓ 유휴비용 0원</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:3px">6개 건물 중 유일하게 B형 유휴 없음. 공간 효율 최우수.</div>
+          </div>
+        </div>
+      </div>
+    <div class="card" style="margin-top:0"><div class="card-title">요일별 사용 패턴 — 전체 호실</div><div id="hmap-b3" style="overflow-x:auto;"></div><div class="legend" style="margin-top:10px" id="hmap-b3-legend"></div></div>
+
+      <!-- 수정요청 -->
+
+      <!-- 타임테이블 -->
+      <div class="card" style="padding:20px;">
+        <div id="tt-container-b3"></div>
+      </div>
+      <button class="corr-btn" id="corrBtn_b3" onclick="toggleCorrPanel('b3')">
+        <div class="corr-btn-icon">✏</div>
+        강의실·시간표 수정요청
+        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b3">▼</span>
+      </button>
+      <div class="corr-panel" id="corrPanel_b3">
+        <div class="corr-section">
+          <div class="corr-label">호실 선택</div>
+          <select class="corr-select" id="corrRoom_b3"><option value="">호실 선택</option></select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 구분</div>
+          <select class="corr-select" id="corrCat_b3" onchange="updateCorrSubList('b3')">
+            <option value="">구분 선택</option>
+            <option value="room">강의실 사용 현황 오류</option>
+            <option value="schedule">시간표 오류</option>
+            <option value="cost">배부금액 오류</option>
+            <option value="campus">캠퍼스 정보 오류</option>
+          </select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 유형</div>
+          <select class="corr-select" id="corrSubSel_b3" onchange="updateCorrSub('b3')">
+            <option value="">오류 유형 선택</option>
+          </select>
+        </div>
+        <div id="corrDetail_b3" class="corr-sub"></div>
+        <div class="corr-divider"></div>
+        <div class="corr-section">
+          <div class="corr-label">메모 (선택)</div>
+          <textarea class="corr-textarea" id="corrMemo_b3" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
+        </div>
+        <button class="corr-submit" onclick="submitCorr('b3')">수정요청 제출</button>
+      </div>
+</div><!-- /tab-b3 -->
+
+
+    <!-- ══════════════════════════════════════
+         TAB: 정자
+    ══════════════════════════════════════ -->
+    <div id="tab-b4" class="tab-content">
+            <div class="kpi-row">
+        <div class="kpi accent-purple">
+          <div class="kpi-label">월 임차료</div>
+          <div class="kpi-val">1,166만</div>
+          <div class="kpi-sub">VAT포함 · 154.0평</div>
+        </div>
+        <div class="kpi accent-red">
+          <div class="kpi-label">평당 단가</div>
+          <div class="kpi-val">75,714</div>
+          <div class="kpi-sub">원/평 · 2번째 저렴</div>
+        </div>
+        <div class="kpi accent-teal">
+          <div class="kpi-label">배부 캠퍼스</div>
+          <div class="kpi-val">4개</div>
+          <div class="kpi-sub">301 · 303 · 304 · 316</div>
+        </div>
+        <div class="kpi accent-blue">
+          <div class="kpi-label">공간 유형</div>
+          <div class="kpi-val">A · B</div>
+          <div class="kpi-sub">전용 · 공용</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">캠퍼스별 배부</div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">316</span><span class="bar-val">3,519,982원</span></div>
+            <div class="bar-stack"><span style="width:67%;background:#4a9ef0"></span><span style="width:33%;background:#2e7ab0"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">301</span><span class="bar-val">2,079,082원</span></div>
+            <div class="bar-stack"><span style="width:33%;background:#f0b040"></span><span style="width:67%;background:#ba8028"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">303</span><span class="bar-val">805,845원</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#8b7ff0"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">304</span><span class="bar-val">512,132원</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#2ec4a0"></span></div>
+          </div>
+          <div style="margin-top:10px;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">공용부 풀 (미배분)</div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>B형 유휴비용</span><span>495,388원</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>잔여공용부 (56.1평)</span><span>4,247,571원</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">공간 유형 면적 분포</div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">전용 A형</span><span class="bar-val">44.5평 (28.9%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:28.9%;background:#4a9ef0"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">공용 B형 (MIX)</span><span class="bar-val">53.4평 (34.7%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:34.7%;background:#f0b040"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">잔여공용부</span><span class="bar-val">56.1평 (36.4%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:36.4%;background:#444"></div></div>
+          </div>
+        </div>
+      </div>
+    <div class="card" style="margin-top:0"><div class="card-title">요일별 사용 패턴 — 전체 호실</div><div id="hmap-b4" style="overflow-x:auto;"></div><div class="legend" style="margin-top:10px" id="hmap-b4-legend"></div></div>
+
+      <!-- 수정요청 -->
+
+      <!-- 타임테이블 -->
+      <div class="card" style="padding:20px;">
+        <div id="tt-container-b4"></div>
+      </div>
+      <button class="corr-btn" id="corrBtn_b4" onclick="toggleCorrPanel('b4')">
+        <div class="corr-btn-icon">✏</div>
+        강의실·시간표 수정요청
+        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b4">▼</span>
+      </button>
+      <div class="corr-panel" id="corrPanel_b4">
+        <div class="corr-section">
+          <div class="corr-label">호실 선택</div>
+          <select class="corr-select" id="corrRoom_b4"><option value="">호실 선택</option></select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 구분</div>
+          <select class="corr-select" id="corrCat_b4" onchange="updateCorrSubList('b4')">
+            <option value="">구분 선택</option>
+            <option value="room">강의실 사용 현황 오류</option>
+            <option value="schedule">시간표 오류</option>
+            <option value="cost">배부금액 오류</option>
+            <option value="campus">캠퍼스 정보 오류</option>
+          </select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 유형</div>
+          <select class="corr-select" id="corrSubSel_b4" onchange="updateCorrSub('b4')">
+            <option value="">오류 유형 선택</option>
+          </select>
+        </div>
+        <div id="corrDetail_b4" class="corr-sub"></div>
+        <div class="corr-divider"></div>
+        <div class="corr-section">
+          <div class="corr-label">메모 (선택)</div>
+          <textarea class="corr-textarea" id="corrMemo_b4" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
+        </div>
+        <button class="corr-submit" onclick="submitCorr('b4')">수정요청 제출</button>
+      </div>
+</div><!-- /tab-b4 -->
+
+
+    <!-- ══════════════════════════════════════
+         TAB: 다운타운 8층
+    ══════════════════════════════════════ -->
+    <div id="tab-b5" class="tab-content">
+            <div class="kpi-row">
+        <div class="kpi accent-purple">
+          <div class="kpi-label">월 임차료</div>
+          <div class="kpi-val">1,375만</div>
+          <div class="kpi-sub">VAT포함 · 161.2평</div>
+        </div>
+        <div class="kpi accent-purple">
+          <div class="kpi-label">평당 단가</div>
+          <div class="kpi-val">85,298</div>
+          <div class="kpi-sub">원/평</div>
+        </div>
+        <div class="kpi accent-teal">
+          <div class="kpi-label">배부 캠퍼스</div>
+          <div class="kpi-val">5개</div>
+          <div class="kpi-sub">206 · 301 · 302 · 303 · 316</div>
+        </div>
+        <div class="kpi accent-blue">
+          <div class="kpi-label">공간 유형</div>
+          <div class="kpi-val">B</div>
+          <div class="kpi-sub">공용 (전용실 없음)</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">캠퍼스별 배부</div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">316</span><span class="bar-val">5,191,152원</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#4a9ef0"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">301</span><span class="bar-val">2,027,586원</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#f0b040"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">302</span><span class="bar-val">1,110,607원</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#8b7ff0"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">303</span><span class="bar-val">1,105,791원</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#2ec4a0"></span></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">206</span><span class="bar-val">332,612원</span></div>
+            <div class="bar-stack"><span style="width:100%;background:#f06080"></span></div>
+          </div>
+          <div style="margin-top:10px;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">공용부 풀 (미배분)</div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>B형 유휴비용</span><span>126,792원</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>잔여공용부 (103.2평)</span><span>8,802,730원</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">공간 유형 면적 분포</div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">공용 B형 (MIX)</span><span class="bar-val">58.0평 (36%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:36%;background:#f0b040"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">잔여공용부</span><span class="bar-val">103.2평 (64%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:64%;background:#444"></div></div>
+          </div>
+          <div style="margin-top:12px;padding:8px 12px;background:rgba(139,127,240,0.08);border-radius:6px;border:0.5px solid rgba(139,127,240,0.2)">
+            <div style="font-size:10px;color:var(--purple)">ℹ 전용실 없는 건물</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:3px">5개 캠퍼스가 모두 B형 공용으로 운영. 요일별 시간배분 정밀 관리 중요.</div>
+          </div>
+        </div>
+      </div>
+    <div class="card" style="margin-top:0"><div class="card-title">요일별 사용 패턴 — 전체 호실</div><div id="hmap-b5" style="overflow-x:auto;"></div><div class="legend" style="margin-top:10px" id="hmap-b5-legend"></div></div>
+
+      <!-- 수정요청 -->
+
+      <!-- 타임테이블 -->
+      <div class="card" style="padding:20px;">
+        <div id="tt-container-b5"></div>
+      </div>
+      <button class="corr-btn" id="corrBtn_b5" onclick="toggleCorrPanel('b5')">
+        <div class="corr-btn-icon">✏</div>
+        강의실·시간표 수정요청
+        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b5">▼</span>
+      </button>
+      <div class="corr-panel" id="corrPanel_b5">
+        <div class="corr-section">
+          <div class="corr-label">호실 선택</div>
+          <select class="corr-select" id="corrRoom_b5"><option value="">호실 선택</option></select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 구분</div>
+          <select class="corr-select" id="corrCat_b5" onchange="updateCorrSubList('b5')">
+            <option value="">구분 선택</option>
+            <option value="room">강의실 사용 현황 오류</option>
+            <option value="schedule">시간표 오류</option>
+            <option value="cost">배부금액 오류</option>
+            <option value="campus">캠퍼스 정보 오류</option>
+          </select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 유형</div>
+          <select class="corr-select" id="corrSubSel_b5" onchange="updateCorrSub('b5')">
+            <option value="">오류 유형 선택</option>
+          </select>
+        </div>
+        <div id="corrDetail_b5" class="corr-sub"></div>
+        <div class="corr-divider"></div>
+        <div class="corr-section">
+          <div class="corr-label">메모 (선택)</div>
+          <textarea class="corr-textarea" id="corrMemo_b5" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
+        </div>
+        <button class="corr-submit" onclick="submitCorr('b5')">수정요청 제출</button>
+      </div>
+</div><!-- /tab-b5 -->
+
+
+    <!-- ══════════════════════════════════════
+         TAB: N타워 9층
+    ══════════════════════════════════════ -->
+    <div id="tab-b6" class="tab-content">
+            <div class="kpi-row">
+        <div class="kpi accent-purple">
+          <div class="kpi-label">월 임차료</div>
+          <div class="kpi-val">1,359만</div>
+          <div class="kpi-sub">VAT포함 · 130.8평</div>
+        </div>
+        <div class="kpi accent-blue">
+          <div class="kpi-label">평당 단가</div>
+          <div class="kpi-val">103,925</div>
+          <div class="kpi-sub">원/평 · N타워6층과 동일</div>
+        </div>
+        <div class="kpi accent-teal">
+          <div class="kpi-label">배부 캠퍼스</div>
+          <div class="kpi-val">1개</div>
+          <div class="kpi-sub">중등수아</div>
+        </div>
+        <div class="kpi accent-blue">
+          <div class="kpi-label">공간 유형</div>
+          <div class="kpi-val">A · C</div>
+          <div class="kpi-sub">전용 · 자습실</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">캠퍼스별 배부</div>
+          <div class="bar-item">
+            <div class="bar-meta"><span class="bar-name">중등수아</span><span class="bar-val">6,630,420원</span></div>
+            <div class="bar-stack"><span style="width:48.8%;background:#4a9ef0"></span><span style="width:14.7%;background:#2e7ab0"></span></div>
+          </div>
+          <div style="margin-top:10px;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">공용부 풀 (미배분)</div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>잔여공용부 (67.0평)</span><span>6,962,980원</span></div>
+          </div>
+          <div style="margin-top:8px;padding:8px 12px;background:rgba(46,196,160,0.08);border-radius:6px;border:0.5px solid rgba(46,196,160,0.2)">
+            <span style="font-size:10px;color:var(--teal)">✓ 단일 캠퍼스 운영</span>
+            <span style="font-size:11px;color:var(--text2);margin-left:6px">중등수아 전용 — 배분 단순</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">공간 유형 면적 분포</div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">전용 A형</span><span class="bar-val">44.6평 (34.1%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:34.1%;background:#4a9ef0"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">자습실 C형</span><span class="bar-val">19.2평 (14.7%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:14.7%;background:#2ec4a0"></div></div>
+          </div>
+          <div class="bar-item">
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">잔여공용부</span><span class="bar-val">67.0평 (51.2%)</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:51.2%;background:#444"></div></div>
+          </div>
+          <div style="margin-top:12px;padding:8px 12px;background:rgba(240,176,64,0.08);border-radius:6px;border:0.5px solid rgba(240,176,64,0.2)">
+            <div style="font-size:10px;color:var(--amber)">⚠ 평단가 최고 건물</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:3px">N타워 6층과 동일 평단가(103,925원). 두 건물 합산 임차료 27,186,800원.</div>
+          </div>
+        </div>
+      </div>
+    <div class="card" style="margin-top:0"><div class="card-title">요일별 사용 패턴 — 전체 호실</div><div id="hmap-b6" style="overflow-x:auto;"></div><div class="legend" style="margin-top:10px" id="hmap-b6-legend"></div></div>
+
+      <!-- 수정요청 -->
+
+      <!-- 타임테이블 -->
+      <div class="card" style="padding:20px;">
+        <div id="tt-container-b6"></div>
+      </div>
+      <button class="corr-btn" id="corrBtn_b6" onclick="toggleCorrPanel('b6')">
+        <div class="corr-btn-icon">✏</div>
+        강의실·시간표 수정요청
+        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b6">▼</span>
+      </button>
+      <div class="corr-panel" id="corrPanel_b6">
+        <div class="corr-section">
+          <div class="corr-label">호실 선택</div>
+          <select class="corr-select" id="corrRoom_b6"><option value="">호실 선택</option></select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 구분</div>
+          <select class="corr-select" id="corrCat_b6" onchange="updateCorrSubList('b6')">
+            <option value="">구분 선택</option>
+            <option value="room">강의실 사용 현황 오류</option>
+            <option value="schedule">시간표 오류</option>
+            <option value="cost">배부금액 오류</option>
+            <option value="campus">캠퍼스 정보 오류</option>
+          </select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 유형</div>
+          <select class="corr-select" id="corrSubSel_b6" onchange="updateCorrSub('b6')">
+            <option value="">오류 유형 선택</option>
+          </select>
+        </div>
+        <div id="corrDetail_b6" class="corr-sub"></div>
+        <div class="corr-divider"></div>
+        <div class="corr-section">
+          <div class="corr-label">메모 (선택)</div>
+          <textarea class="corr-textarea" id="corrMemo_b6" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
+        </div>
+        <button class="corr-submit" onclick="submitCorr('b6')">수정요청 제출</button>
+      </div>
+</div><!-- /tab-b6 -->
+
+<!-- ═══════════════ 다운타운 6층 탭 ═══════════════ -->
+<div id="tab-b7" class="tab-content">
+
+  <!-- KPI -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">월 임차료</div><div class="kpi-value" style="color:var(--red)">1,177만원</div><div class="kpi-sub">VAT포함 · 137평</div></div>
+    <div class="kpi"><div class="kpi-label">평당 단가</div><div class="kpi-value" style="color:var(--amber)">85,912원</div><div class="kpi-sub">원/평</div></div>
+    <div class="kpi"><div class="kpi-label">배부 캠퍼스</div><div class="kpi-value" style="color:var(--teal)">3개</div><div class="kpi-sub">중등영재 · 테디 · 중등사스</div></div>
+    <div class="kpi"><div class="kpi-label">공간 유형</div><div class="kpi-value" style="color:var(--blue)">A · B · E</div><div class="kpi-sub">전용 · 공용 · 장비실</div></div>
+  </div>
+
+  <!-- 2컬럼: 캠퍼스 배부 + 면적 분포 -->
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">캠퍼스별 배부 현황</div>
+      <div class="bar-item">
+        <div class="bar-meta"><span class="bar-name">중등영재</span><span class="bar-val">5,800,820원</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#8b7ff0"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-meta"><span class="bar-name">테디</span><span class="bar-val">1,053,651원</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:18.2%;background:#2ec4a0"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-meta"><span class="bar-name">중등사스</span><span class="bar-val">277,486원</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:4.8%;background:#f0b040"></div></div>
+      </div>
+      <div style="margin-top:12px;padding:10px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">공용부 풀 (미배분)</div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+          <span style="color:var(--text2)">B형 유휴비용</span>
+          <span style="color:var(--red)">368,196원</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px">
+          <span style="color:var(--text2)">잔여 공용부 (49.7평)</span>
+          <span style="color:var(--text2)">4,269,847원</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">공간 유형 면적 분포</div>
+      <div class="bar-item">
+        <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">전용 A형</span><span class="bar-val">34.7평 (25.3%)</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:25.3%;background:#4a9ef0"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">공용 B형</span><span class="bar-val">30.9평 (22.6%)</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:22.6%;background:#f0b040"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">장비실 E형</span><span class="bar-val">5.8평 (4.2%)</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:4.2%;background:#9896a8"></div></div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name">잔여 공용부</span><span class="bar-val">65.6평 (47.9%)</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:47.9%;background:#444"></div></div>
+      </div>
+      <div style="margin-top:12px;padding:8px 12px;background:rgba(232,112,64,0.08);border-radius:6px;border:0.5px solid rgba(232,112,64,0.25)">
+        <div style="font-size:10px;color:#e87040;margin-bottom:3px">ℹ 복합 캠퍼스 운영</div>
+        <div style="font-size:11px;color:var(--text2)">중등영재가 배부 비중 81.3% 차지. 테디 전용 A형(테디1) 포함.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 히트맵 -->
+  <div class="card">
+    <div class="card-title">요일별 사용 패턴 — 전체 호실</div>
+    <div id="hmap-b7" style="overflow-x:auto;"></div>
+    <div class="legend" id="hmap-b7-legend"></div>
+  </div>
+
+
+      <!-- 수정요청 -->
+
+      <!-- 타임테이블 -->
+      <div class="card" style="padding:20px;">
+        <div id="tt-container-b7"></div>
+      </div>
+      <button class="corr-btn" id="corrBtn_b7" onclick="toggleCorrPanel('b7')">
+        <div class="corr-btn-icon">✏</div>
+        강의실·시간표 수정요청
+        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b7">▼</span>
+      </button>
+      <div class="corr-panel" id="corrPanel_b7">
+        <div class="corr-section">
+          <div class="corr-label">호실 선택</div>
+          <select class="corr-select" id="corrRoom_b7"><option value="">호실 선택</option></select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 구분</div>
+          <select class="corr-select" id="corrCat_b7" onchange="updateCorrSubList('b7')">
+            <option value="">구분 선택</option>
+            <option value="room">강의실 사용 현황 오류</option>
+            <option value="schedule">시간표 오류</option>
+            <option value="cost">배부금액 오류</option>
+            <option value="campus">캠퍼스 정보 오류</option>
+          </select>
+        </div>
+        <div class="corr-section">
+          <div class="corr-label">오류 유형</div>
+          <select class="corr-select" id="corrSubSel_b7" onchange="updateCorrSub('b7')">
+            <option value="">오류 유형 선택</option>
+          </select>
+        </div>
+        <div id="corrDetail_b7" class="corr-sub"></div>
+        <div class="corr-divider"></div>
+        <div class="corr-section">
+          <div class="corr-label">메모 (선택)</div>
+          <textarea class="corr-textarea" id="corrMemo_b7" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
+        </div>
+        <button class="corr-submit" onclick="submitCorr('b7')">수정요청 제출</button>
+      </div>
+</div><!-- /tab-b7 -->
+
+
+  </div><!-- /left -->
+
+  <!-- ── 우측 채팅 패널 ── -->
+  <div class="right">
+    <div class="chat-header">
+      <div class="chat-header-title">
+        <div class="chat-dot"></div>
+        Graph RAG · 자연어 질의
+      </div>
+      <div class="chat-header-sub">6개 건물 전체 데이터를 자연어로 조회하세요</div>
+    </div>
+
+    <div class="chat-msgs" id="chatMsgs">
+      <div class="msg ai">
+        <div class="msg-bubble">
+          6개 건물 전체 데이터에 연결되어 있습니다.<br><br>
+          N타워6층·다운타운12층·수내동·정자·다운타운8층·N타워9층의 임차료·면적·캠퍼스 관계가 모두 매핑되어 있어요.
+        </div>
+        <div class="msg-time">Graph RAG 시스템</div>
+      </div>
+    </div>
+
+  <div class="rpt-bar">
+    <button class="rpt-btn pdf" id="rptPdf">📄 PDF 보고서</button>
+    <button class="rpt-btn ntn" id="rptNtn">📋 노션에 올리기</button>
+  </div>
+  <div class="chat-input-area">
+      <div class="demo-btns">
+        <div class="demo-btn" onclick="askDemo(this)" data-q="평단가가 가장 비싼 건물과 가장 저렴한 건물은?">Q1 · 평단가 최고/최저 건물 비교</div>
+        <div class="demo-btn" onclick="askDemo(this)" data-q="6개 건물 중 유휴비용이 가장 높은 건물은? 원인과 개선방안은?">Q2 · 유휴비용 이상치 분석</div>
+        <div class="demo-btn" onclick="askDemo(this)" data-q="단일 캠퍼스로 운영되는 건물들의 특징과 배부 구조는?">Q3 · 단일 캠퍼스 건물 분석</div>
+        <div class="demo-btn" onclick="askDemo(this)" data-q="전체 6개 건물의 월 임차료 합계와 건물별 비중은?">Q4 · 전체 임차료 구성 비중</div>
+        <div class="demo-btn" onclick="askDemo(this)" data-q="B형 공용공간 활용도가 가장 낮은 건물은 어디고 이유는?">Q5 · B형 공간 효율 분석</div>
+      </div>
+      <div class="input-row">
+        <input class="chat-input" id="chatInput" placeholder="질문을 입력하세요..." onkeydown="if(event.key==='Enter')sendMsg()">
+        <button class="send-btn" id="sendBtn" onclick="sendMsg()">전송</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+/* ── 건물별 요일 패턴 데이터 ── */
+const BUILDING_PATTERNS = {
+  b1: { title:'N타워 6층', rooms: [
+    {name:'601',   type:'B', pat:['MIX',null,'303',null,'MIX','304','304']},
+    {name:'603',   type:'B', pat:['224','224','224','224','224','MIX',null]},
+    {name:'604',   type:null,pat:[null,null,null,null,null,null,null]},
+    {name:'605',   type:'B', pat:['224','224','224','224','224','MIX','304']},
+    {name:'606',   type:'B', pat:[null,'106','301','106',null,'304','304']},
+    {name:'607',   type:'A', pat:[null,'304','304','304','304','304','304']},
+    {name:'608',   type:'A', pat:[null,'304',null,null,null,'304','304']},
+    {name:'611',   type:'B', pat:['106',null,'106',null,'106','MIX','304']},
+    {name:'612',   type:'B', pat:['106','106','106','106','106','304','304']},
+    {name:'대강의실',type:'B',pat:['106','106','MIX','106','106','106',null]},
+  ]},
+  b2: { title:'다운타운 12층', rooms: [
+    {name:'1201', type:'A', pat:['303','303','303','303','303','303',null]},
+    {name:'1202', type:'B', pat:['302',null,null,null,null,null,null]},
+    {name:'1203', type:'B', pat:['302',null,null,null,null,null,null]},
+    {name:'1204', type:null,pat:[null,null,null,null,null,null,null]},
+    {name:'1205', type:null,pat:[null,null,null,null,null,null,null]},
+    {name:'1206', type:null,pat:[null,null,null,null,null,null,null]},
+    {name:'1207', type:null,pat:[null,null,null,null,null,null,null]},
+    {name:'1208', type:null,pat:[null,null,null,null,null,null,null]},
+    {name:'1209', type:null,pat:[null,null,null,null,null,null,null]},
+    {name:'1210', type:'B', pat:['MIX','MIX',null,null,'316',null,null]},
+    {name:'1211', type:'B', pat:['303','MIX','MIX','303','303',null,null]},
+  ]},
+  b3: { title:'수내동빌딩', rooms: [
+    {name:'301',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'302',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'303',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'304',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'305',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'306',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'307',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'308',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'인증실',type:'C', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'401',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'402',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'403',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'404',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'405',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'406',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'407',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'408',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'409',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'410',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'411',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'412',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'413',  type:'A', pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+    {name:'인증실2',type:'C',pat:['초등수아','초등수아','초등수아','초등수아','초등수아','초등수아','초등수아']},
+  ]},
+  b4: { title:'정자', rooms: [
+    {name:'601', type:'B', pat:['MIX','301','MIX','301','MIX','MIX',null]},
+    {name:'602', type:'B', pat:['301','MIX','301','MIX','301','301',null]},
+    {name:'604', type:'A', pat:['301',null,'301','301','301',null,null]},
+    {name:'605', type:null,pat:[null,null,null,null,null,null,null]},
+    {name:'606', type:'A', pat:['304',null,'304',null,null,null,null]},
+    {name:'801', type:'B', pat:['MIX','316','MIX','316','MIX','316',null]},
+    {name:'802', type:'B', pat:['MIX','301','301','301','MIX','316',null]},
+    {name:'803', type:'A', pat:['316','316','316',null,'316','316',null]},
+    {name:'804', type:'A', pat:['316','316','316','316','316','316',null]},
+    {name:'805', type:'B', pat:['MIX','MIX','MIX','MIX','MIX','MIX',null]},
+    {name:'806', type:'A', pat:['316','316','316','316','316','316','316']},
+    {name:'807', type:'B', pat:['MIX',null,'303','316','MIX','303','316']},
+  ]},
+  b5: { title:'다운타운 8층', rooms: [
+    {name:'801', type:'B', pat:['301','302','MIX','MIX','301','301',null]},
+    {name:'802', type:'B', pat:['301','301','MIX','MIX','301','302','303']},
+    {name:'803', type:'B', pat:['MIX','MIX','MIX','302','MIX','316',null]},
+    {name:'804', type:'B', pat:['302','302','302','MIX','302','302',null]},
+    {name:'805', type:'B', pat:['MIX','MIX','301','303','MIX','303','316']},
+    {name:'806', type:'B', pat:['MIX','301',null,'301','MIX','302',null]},
+    {name:'807', type:'B', pat:['MIX','303','MIX','303','MIX',null,null]},
+    {name:'808', type:'B', pat:['303','301','301','301','303','301','206']},
+  ]},
+  b6: { title:'N타워 9층', rooms: [
+    {name:'901',   type:'A', pat:['중등수아','중등수아','중등수아','중등수아','중등수아','중등수아','중등수아']},
+    {name:'902',   type:'A', pat:['중등수아','중등수아','중등수아','중등수아','중등수아','중등수아','중등수아']},
+    {name:'903',   type:'A', pat:['중등수아','중등수아','중등수아','중등수아','중등수아','중등수아','중등수아']},
+    {name:'905',   type:'A', pat:['중등수아','중등수아','중등수아','중등수아','중등수아','중등수아','중등수아']},
+    {name:'906',   type:'A', pat:['중등수아','중등수아','중등수아','중등수아','중등수아','중등수아','중등수아']},
+    {name:'908',   type:'A', pat:['중등수아','중등수아','중등수아','중등수아','중등수아','중등수아','중등수아']},
+    {name:'자습실',type:'C', pat:['중등수아','중등수아','중등수아','중등수아','중등수아','중등수아','중등수아']},
+  ]},
+  b7: { title:'다운타운 6층', rooms: [
+    {name:'테디장비실', type:'E', pat:['테디','테디','테디','테디','테디','테디','테디']},
+    {name:'테디1',      type:'A', pat:['테디','테디','테디','테디','테디','테디','테디']},
+    {name:'테디2',      type:'B', pat:['중등영재','테디','MIX','테디','MIX','테디','테디']},
+    {name:'601',        type:'B', pat:['중등영재',null,'중등영재',null,'중등영재',null,'테디']},
+    {name:'605',        type:'A', pat:['중등영재','중등영재','중등영재','중등영재','중등영재',null,'중등영재']},
+    {name:'606',        type:'A', pat:['중등영재','중등영재','중등영재','중등영재','중등영재','중등영재','중등영재']},
+    {name:'607',        type:'B', pat:['중등영재','중등영재','중등영재','중등영재','MIX','중등영재',null]},
+    {name:'608',        type:'A', pat:['중등영재','중등영재','중등영재','중등영재','중등영재','중등영재','중등영재']},
+    {name:'609',        type:'A', pat:['중등영재','중등영재','중등영재','중등영재','중등영재','중등영재','중등영재']},
+    {name:'610',        type:'B', pat:['중등영재','중등영재','중등영재','중등영재','중등영재','중등사스','중등영재']},
+  ]}
+};
+
+/* ── 캠퍼스 색상 매핑 ── */
+const CAMPUS_COLORS = {
+  '초등수아': { bg:'rgba(46,196,160,0.28)',   color:'#2ec4a0', label:'초등수아' },
+  '중등수아': { bg:'rgba(74,158,240,0.28)',   color:'#4a9ef0', label:'중등수아' },
+  '106':      { bg:'rgba(139,127,240,0.28)',  color:'#8b7ff0', label:'106' },
+  '224':      { bg:'rgba(46,196,160,0.28)',   color:'#2ec4a0', label:'224' },
+  '301':      { bg:'rgba(240,176,64,0.28)',   color:'#f0b040', label:'301' },
+  '302':      { bg:'rgba(240,96,128,0.28)',   color:'#f06080', label:'302' },
+  '303':      { bg:'rgba(74,158,240,0.28)',   color:'#4a9ef0', label:'303' },
+  '304':      { bg:'rgba(139,127,240,0.28)', color:'#8b7ff0', label:'304' },
+  '316':      { bg:'rgba(200,120,60,0.28)',   color:'#c8783c', label:'316' },
+  '206':      { bg:'rgba(160,100,200,0.28)',  color:'#a064c8', label:'206' },
+  'MIX':      { bg:'rgba(255,255,255,0.08)',  color:'#9896a8', label:'MIX' },
+  '중등영재':  { bg:'rgba(139,127,240,0.28)',  color:'#8b7ff0', label:'중등영재' },
+  '테디':      { bg:'rgba(46,196,160,0.28)',   color:'#2ec4a0', label:'테디' },
+  '중등사스':  { bg:'rgba(240,176,64,0.28)',   color:'#f0b040', label:'중등사스' },
+  null:       { bg:'transparent',             color:'#3a3848', label:'·' },
+};
+const TYPE_COLORS = {
+  'A':{ bg:'rgba(74,158,240,0.15)',  color:'#4a9ef0' },
+  'B':{ bg:'rgba(240,176,64,0.15)', color:'#f0b040' },
+  'C':{ bg:'rgba(46,196,160,0.15)', color:'#2ec4a0' },
+  null:{ bg:'rgba(255,255,255,0.04)', color:'#5a5868' },
+};
+
+function buildHeatmap(bid) {
+  const container = document.getElementById('hmap-' + bid);
+  const legendEl  = document.getElementById('hmap-' + bid + '-legend');
+  if(!container) return;
+  const bdata = BUILDING_PATTERNS[bid];
+  if(!bdata) return;
+
+  const days = ['월','화','수','목','금','토','일'];
+  const seenCampus = new Set();
+
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:11px;min-width:480px;">';
+  // 헤더
+  html += '<thead><tr>';
+  html += '<th style="text-align:left;padding:4px 8px;color:var(--text3);font-weight:400;width:80px;border-bottom:0.5px solid var(--border)">호실</th>';
+  html += '<th style="padding:4px 6px;color:var(--text3);font-weight:400;width:26px;border-bottom:0.5px solid var(--border)">유형</th>';
+  days.forEach(d => {
+    html += `<th style="text-align:center;padding:4px 3px;color:var(--text3);font-weight:400;border-bottom:0.5px solid var(--border)">${d}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  bdata.rooms.forEach(r => {
+    html += '<tr style="border-bottom:0.5px solid rgba(255,255,255,0.04)">';
+    // 호실명
+    html += `<td style="padding:5px 8px;color:var(--text);font-size:11px;white-space:nowrap">${r.name}</td>`;
+    // 유형 chip
+    const tc = TYPE_COLORS[r.type] || TYPE_COLORS[null];
+    const typeLabel = r.type || '-';
+    html += `<td style="padding:5px 4px"><span style="display:inline-block;font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px;background:${tc.bg};color:${tc.color}">${typeLabel}</span></td>`;
+    // 요일 셀
+    r.pat.forEach(v => {
+      const cs = CAMPUS_COLORS[v] !== undefined ? CAMPUS_COLORS[v] : CAMPUS_COLORS[null];
+      const label = cs.label;
+      if(v && v !== 'MIX') seenCampus.add(v);
+      html += `<td style="padding:3px 2px;text-align:center"><div style="background:${cs.bg};border-radius:4px;padding:4px 2px;font-size:9px;font-weight:500;color:${cs.color};min-width:30px">${label}</div></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+
+  // 범례
+  let legHtml = '';
+  const mixCs = CAMPUS_COLORS['MIX'];
+  legHtml += `<div class="leg"><div class="leg-dot" style="background:${mixCs.bg};border:0.5px solid rgba(255,255,255,0.1)"></div>MIX(시간분리)</div>`;
+  legHtml += `<div class="leg"><div class="leg-dot" style="background:transparent;border:0.5px solid rgba(255,255,255,0.1)"></div>미사용</div>`;
+  seenCampus.forEach(c => {
+    const cs = CAMPUS_COLORS[c] || CAMPUS_COLORS[null];
+    legHtml += `<div class="leg"><div class="leg-dot" style="background:${cs.bg}"></div>${c}</div>`;
+  });
+  if(legendEl) legendEl.innerHTML = legHtml;
+}
+
+/* ── 탭 전환 ── */
+
+
+// ── 탭 전환 이벤트 위임 ────────────────────────────────
+function switchTab(id) {
+  var panes = document.querySelectorAll('.tab-content');
+  for (var i = 0; i < panes.length; i++) panes[i].classList.remove('active');
+  var btns = document.querySelectorAll('.tab-btn');
+  for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
+  var target = document.getElementById('tab-' + id);
+  if (target) target.classList.add('active');
+  for (var k = 0; k < btns.length; k++) {
+    if (btns[k].getAttribute('data-tab') === id) {
+      btns[k].classList.add('active');
+      break;
+    }
+  }
+  if (id !== 'summary') buildHeatmap(id);
+  var left = document.querySelector('.left');
+  if (left) left.scrollTop = 0;
+}
+
+// 탭 버튼 + 카드 클릭 — window.onload로 DOM 완전 로드 후 실행
+window.addEventListener('load', function() {
+  var tabNav = document.querySelector('.tab-nav');
+  if (tabNav) {
+    tabNav.onclick = function(e) {
+      var el = e.target;
+      while (el && el !== tabNav) {
+        if (el.getAttribute('data-tab')) {
+          switchTab(el.getAttribute('data-tab'));
+          return;
+        }
+        el = el.parentElement;
+      }
+    };
+  }
+  var bGrid = document.querySelector('.building-grid');
+  if (bGrid) {
+    bGrid.onclick = function(e) {
+      var el = e.target;
+      while (el && el !== bGrid) {
+        if (el.classList && el.classList.contains('building-card')) {
+          var tab = el.getAttribute('data-tab');
+          if (tab) switchTab(tab);
+          return;
+        }
+        el = el.parentElement;
+      }
+    };
+  }
+
+  // 강의실 가용성 조회 팝업
+  var rcBtn = document.getElementById('rcOpenBtn');
+  var rcOverlay = document.getElementById('rcOverlay');
+  var rcClose = document.getElementById('rcClose');
+  var rcSearch = document.getElementById('rcSearch');
+
+  if (rcBtn) rcBtn.onclick = function() {
+    rcOverlay.style.display = 'flex';
+    document.getElementById('rcResults').innerHTML = '';
+  };
+  if (rcClose) rcClose.onclick = function() {
+    rcOverlay.style.display = 'none';
+  };
+  if (rcOverlay) rcOverlay.onclick = function(e) {
+    if (e.target === rcOverlay) rcOverlay.style.display = 'none';
+  };
+  document.querySelectorAll('.rc-day').forEach(function(btn) {
+    btn.onclick = function() { this.classList.toggle('on'); };
+  });
+  if (rcSearch) rcSearch.onclick = function() {
+    var panel = document.getElementById('rcPanel');
+    var arrow = document.getElementById('rcArrow');
+    var btn = document.getElementById('rcBtn');
+    if (panel && !panel.classList.contains('open')) {
+      panel.classList.add('open');
+      if (arrow) arrow.textContent = '▲';
+      if (btn) btn.style.borderRadius = '10px 10px 0 0';
+    }
+    var buildingKey = document.getElementById('rcBuilding').value;
+    var startVal = document.getElementById('rcStart').value;
+    var endVal = document.getElementById('rcEnd').value;
+    var selectedDays = [];
+    document.querySelectorAll('.rc-day.on').forEach(function(b) {
+      selectedDays.push(b.getAttribute('data-d'));
+    });
+    if (!startVal || !endVal) {
+      document.getElementById('rcResults').innerHTML = '<div class="rc-empty">시작/종료 시간을 입력해주세요.</div>';
+      return;
+    }
+    if (selectedDays.length === 0) {
+      document.getElementById('rcResults').innerHTML = '<div class="rc-empty">요일을 선택해주세요.</div>';
+      return;
+    }
+    var reqStart = toMin(startVal);
+    var reqEnd = toMin(endVal);
+    var dayLabels = selectedDays.map(function(d){ return DAY_MAP[d]; }).join('·');
+
+    function checkBuilding(bkey) {
+      var bld = ROOM_DATA[bkey];
+      if (!bld) return null;
+      var avail = [], busy = [];
+      bld.rooms.forEach(function(room) {
+        var conflict = false;
+        selectedDays.forEach(function(day) {
+          if (room.schedule[day]) {
+            if (reqStart < room.endH * 60 && reqEnd > room.startH * 60) conflict = true;
+          }
+        });
+        if (conflict) busy.push(room);
+        else avail.push(room);
+      });
+      return {name: bld.name, campus: bld.campus, avail: avail, busy: busy};
+    }
+
+    var buildingKeys = ['sunaedong','ntower6','downtown12','jungja','downtown8','ntower9','downtown6'];
+    var results = [];
+    if (buildingKey === 'all') {
+      buildingKeys.forEach(function(k){ var r = checkBuilding(k); if(r) results.push({key:k, data:r}); });
+    } else {
+      var r = checkBuilding(buildingKey);
+      if (r) results.push({key:buildingKey, data:r});
+    }
+
+    var totalAvail = 0, totalBusy = 0;
+    results.forEach(function(r){ totalAvail += r.data.avail.length; totalBusy += r.data.busy.length; });
+
+    var html = '<div class="rc-divider"></div>';
+    html += '<div class="rc-summary">';
+    html += (buildingKey === 'all' ? '<strong>전체 7개 건물</strong>' : '<strong>' + results[0].data.name + '</strong>');
+    html += ' · ' + dayLabels + ' · ' + startVal + ' ~ ' + endVal + '<br>';
+    html += '사용 가능 <strong style="color:#2ec4a0">' + totalAvail + '개</strong> · 사용 중 <strong style="color:#f06080">' + totalBusy + '개</strong>';
+    html += '</div>';
+
+    if (totalAvail === 0) {
+      html += '<div class="rc-empty">선택한 시간대에 사용 가능한 강의실이 없습니다.</div>';
+      document.getElementById('rcResults').innerHTML = html;
+      return;
+    }
+
+    // 사용 가능 목록
+    html += '<div class="rc-result-title">사용 가능한 강의실</div>';
+    results.forEach(function(res) {
+      if (res.data.avail.length === 0) return;
+      html += '<div style="font-size:10px;color:#8b7ff0;letter-spacing:0.3px;margin:8px 0 4px;font-weight:600;">' + res.data.name + ' · ' + res.data.avail.length + '개 가능</div>';
+      html += '<div class="rc-results">';
+      res.data.avail.forEach(function(r) {
+        html += '<div class="rc-room avail">'
+          + '<div class="rc-room-info"><div class="rc-room-name">' + r.id + '호</div>'
+          + '<div class="rc-room-meta">' + r.area + '평 · ' + r.type + '형 · ' + res.data.campus + '</div></div>'
+          + '<span class="rc-room-status avail">가능</span></div>';
+      });
+      html += '</div>';
+    });
+
+    // AI 제안 섹션
+    var bestRooms = [];
+    results.forEach(function(res) {
+      res.data.avail.forEach(function(r) {
+        bestRooms.push({bname: res.data.name, id: r.id, area: r.area, type: r.type, campus: res.data.campus});
+      });
+    });
+    bestRooms.sort(function(a,b){ return b.area - a.area; });
+    var top3 = bestRooms.slice(0,3);
+
+    html += '<div class="rc-divider"></div>';
+    html += '<div style="background:rgba(108,92,231,0.06);border:0.5px solid rgba(108,92,231,0.2);border-radius:8px;padding:14px 16px;">';
+    html += '<div style="font-size:10px;color:#8b7ff0;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:10px;font-weight:600;">AI 추천 강의실</div>';
+
+    if (top3.length > 0) {
+      html += '<div style="font-size:12px;color:#9896a8;line-height:1.8;margin-bottom:10px;">';
+      html += dayLabels + ' ' + startVal + '~' + endVal + ' 신규 반 개설 시 ';
+      html += '<strong style="color:#e8e6f0">총 ' + totalAvail + '개</strong> 강의실 사용 가능합니다.<br>';
+      html += '면적 기준 추천 순위는 다음과 같습니다.</div>';
+      html += '<div style="display:flex;flex-direction:column;gap:6px;">';
+      top3.forEach(function(r, i) {
+        var medals = ['🥇','🥈','🥉'];
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:6px;">';
+        html += '<span style="font-size:14px;">' + medals[i] + '</span>';
+        html += '<div style="flex:1"><div style="font-size:12px;color:#e8e6f0;font-weight:500;">' + r.bname + ' · ' + r.id + '호</div>';
+        html += '<div style="font-size:11px;color:#5a5868;">' + r.area + '평 · ' + r.type + '형 · ' + r.campus + '</div></div>';
+        html += '<span style="font-size:11px;color:#2ec4a0;font-weight:600;">' + r.area + '평</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+
+      if (bestRooms.length > 3) {
+        html += '<div style="font-size:11px;color:#5a5868;margin-top:8px;">외 ' + (bestRooms.length - 3) + '개 강의실 추가 사용 가능</div>';
+      }
+    }
+    html += '</div>';
+
+    // 사용 중 건물 목록 (접기)
+    var busyHtml = '';
+    results.forEach(function(res) {
+      if (res.data.busy.length === 0) return;
+      busyHtml += '<div style="font-size:10px;color:#5a5868;margin:6px 0 3px;">' + res.data.name + '</div>';
+      busyHtml += '<div class="rc-results">';
+      res.data.busy.forEach(function(r) {
+        busyHtml += '<div class="rc-room busy"><div class="rc-room-info"><div class="rc-room-name">' + r.id + '호</div>'
+          + '<div class="rc-room-meta">' + r.area + '평 · 사용 중</div></div>'
+          + '<span class="rc-room-status busy">사용 중</span></div>';
+      });
+      busyHtml += '</div>';
+    });
+    if (busyHtml) {
+      html += '<div class="rc-divider"></div>';
+      html += '<details style="cursor:pointer;"><summary style="font-size:10px;color:#5a5868;letter-spacing:0.4px;text-transform:uppercase;list-style:none;display:flex;align-items:center;gap:6px;">사용 중인 강의실 (' + totalBusy + '개) ▼</summary>';
+      html += '<div style="margin-top:8px;">' + busyHtml + '</div></details>';
+    }
+
+    document.getElementById('rcResults').innerHTML = html;
+    var resultsEl = document.getElementById('rcResults');
+    if (resultsEl) {
+      setTimeout(function() {
+        resultsEl.scrollIntoView({behavior:'smooth', block:'start'});
+      }, 100);
+    }
+  };
+});
+
+
+
+
+
+/* ── Graph RAG 컨텍스트 ── */
+const GRAPH_CONTEXT = `
+당신은 7개 건물 임차료 배부 전문 AI입니다. 아래 그래프 데이터를 기반으로 정확하고 간결하게 답변하세요.
+
+=== 전체 건물 요약 ===
+총 월 임차료: 90,536,845원 / 총 면적: 1,035.6평 / 평균 평단가: 87,423원/평 / 총 호실: 122개
+
+=== 건물별 상세 ===
+1. N타워빌딩 6층
+   - 면적: 130.8평 / 월임차료: 13,593,400원 / 평단가: 103,925원/평 (최고)
+   - 호실: 20개 / A형: 10.4평 / B형: 53.7평 / B형유휴: 935,326원
+   - 캠퍼스: 5개 (106, 224, 301, 303, 304)
+   - 직접배부: 106→2,782,290 / 304→1,957,303 / 224→637,652 / 301→188,685 / 303→160,342
+   - 잔여공용부: 66.7평 → 6,931,803원
+
+2. 다운타운 12층
+   - 면적: 112.1평 / 월임차료: 8,800,000원 / 평단가: 78,501원/평 (최저)
+   - 호실: 14개 / A형: 7.3평 / B형: 21.9평 / B형유휴: 1,478,387원 (전체 최대)
+   - 캠퍼스: 4개 (301, 302, 303, 316)
+   - 직접배부: 303→573,060 / 316→107,812 / 302→104,295 / 301→28,685
+   - 잔여공용부: 82.9평 → 6,507,761원
+
+3. 수내동빌딩 (3·4층)
+   - 면적: 209.7평 / 월임차료: 17,370,045원 / 평단가: 82,833원/평 (면적 최대)
+   - 호실: 23개 / A형: 89.4평 / C형: 23.7평 / B형유휴: 0원 (최우수)
+   - 캠퍼스: 초등수아 단일 / 직접배부: 9,368,393원
+   - 잔여공용부: 96.6평 → 8,001,652원
+
+4. 정자 (백궁·시그마)
+   - 면적: 154평 / 월임차료: 11,660,000원 / 평단가: 75,714원/평
+   - 호실: 20개 / A형: 44.5평 / B형: 53.4평 / B형유휴: 495,388원
+   - 캠퍼스: 4개 (301, 303, 304, 316)
+   - 직접배부: 316→3,519,982 / 301→2,079,082 / 303→805,845 / 304→512,132
+   - 잔여공용부: 56.1평 → 4,247,571원
+
+5. 다운타운 8층
+   - 면적: 161.2평 / 월임차료: 13,750,000원 / 평단가: 85,298원/평
+   - 호실: 28개 / A형: 없음 / B형: 58.0평 / B형유휴: 126,792원 (양호)
+   - 캠퍼스: 5개 (206, 301, 302, 303, 316)
+   - 직접배부: 316→5,191,152 / 301→2,027,586 / 302→1,110,607 / 303→1,105,791 / 206→332,612
+   - 잔여공용부: 103.2평 → 8,802,730원
+
+6. N타워 9층
+   - 면적: 130.8평 / 월임차료: 13,593,400원 / 평단가: 103,925원/평 (6층과 동일, 최고)
+   - 호실: 7개 / A형: 44.6평 / C형: 19.2평 / B형유휴: 0원
+   - 캠퍼스: 중등수아 단일 / 직접배부: 6,630,420원
+   - 잔여공용부: 67.0평 → 6,962,980원
+
+7. 다운타운 6층
+   - 면적: 137평 / 월임차료: 11,770,000원 / 평단가: 85,912원/평
+   - 호실: 10개 / A형: 34.7평 / B형: 30.9평 / E형(장비실): 5.8평 / B형유휴: 368,196원
+   - 캠퍼스: 3개 (중등영재, 테디, 중등사스)
+   - 직접배부: 중등영재→5,800,820 / 테디→1,053,651 / 중등사스→277,486
+   - 잔여공용부: 49.7평 → 4,269,847원
+
+=== 유휴비용 순위 ===
+1위 다운타운12층: 1,478,387원 / 2위 N타워6층: 935,326원 / 3위 정자: 495,388원 / 4위 다운타운8층: 126,792원 / 5위 다운타운6층: 368,196원 / 6위·7위 수내동·N타워9층: 0원
+
+=== 평단가 순위 ===
+최고: N타워6층=N타워9층 103,925원 → 다운타운8층 85,298원 → 다운타운6층 85,912원 → 수내동 82,833원 → 다운타운12층 78,501원 → 정자 75,714원 최저
+
+답변 형식: 핵심 수치 먼저, 간결하게, 한국어로.
+`;
+
+const msgs = document.getElementById('chatMsgs');
+const input = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
+
+function getApiKey() { return localStorage.getItem('claude_api_key') || ''; }
+function saveApiKey(k) { localStorage.setItem('claude_api_key', k.trim()); }
+
+function showKeyModal(onSave) {
+  const existing = document.getElementById('key-modal');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'key-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `<div style="background:#17171d;border:0.5px solid rgba(255,255,255,0.15);border-radius:14px;padding:28px 32px;width:420px;max-width:90vw;">
+    <div style="font-size:15px;font-weight:600;color:#e8e6f0;margin-bottom:6px;">🔑 Claude API 키 입력</div>
+    <div style="font-size:11px;color:#9896a8;margin-bottom:16px;line-height:1.7;">로컬 실행 시 API 키가 필요합니다. 브라우저에만 저장됩니다.<br><a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:#8b7ff0;">console.anthropic.com</a>에서 발급</div>
+    <input id="key-input" type="password" placeholder="sk-ant-api03-..." style="width:100%;background:#0f0f13;border:0.5px solid rgba(255,255,255,0.2);border-radius:7px;padding:10px 14px;font-size:13px;color:#e8e6f0;outline:none;margin-bottom:14px;box-sizing:border-box;font-family:monospace;"/>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="document.getElementById('key-modal').remove()" style="background:transparent;border:0.5px solid rgba(255,255,255,0.15);border-radius:7px;padding:8px 18px;color:#9896a8;font-size:12px;cursor:pointer;">취소</button>
+      <button id="key-save-btn" style="background:#8b7ff0;border:none;border-radius:7px;padding:8px 18px;color:#fff;font-size:12px;cursor:pointer;font-weight:500;">저장 후 질문하기</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('key-input').focus();
+  document.getElementById('key-save-btn').onclick = () => {
+    const k = document.getElementById('key-input').value.trim();
+    if(!k.startsWith('sk-')) { document.getElementById('key-input').style.borderColor='#f06080'; return; }
+    saveApiKey(k); modal.remove(); renderKeyStatus(); if(onSave) onSave();
+  };
+  document.getElementById('key-input').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('key-save-btn').click(); });
+}
+
+function renderKeyStatus() {
+  const existing = document.getElementById('key-status-bar');
+  if(existing) existing.remove();
+  const bar = document.createElement('div');
+  bar.id = 'key-status-bar';
+  const hasKey = !!getApiKey();
+  bar.style.cssText = `padding:6px 16px;font-size:10px;border-bottom:0.5px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;background:${hasKey?'rgba(29,158,117,0.08)':'rgba(240,96,128,0.08)'};`;
+  bar.innerHTML = hasKey
+    ? `<span style="color:#1D9E75;">● API 키 연결됨</span><span onclick="showKeyModal()" style="color:#9896a8;cursor:pointer;text-decoration:underline;">키 변경</span>`
+    : `<span style="color:#f06080;">● API 키 없음</span><span onclick="showKeyModal()" style="color:#8b7ff0;cursor:pointer;font-weight:500;">키 입력 →</span>`;
+  const chatHeader = document.querySelector('.chat-header');
+  chatHeader.insertAdjacentElement('afterend', bar);
+}
+
+function addMsg(role, text) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  const now = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  div.innerHTML = `<div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div><div class="msg-time">${role==='user'?'나':'Graph RAG AI'} · ${now}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function addThinking() {
+  const div = document.createElement('div');
+  div.className = 'msg ai'; div.id = 'thinking';
+  div.innerHTML = `<div class="msg-bubble thinking"><span></span><span></span><span></span></div>`;
+  msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
+}
+function removeThinking() { const t = document.getElementById('thinking'); if(t) t.remove(); }
+
+async function sendMsg() {
+  const q = input.value.trim();
+  if(!q) return;
+  const apiKey = getApiKey();
+  if(!apiKey) { showKeyModal(() => { input.value = q; sendMsg(); }); return; }
+  input.value = ''; addMsg('user', q); sendBtn.disabled = true; addThinking();
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, system:GRAPH_CONTEXT, messages:[{role:'user',content:q}] })
+    });
+    const data = await res.json();
+    removeThinking();
+    if(data.error) {
+      addMsg('ai', data.error.type==='authentication_error' ? '❌ API 키가 올바르지 않습니다.' : `❌ ${data.error.message}`);
+      if(data.error.type==='authentication_error') { localStorage.removeItem('claude_api_key'); renderKeyStatus(); }
+    } else {
+      addMsg('ai', data.content?.[0]?.text || '응답을 받지 못했습니다.');
+    }
+  } catch(e) { removeThinking(); addMsg('ai', '❌ 네트워크 오류가 발생했습니다.'); }
+  sendBtn.disabled = false;
+}
+function askDemo(btn) { input.value = btn.dataset.q; sendMsg(); }
+
+// ── 보고서 기능 ─────────────────────────────────────────
+var RD = {
+  p: '2026년 1월',
+  b: [
+    ['N타워 6층','13,593,400','5,726,272','935,326',1],
+    ['다운타운 12층','8,800,000','813,852','1,478,387',1],
+    ['수내동빌딩','17,370,045','9,368,393','0',0],
+    ['정자','11,660,000','6,917,041','495,388',1],
+    ['다운타운 8층','13,750,000','9,767,748','126,792',1],
+    ['N타워 9층','13,593,400','6,630,419','0',0]
+  ],
+  c: [
+    ['N타워 6층','106','2,782,290'],
+    ['N타워 6층','304','1,957,303'],
+    ['N타워 6층','224','637,652'],
+    ['N타워 6층','301','188,685'],
+    ['N타워 6층','303','160,342'],
+    ['다운타운 12층','303','573,060'],
+    ['다운타운 12층','316','107,812'],
+    ['다운타운 12층','302','104,295'],
+    ['다운타운 12층','301','28,685'],
+    ['수내동빌딩','초등수아','9,368,393'],
+    ['정자','316','3,519,982'],
+    ['정자','301','2,079,082'],
+    ['정자','303','805,845'],
+    ['정자','304','512,132'],
+    ['다운타운 8층','316','5,191,152'],
+    ['다운타운 8층','301','2,027,586'],
+    ['다운타운 8층','302','1,110,607'],
+    ['다운타운 8층','303','1,105,791'],
+    ['다운타운 8층','206','332,612'],
+    ['N타워 9층','중등수아','6,630,419']
+  ]
+};
+
+function mkRpt(ai) {
+  var br = RD.b.map(function(b) {
+    var ic = b[4] ? 'color:var(--red)' : 'color:var(--teal)';
+    return '<tr><td>'+b[0]+'</td>'
+      +'<td style="text-align:right">'+b[1]+'</td>'
+      +'<td style="text-align:right">'+b[2]+'</td>'
+      +'<td style="text-align:right;'+ic+'">'+b[3]+'</td></tr>';
+  }).join('');
+  var prev = '';
+  var cr = RD.c.map(function(cc) {
+    var s = cc[0] !== prev;
+    prev = cc[0];
+    return '<tr>'+(s ? '<td style="font-weight:500">'+cc[0]+'</td>' : '')
+      +'<td'+(s ? '' : ' style="padding-left:18px"')+'>'+(s ? '' : ' ')+cc[1]+'</td>'
+      +'<td style="text-align:right">'+cc[2]+'원</td></tr>';
+  }).join('');
+  var now = new Date().toLocaleDateString('ko-KR');
+  return '<div><div class="rst">건물별 임차료 요약</div>'
+    +'<table class="rtb"><thead><tr>'
+    +'<th>건물</th><th style="text-align:right">월 임차료</th>'
+    +'<th style="text-align:right">직접배부</th><th style="text-align:right">유휴비용</th>'
+    +'</tr></thead><tbody>'+br
+    +'<tr class="rtt"><td>합계</td>'
+    +'<td style="text-align:right">78,766,845</td>'
+    +'<td style="text-align:right">39,223,725</td>'
+    +'<td style="text-align:right">3,035,893</td></tr>'
+    +'</tbody></table></div>'
+    +'<div><div class="rst">캠퍼스별 배부 금액</div>'
+    +'<table class="rtb"><thead><tr>'
+    +'<th>건물</th><th>캠퍼스</th><th style="text-align:right">배부금액</th>'
+    +'</tr></thead><tbody>'+cr+'</tbody></table></div>'
+    +'<div><div class="rst">유휴비용 순위</div>'
+    +'<table class="rtb"><thead><tr>'
+    +'<th>순위</th><th>건물</th><th style="text-align:right">유휴비용</th>'
+    +'</tr></thead><tbody>'
+    +'<tr><td>1위</td><td>다운타운 12층</td><td style="text-align:right;color:var(--red)">1,478,387원</td></tr>'
+    +'<tr><td>2위</td><td>N타워 6층</td><td style="text-align:right;color:var(--red)">935,326원</td></tr>'
+    +'<tr><td>3위</td><td>정자</td><td style="text-align:right;color:var(--amber)">495,388원</td></tr>'
+    +'<tr><td>4위</td><td>다운타운 8층</td><td style="text-align:right;color:var(--amber)">126,792원</td></tr>'
+    +'<tr><td>5위</td><td>수내동빌딩</td><td style="text-align:right;color:var(--teal)">0원</td></tr>'
+    +'<tr><td>5위</td><td>N타워 9층</td><td style="text-align:right;color:var(--teal)">0원</td></tr>'
+    +'</tbody></table></div>'
+    +'<div><div class="rst">AI 인사이트</div>'
+    +'<div class="aib"><div class="aibl">Claude AI 분석</div>'
+    +(ai||'<span style="color:var(--text3)">생성 중...</span>')+'</div></div>'
+    +'<div style="font-size:10px;color:var(--text3);text-align:right">생성일: '+now+' | 기준월: '+RD.p+'</div>';
+}
+
+function openRpt(ai) {
+  var old = document.getElementById('rModal');
+  if (old) old.remove();
+  var m = document.createElement('div');
+  m.id = 'rModal';
+  m.className = 'rmb';
+  m.innerHTML = '<div class="rmd">'
+    +'<div class="rmh"><div class="rmht">📊 '+RD.p+' 임차료 배부 보고서</div>'
+    +'<button class="rmcl" id="rClose">✕</button></div>'
+    +'<div class="rmb2" id="rBody">'+mkRpt(ai)+'</div>'
+    +'<div class="rmf">'
+    +'<button class="rfb pdf" id="rPdfB">📄 PDF 다운로드</button>'
+    +'<button class="rfb ntn" id="rNtnB">📋 노션에 올리기</button>'
+    +'</div></div>';
+  document.body.appendChild(m);
+  document.getElementById('rClose').onclick = function() { m.remove(); };
+  m.onclick = function(e) { if (e.target === m) m.remove(); };
+  document.getElementById('rPdfB').onclick = doPDF;
+  document.getElementById('rNtnB').onclick = doNtn;
+}
+
+async function genRpt(src) {
+  var k = localStorage.getItem('claude_api_key') || '';
+  if (!k) { showKeyModal(function() { genRpt(src); }); return; }
+  var bid = src === 'pdf' ? 'rptPdf' : 'rptNtn';
+  var btn = document.getElementById(bid);
+  btn.disabled = true;
+  btn.textContent = '⏳ AI 분석 중...';
+  var q = '2026년 1월 건물별 임차료 배부를 분석해주세요. '
+    + '총임차료 78,766,845원, 유휴비용합계 3,035,893원. '
+    + '유휴비용: 다운타운12층 1,478,387원 1위, N타워6층 935,326원 2위, 정자 495,388원 3위. '
+    + '수내동빌딩,N타워9층 유휴비용 0원으로 최우수. '
+    + '핵심이슈 3가지와 즉시 액션포인트를 200자 이내 한국어로 작성하세요.';
+  var ai = '';
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': k,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        messages: [{ role: 'user', content: q }]
+      })
+    });
+    var d = await res.json();
+    ai = (d.content && d.content[0] && d.content[0].text) || '';
+    ai = ai.split('\n').join('<br>');
+  } catch(e) {
+    ai = 'AI 분석 오류. 데이터는 정상 표시됩니다.';
+  }
+  openRpt(ai);
+  btn.disabled = false;
+  btn.textContent = src === 'pdf' ? '📄 PDF 보고서' : '📋 노션에 올리기';
+}
+
+function doPDF() {
+  var body = document.getElementById('rBody').innerHTML;
+  var now = new Date().toLocaleDateString('ko-KR');
+  var safe = body
+    .split('color:var(--red)').join('color:#A32D2D')
+    .split('color:var(--teal)').join('color:#0F6E56')
+    .split('color:var(--amber)').join('color:#854F0B')
+    .split('color:var(--text3)').join('color:#888')
+    .split('color:var(--text)').join('color:#1a1a2e');
+  var doc = '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">'
+    +'<title>임차료배부보고서_'+RD.p+'</title>'
+    +'<style>body{font-family:"Nanum Gothic",sans-serif;font-size:13px;color:#1a1a2e;padding:32px;max-width:800px;margin:0 auto}'
+    +'h1{font-size:18px;font-weight:600;margin-bottom:4px}'
+    +'.meta{font-size:11px;color:#888;margin-bottom:24px}'
+    +'.rst{font-size:10px;color:#888;letter-spacing:0.4px;text-transform:uppercase;margin:20px 0 8px;padding-bottom:4px;border-bottom:1px solid #eee}'
+    +'table{width:100%;border-collapse:collapse;font-size:12px}'
+    +'th{font-size:10px;color:#aaa;font-weight:500;padding:5px 8px;border-bottom:1px solid #eee;text-align:left}'
+    +'td{padding:6px 8px;border-bottom:1px solid #f5f5f5}'
+    +'.rtt td{font-weight:600;color:#1D9E75;border-top:1px solid #ddd}'
+    +'.aib{background:#f5f4ff;border:1px solid #e0dffe;border-radius:8px;padding:12px;font-size:12px;line-height:1.8;color:#3d3b50}'
+    +'.aibl{font-size:10px;color:#7F77DD;margin-bottom:4px;font-weight:600}'
+    +'@media print{body{padding:16px}}</style></head><body>'
+    +'<h1>건물별 임차료 배부 보고서</h1>'
+    +'<div class="meta">기준월: '+RD.p+' | 작성: 총무기획팀 | 생성일: '+now+'</div>'
+    +'<\/body><\/html>';
+  var w = window.open('', '_blank', 'width=900,height=750');
+  w.document.write(doc);
+  w.document.close();
+  setTimeout(function() { w.print(); }, 700);
+}
+
+function doNtn() {
+  var b = document.getElementById('rNtnB');
+  b.disabled = true;
+  b.textContent = '⏳ 업로드 중...';
+  setTimeout(function() {
+    b.textContent = '✅ 완료! (웹앱 연동 시 자동)';
+    setTimeout(function() {
+      b.disabled = false;
+      b.textContent = '📋 노션에 올리기';
+    }, 2500);
+  }, 1000);
+}
+
+var _ep = document.getElementById('rptPdf');
+var _en = document.getElementById('rptNtn');
+if (_ep) _ep.addEventListener('click', function() { genRpt('pdf'); });
+if (_en) _en.addEventListener('click', function() { genRpt('notion'); });
+
+
+
+var ROOM_DATA = {
+  sunaedong: {
+    name: '수내동빌딩 (3·4층)', campus: '초등수아', rent: 17370045, area: 209.7,
+    rooms: [
+      {id:'301', area:4.7, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'302', area:3.9, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'303', area:3.8, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'304', area:4.8, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'305', area:5.1, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'306', area:3.7, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'307', area:5.3, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'308', area:3.7, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'인증실(3층)', area:14.0, type:'C', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'401', area:2.6, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'402', area:2.7, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'403', area:2.7, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'404', area:3.1, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'405', area:4.6, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'406', area:4.0, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'407', area:2.9, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'408', area:7.7, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'409', area:8.8, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'410', area:5.6, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'411', area:3.9, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'412', area:2.9, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'413', area:2.9, type:'A', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22},
+      {id:'인증실(4층)', area:9.7, type:'C', campus:'초등수아', schedule:{mon:'초등수아',tue:'초등수아',wed:'초등수아',thu:'초등수아',fri:'초등수아',sat:'초등수아',sun:'초등수아'}, startH:9, endH:22}
+    ]
+  },
+  ntower6: {
+    name: 'N타워빌딩 6층', campus: '복합(106·224·301·303·304)', rent: 13593400, area: 130.8,
+    rooms: [
+      {id:'601', area:6.6, type:'B', campus:'MIX(303·304·301)', schedule:{mon:'MIX',tue:null,wed:'303',thu:null,fri:'MIX',sat:'304',sun:'304'}, startH:9, endH:22},
+      {id:'603', area:3.8, type:'B', campus:'MIX(224·304·106)', schedule:{mon:'224',tue:'224',wed:'224',thu:'224',fri:'224',sat:'MIX',sun:null}, startH:9, endH:22},
+      {id:'604', area:3.9, type:null, campus:'미사용', schedule:{mon:null,tue:null,wed:null,thu:null,fri:null,sat:null,sun:null}, startH:0, endH:0},
+      {id:'605', area:3.8, type:'B', campus:'MIX(224·304)', schedule:{mon:'224',tue:'224',wed:'224',thu:'224',fri:'224',sat:'MIX',sun:'304'}, startH:9, endH:22},
+      {id:'606', area:5.4, type:'B', campus:'MIX(106·301·304)', schedule:{mon:null,tue:'106',wed:'301',thu:'106',fri:null,sat:'304',sun:'304'}, startH:9, endH:22},
+      {id:'607', area:5.2, type:'A', campus:'304', schedule:{mon:null,tue:'304',wed:'304',thu:'304',fri:'304',sat:'304',sun:'304'}, startH:9, endH:22},
+      {id:'608', area:5.2, type:'A', campus:'304', schedule:{mon:null,tue:'304',wed:null,thu:null,fri:null,sat:'304',sun:'304'}, startH:9, endH:22},
+      {id:'611', area:5.3, type:'B', campus:'MIX(106·304)', schedule:{mon:'106',tue:null,wed:'106',thu:null,fri:'106',sat:'MIX',sun:'304'}, startH:9, endH:22},
+      {id:'612', area:10.8, type:'B', campus:'MIX(106·304)', schedule:{mon:'106',tue:'106',wed:'106',thu:'106',fri:'106',sat:'304',sun:'304'}, startH:9, endH:22},
+      {id:'대강의실', area:18.0, type:'B', campus:'MIX(106·301)', schedule:{mon:'106',tue:'106',wed:'MIX',thu:'106',fri:'106',sat:'106',sun:null}, startH:9, endH:22}
+    ]
+  },
+  downtown12: {
+    name: '다운타운 12층', campus: '복합(301·302·303·316)', rent: 8800000, area: 112.1,
+    rooms: [
+      {id:'1201', area:7.3, type:'A', campus:'303', schedule:{mon:'303',tue:'303',wed:'303',thu:'303',fri:'303',sat:'303',sun:null}, startH:9, endH:22},
+      {id:'1202', area:3.7, type:'B', campus:'302', schedule:{mon:'302',tue:null,wed:null,thu:null,fri:null,sat:null,sun:null}, startH:9, endH:22},
+      {id:'1203', area:5.6, type:'B', campus:'302', schedule:{mon:'302',tue:null,wed:null,thu:null,fri:null,sat:null,sun:null}, startH:9, endH:22},
+      {id:'1204', area:5.5, type:null, campus:'미사용', schedule:{mon:null,tue:null,wed:null,thu:null,fri:null,sat:null,sun:null}, startH:0, endH:0},
+      {id:'1205', area:5.5, type:null, campus:'미사용', schedule:{mon:null,tue:null,wed:null,thu:null,fri:null,sat:null,sun:null}, startH:0, endH:0},
+      {id:'1206', area:5.5, type:null, campus:'미사용', schedule:{mon:null,tue:null,wed:null,thu:null,fri:null,sat:null,sun:null}, startH:0, endH:0},
+      {id:'1207', area:5.5, type:null, campus:'미사용', schedule:{mon:null,tue:null,wed:null,thu:null,fri:null,sat:null,sun:null}, startH:0, endH:0},
+      {id:'1208', area:5.6, type:null, campus:'미사용', schedule:{mon:null,tue:null,wed:null,thu:null,fri:null,sat:null,sun:null}, startH:0, endH:0},
+      {id:'1209', area:4.5, type:null, campus:'미사용', schedule:{mon:null,tue:null,wed:null,thu:null,fri:null,sat:null,sun:null}, startH:0, endH:0},
+      {id:'1210', area:4.5, type:'B', campus:'MIX(303·316)', schedule:{mon:'MIX',tue:'MIX',wed:null,thu:null,fri:'316',sat:null,sun:null}, startH:9, endH:22},
+      {id:'1211', area:8.1, type:'B', campus:'MIX(301·303·316)', schedule:{mon:'303',tue:'MIX',wed:'MIX',thu:'303',fri:'303',sat:null,sun:null}, startH:9, endH:22}
+    ]
+  },
+  jungja: {
+    name: '정자 (백궁·시그마)', campus: '복합(301·303·304·316)', rent: 11660000, area: 154.0,
+    rooms: [
+      {id:'601', area:7.2, type:'B', campus:'MIX(301·303)', schedule:{mon:'MIX',tue:'301',wed:'MIX',thu:'301',fri:'MIX',sat:'MIX',sun:null}, startH:9, endH:22},
+      {id:'602', area:9.2, type:'B', campus:'MIX(301·304)', schedule:{mon:'301',tue:'MIX',wed:'301',thu:'MIX',fri:'301',sat:'301',sun:null}, startH:9, endH:22},
+      {id:'604', area:9.1, type:'A', campus:'301', schedule:{mon:'301',tue:null,wed:'301',thu:'301',fri:'301',sat:null,sun:null}, startH:9, endH:22},
+      {id:'605', area:4.6, type:null, campus:'미사용', schedule:{mon:null,tue:null,wed:null,thu:null,fri:null,sat:null,sun:null}, startH:0, endH:0},
+      {id:'606', area:4.6, type:'A', campus:'304', schedule:{mon:'304',tue:null,wed:'304',thu:null,fri:null,sat:null,sun:null}, startH:9, endH:22},
+      {id:'801', area:11.6, type:'B', campus:'MIX(301·316)', schedule:{mon:'MIX',tue:'316',wed:'MIX',thu:'316',fri:'MIX',sat:'316',sun:null}, startH:9, endH:22},
+      {id:'802', area:7.4, type:'B', campus:'MIX(301·304·316)', schedule:{mon:'MIX',tue:'301',wed:'301',thu:'301',fri:'MIX',sat:'316',sun:null}, startH:9, endH:22},
+      {id:'803', area:5.2, type:'A', campus:'316', schedule:{mon:'316',tue:'316',wed:'316',thu:null,fri:'316',sat:'316',sun:null}, startH:9, endH:22},
+      {id:'804', area:10.4, type:'A', campus:'316', schedule:{mon:'316',tue:'316',wed:'316',thu:'316',fri:'316',sat:'316',sun:null}, startH:9, endH:22},
+      {id:'805', area:10.4, type:'B', campus:'MIX(301·303·316)', schedule:{mon:'MIX',tue:'MIX',wed:'MIX',thu:'MIX',fri:'MIX',sat:'MIX',sun:null}, startH:9, endH:22},
+      {id:'806', area:15.2, type:'A', campus:'316', schedule:{mon:'316',tue:'316',wed:'316',thu:'316',fri:'316',sat:'316',sun:'316'}, startH:9, endH:22},
+      {id:'807', area:7.6, type:'B', campus:'MIX(303·316)', schedule:{mon:'303',tue:null,wed:'303',thu:'316',fri:'MIX',sat:'303',sun:'316'}, startH:9, endH:22}
+    ]
+  },
+  downtown8: {
+    name: '다운타운 8층', campus: '복합(206·301·302·303·316)', rent: 13750000, area: 161.2,
+    rooms: [
+      {id:'801', area:9.1, type:'B', campus:'MIX(301·302·303)', schedule:{mon:'301',tue:'302',wed:'MIX',thu:'MIX',fri:'301',sat:'301',sun:null}, startH:9, endH:22},
+      {id:'802', area:7.3, type:'B', campus:'MIX(301·302·303)', schedule:{mon:'301',tue:'301',wed:'MIX',thu:'MIX',fri:'301',sat:'302',sun:'303'}, startH:9, endH:22},
+      {id:'803', area:6.2, type:'B', campus:'MIX(301·302·303·316)', schedule:{mon:'MIX',tue:'MIX',wed:'MIX',thu:'302',fri:'MIX',sat:'316',sun:null}, startH:9, endH:22},
+      {id:'804', area:6.3, type:'B', campus:'MIX(302·303)', schedule:{mon:'302',tue:'302',wed:'302',thu:'MIX',fri:'302',sat:'302',sun:null}, startH:9, endH:22},
+      {id:'805', area:9.0, type:'B', campus:'MIX(301·302·303·316)', schedule:{mon:'MIX',tue:'MIX',wed:'301',thu:'303',fri:'MIX',sat:'303',sun:'316'}, startH:9, endH:22},
+      {id:'806', area:6.0, type:'B', campus:'MIX(206·301·302·316)', schedule:{mon:'MIX',tue:'301',wed:null,thu:'301',fri:'MIX',sat:'302',sun:null}, startH:9, endH:22},
+      {id:'807', area:6.0, type:'B', campus:'MIX(206·303·301)', schedule:{mon:'MIX',tue:'303',wed:'MIX',thu:'303',fri:'MIX',sat:null,sun:null}, startH:9, endH:22},
+      {id:'808', area:8.1, type:'B', campus:'MIX(206·301·303)', schedule:{mon:'303',tue:'301',wed:'301',thu:'301',fri:'303',sat:'301',sun:'206'}, startH:9, endH:22}
+    ]
+  },
+  ntower9: {
+    name: 'N타워 9층', campus: '중등수아', rent: 13593400, area: 130.8,
+    rooms: [
+      {id:'901', area:6.0, type:'A', campus:'중등수아', schedule:{mon:'중등수아',tue:'중등수아',wed:'중등수아',thu:'중등수아',fri:'중등수아',sat:'중등수아',sun:'중등수아'}, startH:9, endH:22},
+      {id:'902', area:7.0, type:'A', campus:'중등수아', schedule:{mon:'중등수아',tue:'중등수아',wed:'중등수아',thu:'중등수아',fri:'중등수아',sat:'중등수아',sun:'중등수아'}, startH:9, endH:22},
+      {id:'903', area:6.9, type:'A', campus:'중등수아', schedule:{mon:'중등수아',tue:'중등수아',wed:'중등수아',thu:'중등수아',fri:'중등수아',sat:'중등수아',sun:'중등수아'}, startH:9, endH:22},
+      {id:'905', area:10.38, type:'A', campus:'중등수아', schedule:{mon:'중등수아',tue:'중등수아',wed:'중등수아',thu:'중등수아',fri:'중등수아',sat:'중등수아',sun:'중등수아'}, startH:9, endH:22},
+      {id:'906', area:9.62, type:'A', campus:'중등수아', schedule:{mon:'중등수아',tue:'중등수아',wed:'중등수아',thu:'중등수아',fri:'중등수아',sat:'중등수아',sun:'중등수아'}, startH:9, endH:22},
+      {id:'908', area:4.7, type:'A', campus:'중등수아', schedule:{mon:'중등수아',tue:'중등수아',wed:'중등수아',thu:'중등수아',fri:'중등수아',sat:'중등수아',sun:'중등수아'}, startH:9, endH:22},
+      {id:'자습실', area:19.2, type:'C', campus:'중등수아', schedule:{mon:'중등수아',tue:'중등수아',wed:'중등수아',thu:'중등수아',fri:'중등수아',sat:'중등수아',sun:'중등수아'}, startH:9, endH:22}
+    ]
+  },
+  downtown6: {
+    name: '다운타운 6층', campus: '복합(중등영재·테디·중등사스)', rent: 11770000, area: 137.0,
+    rooms: [
+      {id:'테디장비실', area:5.8, type:'E', campus:'테디', schedule:{mon:'테디',tue:'테디',wed:'테디',thu:'테디',fri:'테디',sat:'테디',sun:'테디'}, startH:9, endH:22},
+      {id:'테디1', area:8.9, type:'A', campus:'테디', schedule:{mon:'테디',tue:'테디',wed:'테디',thu:'테디',fri:'테디',sat:'테디',sun:'테디'}, startH:9, endH:22},
+      {id:'테디2', area:5.0, type:'B', campus:'MIX(중등영재·테디)', schedule:{mon:'중등영재',tue:'테디',wed:'MIX',thu:null,fri:'MIX',sat:'테디',sun:'테디'}, startH:11, endH:22},
+      {id:'601', area:4.9, type:'B', campus:'MIX(중등영재·테디)', schedule:{mon:'중등영재',tue:null,wed:'중등영재',thu:null,fri:'중등영재',sat:null,sun:'테디'}, startH:9, endH:22},
+      {id:'605', area:5.0, type:'A', campus:'중등영재', schedule:{mon:'중등영재',tue:'중등영재',wed:'중등영재',thu:'중등영재',fri:'중등영재',sat:null,sun:'중등영재'}, startH:9, endH:22},
+      {id:'606', area:5.0, type:'A', campus:'중등영재', schedule:{mon:'중등영재',tue:'중등영재',wed:'중등영재',thu:'중등영재',fri:'중등영재',sat:'중등영재',sun:'중등영재'}, startH:9, endH:22},
+      {id:'607', area:5.3, type:'B', campus:'MIX(중등영재·중등사스)', schedule:{mon:'중등영재',tue:'중등영재',wed:'중등영재',thu:'중등영재',fri:'MIX',sat:'중등영재',sun:null}, startH:9, endH:22},
+      {id:'608', area:5.5, type:'A', campus:'중등영재', schedule:{mon:'중등영재',tue:'중등영재',wed:'중등영재',thu:'중등영재',fri:'중등영재',sat:'중등영재',sun:'중등영재'}, startH:9, endH:22},
+      {id:'609', area:5.3, type:'A', campus:'중등영재', schedule:{mon:'중등영재',tue:'중등영재',wed:'중등영재',thu:'중등영재',fri:'중등영재',sat:'중등영재',sun:'중등영재'}, startH:9, endH:22},
+      {id:'610', area:5.9, type:'B', campus:'MIX(중등영재·중등사스)', schedule:{mon:'중등영재',tue:'중등영재',wed:'중등영재',thu:'중등영재',fri:'중등영재',sat:'중등사스',sun:'중등영재'}, startH:9, endH:22},
+      {id:'611', area:9.3, type:'B', campus:'MIX(중등영재·중등사스)', schedule:{mon:'중등영재',tue:'중등영재',wed:'중등영재',thu:'중등영재',fri:'중등영재',sat:'중등사스',sun:'중등영재'}, startH:9, endH:22},
+      {id:'612', area:7.8, type:'A', campus:'중등영재', schedule:{mon:'중등영재',tue:'중등영재',wed:'중등영재',thu:'중등영재',fri:'중등영재',sat:'중등영재',sun:'중등영재'}, startH:9, endH:22},
+      {id:'613', area:9.4, type:'A', campus:'중등영재', schedule:{mon:'중등영재',tue:'중등영재',wed:'중등영재',thu:'중등영재',fri:'중등영재',sat:'중등영재',sun:'중등영재'}, startH:9, endH:22},
+      {id:'614', area:5.0, type:'A', campus:'중등영재', schedule:{mon:'중등영재',tue:'중등영재',wed:'중등영재',thu:'중등영재',fri:'중등영재',sat:'중등영재',sun:'중등영재'}, startH:9, endH:22},
+      {id:'615', area:5.0, type:'B', campus:'MIX(중등사스·중등영재)', schedule:{mon:'중등사스',tue:'중등영재',wed:'중등영재',thu:'중등영재',fri:'중등영재',sat:'중등영재',sun:null}, startH:9, endH:22},
+      {id:'영재교무실', area:13.2, type:'E', campus:'중등영재', schedule:{mon:'중등영재',tue:'중등영재',wed:'중등영재',thu:'중등영재',fri:'중등영재',sat:'중등영재',sun:'중등영재'}, startH:9, endH:22}
+    ]
+  }
+};
+
+
+var DAY_MAP = {mon:'월',tue:'화',wed:'수',thu:'목',fri:'금',sat:'토',sun:'일'};
+
+function toMin(t) {
+  var p = t.split(':');
+  return parseInt(p[0])*60 + parseInt(p[1]);
+}
+
+
+var rcBtn = document.getElementById('rcBtn');
+var rcPanel = document.getElementById('rcPanel');
+var rcArrow = document.getElementById('rcArrow');
+if (rcBtn) {
+  rcBtn.onclick = function() {
+    var isOpen = rcPanel.classList.contains('open');
+    if (isOpen) {
+      rcPanel.classList.remove('open');
+      rcArrow.textContent = '▼';
+      rcBtn.style.borderRadius = '10px';
+    } else {
+      rcPanel.classList.add('open');
+      rcArrow.textContent = '▲';
+      rcBtn.style.borderRadius = '10px 10px 0 0';
+    }
+  };
+}
+document.querySelectorAll('.rc-day').forEach(function(btn) {
+  btn.onclick = function() { this.classList.toggle('on'); };
+});
+
+// ── 사용자 권한 설정 ────────────────────────────────────
+var USERS = [
+  // 본부장급 — 전체 조회
+  {id:'otakyong',  pw:'flow2025!', name:'오택용', role:'hq', campuses:['all']},
+  {id:'songyongsun', pw:'flow2025!', name:'송용선', role:'hq', campuses:['all']},
+  {id:'seulgi00lee', pw:'dltmfrl0529!', name:'이세연', role:'hq', campuses:['all']},
+  {id:'kimjinkyu',  pw:'flow2025!', name:'김진규', role:'hq', campuses:['all']},
+  // 원장급 — 예시 (캠퍼스 매핑 완성 후 업데이트)
+  {id:'leejiyoung', pw:'flow2025!', name:'이지영', role:'dir', campuses:['sunaedong']},
+  {id:'bangnanhee',  pw:'flow2025!', name:'방난희', role:'dir', campuses:['jungja']},
+  {id:'jungpilwon',  pw:'flow2025!', name:'정필원', role:'dir', campuses:['ntower9']},
+];
+
+var ROLE_LABEL = {hq:'본부장', dir:'원장'};
+var ROLE_COLOR = {hq:'#8b7ff0', dir:'#2ec4a0'};
+var TAB_MAP = {
+  summary:'summary', b1:'ntower6', b2:'downtown12', b3:'sunaedong',
+  b4:'jungja', b5:'downtown8', b6:'ntower9', b7:'downtown6'
+};
+
+var currentUser = null;
+
+function doLogin() {
+  var id = document.getElementById('authId').value.trim();
+  var pw = document.getElementById('authPw').value;
+  var user = USERS.find(function(u){ return u.id===id && u.pw===pw; });
+  if (!user) {
+    document.getElementById('authErr').style.display = 'block';
+    return;
+  }
+  currentUser = user;
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('userInfoBar').style.display = 'flex';
+  document.getElementById('userNameDisplay').textContent = user.name;
+  var badge = document.getElementById('userRoleBadge');
+  badge.textContent = ROLE_LABEL[user.role];
+  badge.className = 'auth-badge ' + (user.role==='hq' ? 'badge-hq' : 'badge-dir');
+  document.getElementById('userRoleDot').style.background = ROLE_COLOR[user.role];
+  applyTabPermissions(user);
+}
+
+function doLogout() {
+  if (!confirm('로그아웃 하시겠습니까?')) return;
+  currentUser = null;
+  document.getElementById('authOverlay').style.display = 'flex';
+  document.getElementById('userInfoBar').style.display = 'none';
+  document.getElementById('authId').value = '';
+  document.getElementById('authPw').value = '';
+  document.getElementById('authErr').style.display = 'none';
+  // 탭 권한 초기화
+  document.querySelectorAll('.tab-btn').forEach(function(btn){
+    btn.classList.remove('locked-tab');
+  });
+  switchTab('summary');
+}
+
+function applyTabPermissions(user) {
+  if (user.campuses[0] === 'all') return; // 본부장급 전체 허용
+  var btns = document.querySelectorAll('.tab-btn');
+  btns.forEach(function(btn) {
+    var tabId = btn.getAttribute('data-tab');
+    if (!tabId || tabId === 'summary') return;
+    var campus = TAB_MAP[tabId];
+    if (!user.campuses.includes(campus)) {
+      btn.classList.add('locked-tab');
+    }
+  });
+  // 첫 번째 허용된 탭으로 이동
+  switchTab('summary');
+}
+
+function checkTabPermission(tabId) {
+  if (!currentUser) return false;
+  if (currentUser.campuses[0] === 'all') return true;
+  if (tabId === 'summary') return true;
+  var campus = TAB_MAP[tabId];
+  return currentUser.campuses.includes(campus);
+}
+
+// Claude API 질문 권한 필터링
+function getContextForUser(user) {
+  if (!user) return '';
+  if (user.campuses[0] === 'all') return GRAPH_CONTEXT;
+  // 원장급 — 본인 캠퍼스 데이터만 필터링
+  var allowed = user.campuses;
+  var lines = GRAPH_CONTEXT.split('\n');
+  var filtered = [];
+  var inAllowed = true;
+  lines.forEach(function(line) {
+    // 건물 섹션 시작 감지
+    var bldMatch = line.match(/^(\d+)\. (.+?)$/);
+    if (bldMatch) {
+      var bldName = bldMatch[2];
+      inAllowed = allowed.some(function(c) { return bldName.includes(c) || line.toLowerCase().includes(c); });
+    }
+    if (inAllowed || line.includes('전체') || line.includes('총')) filtered.push(line);
+  });
+  return filtered.join('\n');
+}
+
+// 로그인 이벤트
+document.getElementById('authLoginBtn').addEventListener('click', doLogin);
+document.getElementById('authPw').addEventListener('keydown', function(e){
+  if (e.key==='Enter') doLogin();
+});
+document.getElementById('authId').addEventListener('keydown', function(e){
+  if (e.key==='Enter') document.getElementById('authPw').focus();
+});
+
+// 탭 전환 권한 체크 오버라이드
+var _origSwitchTab = switchTab;
+switchTab = function(id) {
+  if (currentUser && !checkTabPermission(id)) {
+    alert('해당 캠퍼스 조회 권한이 없습니다.');
+    return;
+  }
+  _origSwitchTab(id);
+};
+
+// 카드 클릭 권한 체크
+var _origGrid = document.querySelector('.building-grid');
+
+
+
+// ── 수정요청 시스템 ──────────────────────────────────────────
+var REQ_ROOMS = {
+  'N타워 6층':    ['601','603','604','605','606','607','608','611','612','대강의실'],
+  '다운타운 12층': ['1201','1202','1203','1204','1205','1206','1207','1208','1209','1210','1211'],
+  '수내동빌딩':   ['301','302','303','304','305','306','307','308','인증실(3층)','401','402','403','404','405','406','407','408','409','410','411','412','413','인증실(4층)'],
+  '정자':        ['601','602','604','605','606','801','802','803','804','805','806','807'],
+  '다운타운 8층':  ['801','802','803','804','805','806','807','808'],
+  'N타워 9층':   ['901','902','903','905','906','908','자습실'],
+  '다운타운 6층':  ['테디장비실','테디1','테디2','601','605','606','607','608','609','610','611','612','613','614','615','영재교무실']
+};
+
+var REQ_SUBS = {
+  room_status: [
+    {val:'unused_shown_used',   label:'미사용인데 사용 중으로 표시됨'},
+    {val:'used_shown_unused',   label:'사용 중인데 미사용으로 표시됨'},
+    {val:'area_error',          label:'강의실 면적 오류'},
+    {val:'room_name_error',     label:'강의실 호실 정보 오류'}
+  ],
+  timetable: [
+    {val:'start_time_error',    label:'수업 시작 시간 오류'},
+    {val:'end_time_error',      label:'수업 종료 시간 오류'},
+    {val:'day_error',           label:'수업 요일 오류'},
+    {val:'campus_assign_error', label:'캠퍼스 배정 오류'}
+  ],
+  cost: [
+    {val:'cost_amount_error',   label:'배부금액이 실제와 다름'},
+    {val:'idle_cost_error',     label:'유휴비용 계산 오류'},
+    {val:'ratio_error',         label:'캠퍼스 배분 비율 오류'}
+  ],
+  campus_info: [
+    {val:'campus_name_error',   label:'캠퍼스명 오류'},
+    {val:'campus_missing',      label:'캠퍼스 추가 누락'},
+    {val:'campus_delete',       label:'캠퍼스 삭제 필요'}
+  ]
+};
+
+var DAY_KO = {mon:'월',tue:'화',wed:'수',thu:'목',fri:'금',sat:'토',sun:'일'};
+
+function openReqModal() {
+  document.getElementById('reqOverlay').classList.add('open');
+}
+
+function closeReqModal() {
+  document.getElementById('reqOverlay').classList.remove('open');
+  resetReqModal();
+}
+
+function resetReqModal() {
+  var ids = ['reqBuilding','reqRoom','reqCategory','reqSub'];
+  ids.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { el.value = ''; }
+  });
+  document.getElementById('reqRoom').disabled = true;
+  document.getElementById('reqRoom').innerHTML = '<option value="">— 건물 선택 후 호실을 선택하세요 —</option>';
+  document.getElementById('reqCategory').disabled = true;
+  document.getElementById('reqSub').innerHTML = '<option value="">— 오류 유형을 선택하세요 —</option>';
+  document.getElementById('reqSubField').style.display = 'none';
+  document.getElementById('reqDetailArea').innerHTML = '';
+  document.getElementById('reqMemoField').style.display = 'none';
+  document.getElementById('reqMemo').value = '';
+  document.getElementById('reqSubmitBtn').disabled = true;
+  document.getElementById('reqBody').style.display = '';
+  document.querySelector('.req-footer').style.display = '';
+}
+
+function onReqBuildingChange() {
+  var bld = document.getElementById('reqBuilding').value;
+  var roomSel = document.getElementById('reqRoom');
+  var catSel = document.getElementById('reqCategory');
+  roomSel.innerHTML = '<option value="">— 호실을 선택하세요 —</option>';
+  document.getElementById('reqSubField').style.display = 'none';
+  document.getElementById('reqDetailArea').innerHTML = '';
+  document.getElementById('reqMemoField').style.display = 'none';
+  document.getElementById('reqSubmitBtn').disabled = true;
+  if (bld && REQ_ROOMS[bld]) {
+    REQ_ROOMS[bld].forEach(function(r) {
+      var opt = document.createElement('option');
+      opt.value = r; opt.textContent = r + '호';
+      roomSel.appendChild(opt);
+    });
+    roomSel.disabled = false;
+    catSel.disabled = false;
+  } else {
+    roomSel.disabled = true;
+    catSel.disabled = true;
+  }
+}
+
+function onReqCategoryChange() {
+  var cat = document.getElementById('reqCategory').value;
+  var subSel = document.getElementById('reqSub');
+  var subField = document.getElementById('reqSubField');
+  document.getElementById('reqDetailArea').innerHTML = '';
+  document.getElementById('reqMemoField').style.display = 'none';
+  document.getElementById('reqSubmitBtn').disabled = true;
+  if (!cat) { subField.style.display = 'none'; return; }
+  subSel.innerHTML = '<option value="">— 오류 유형을 선택하세요 —</option>';
+  (REQ_SUBS[cat] || []).forEach(function(s) {
+    var opt = document.createElement('option');
+    opt.value = s.val; opt.textContent = s.label;
+    subSel.appendChild(opt);
+  });
+  subField.style.display = '';
+}
+
+function onReqSubChange() {
+  var sub = document.getElementById('reqSub').value;
+  var area = document.getElementById('reqDetailArea');
+  area.innerHTML = '';
+  document.getElementById('reqMemoField').style.display = 'none';
+  document.getElementById('reqSubmitBtn').disabled = true;
+  if (!sub) return;
+
+  var box = document.createElement('div');
+  box.className = 'req-detail-box';
+
+  function makeField(labelText, required, inputEl) {
+    var field = document.createElement('div');
+    field.className = 'req-field';
+    var lbl = document.createElement('div');
+    lbl.className = 'req-label';
+    lbl.textContent = labelText;
+    if (required) {
+      var req = document.createElement('span');
+      req.className = 'req-required'; req.textContent = ' *';
+      lbl.appendChild(req);
+    }
+    field.appendChild(lbl);
+    field.appendChild(inputEl);
+    return field;
+  }
+
+  function makeInput(id, type, placeholder) {
+    var inp = document.createElement('input');
+    inp.className = 'req-input'; inp.type = type;
+    inp.id = id; inp.placeholder = placeholder || '';
+    if (type === 'number') inp.step = '0.1';
+    inp.addEventListener('input', checkReqReady);
+    inp.addEventListener('change', checkReqReady);
+    return inp;
+  }
+
+  if (sub === 'area_error') {
+    box.appendChild(makeField('실제 면적 (평)', true, makeInput('detailArea','number','예: 5.2')));
+  } else if (sub === 'room_name_error') {
+    box.appendChild(makeField('올바른 호실명', true, makeInput('detailRoomName','text','예: 305')));
+  } else if (sub === 'start_time_error') {
+    box.appendChild(makeField('실제 수업 시작 시간', true, makeInput('detailStartTime','time','')));
+  } else if (sub === 'end_time_error') {
+    box.appendChild(makeField('실제 수업 종료 시간', true, makeInput('detailEndTime','time','')));
+  } else if (sub === 'day_error') {
+    var dayField = document.createElement('div');
+    dayField.className = 'req-field';
+    var dayLbl = document.createElement('div');
+    dayLbl.className = 'req-label';
+    dayLbl.textContent = '실제 수업 요일 (중복 선택 가능) ';
+    var req = document.createElement('span');
+    req.className = 'req-required'; req.textContent = '*';
+    dayLbl.appendChild(req);
+    dayField.appendChild(dayLbl);
+    var daysDiv = document.createElement('div');
+    daysDiv.className = 'req-days';
+    Object.keys(DAY_KO).forEach(function(d) {
+      var chk = document.createElement('input');
+      chk.type = 'checkbox'; chk.className = 'req-day-chk';
+      chk.id = 'reqDay_' + d; chk.value = d;
+      chk.addEventListener('change', checkReqReady);
+      var lbl = document.createElement('label');
+      lbl.className = 'req-day-lbl';
+      lbl.setAttribute('for', 'reqDay_' + d);
+      lbl.textContent = DAY_KO[d];
+      daysDiv.appendChild(chk);
+      daysDiv.appendChild(lbl);
+    });
+    dayField.appendChild(daysDiv);
+    box.appendChild(dayField);
+  } else if (sub === 'campus_assign_error') {
+    var row = document.createElement('div');
+    row.className = 'req-row';
+    row.appendChild(makeField('변경 전 관코드', true, makeInput('detailBeforeCode','text','예: 301')));
+    row.appendChild(makeField('변경 후 관코드', true, makeInput('detailAfterCode','text','예: 316')));
+    box.appendChild(row);
+  } else if (sub === 'cost_amount_error') {
+    box.appendChild(makeField('실제 배부금액 (원)', true, makeInput('detailCost','number','예: 1250000')));
+  } else if (sub === 'ratio_error') {
+    box.appendChild(makeField('실제 배분 비율 (%)', true, makeInput('detailRatio','number','예: 35.5')));
+  } else if (sub === 'campus_name_error') {
+    var row2 = document.createElement('div');
+    row2.className = 'req-row';
+    row2.appendChild(makeField('현재 캠퍼스명', true, makeInput('detailCurName','text','현재 표시명')));
+    row2.appendChild(makeField('올바른 관코드', true, makeInput('detailCorrectCode','text','예: 224')));
+    box.appendChild(row2);
+  } else if (sub === 'campus_missing') {
+    box.appendChild(makeField('추가할 관코드', true, makeInput('detailAddCode','text','예: 106')));
+  } else if (sub === 'campus_delete') {
+    box.appendChild(makeField('삭제할 관코드', true, makeInput('detailDelCode','text','예: 303')));
+  }
+
+  area.appendChild(box);
+  document.getElementById('reqMemoField').style.display = '';
+  checkReqReady();
+}
+
+function checkReqReady() {
+  var bld = document.getElementById('reqBuilding').value;
+  var room = document.getElementById('reqRoom').value;
+  var cat = document.getElementById('reqCategory').value;
+  var sub = document.getElementById('reqSub').value;
+  if (!bld || !room || !cat || !sub) {
+    document.getElementById('reqSubmitBtn').disabled = true; return;
+  }
+  var ok = true;
+  if (sub === 'area_error') ok = !!(document.getElementById('detailArea') && document.getElementById('detailArea').value);
+  else if (sub === 'room_name_error') ok = !!(document.getElementById('detailRoomName') && document.getElementById('detailRoomName').value);
+  else if (sub === 'start_time_error') ok = !!(document.getElementById('detailStartTime') && document.getElementById('detailStartTime').value);
+  else if (sub === 'end_time_error') ok = !!(document.getElementById('detailEndTime') && document.getElementById('detailEndTime').value);
+  else if (sub === 'day_error') ok = document.querySelectorAll('.req-day-chk:checked').length > 0;
+  else if (sub === 'campus_assign_error') ok = !!(document.getElementById('detailBeforeCode') && document.getElementById('detailBeforeCode').value && document.getElementById('detailAfterCode') && document.getElementById('detailAfterCode').value);
+  else if (sub === 'cost_amount_error') ok = !!(document.getElementById('detailCost') && document.getElementById('detailCost').value);
+  else if (sub === 'ratio_error') ok = !!(document.getElementById('detailRatio') && document.getElementById('detailRatio').value);
+  else if (sub === 'campus_name_error') ok = !!(document.getElementById('detailCurName') && document.getElementById('detailCurName').value && document.getElementById('detailCorrectCode') && document.getElementById('detailCorrectCode').value);
+  else if (sub === 'campus_missing') ok = !!(document.getElementById('detailAddCode') && document.getElementById('detailAddCode').value);
+  else if (sub === 'campus_delete') ok = !!(document.getElementById('detailDelCode') && document.getElementById('detailDelCode').value);
+  document.getElementById('reqSubmitBtn').disabled = !ok;
+}
+
+function getReqDetail() {
+  var sub = document.getElementById('reqSub').value;
+  if (sub === 'area_error') return '실제 면적: ' + document.getElementById('detailArea').value + '평';
+  if (sub === 'room_name_error') return '올바른 호실명: ' + document.getElementById('detailRoomName').value;
+  if (sub === 'start_time_error') return '실제 시작 시간: ' + document.getElementById('detailStartTime').value;
+  if (sub === 'end_time_error') return '실제 종료 시간: ' + document.getElementById('detailEndTime').value;
+  if (sub === 'day_error') {
+    var days = [];
+    document.querySelectorAll('.req-day-chk:checked').forEach(function(el){ days.push(DAY_KO[el.value] || el.value); });
+    return '실제 수업 요일: ' + days.join(', ');
+  }
+  if (sub === 'campus_assign_error') return '변경 전: ' + document.getElementById('detailBeforeCode').value + ' → 변경 후: ' + document.getElementById('detailAfterCode').value;
+  if (sub === 'cost_amount_error') return '실제 배부금액: ' + Number(document.getElementById('detailCost').value).toLocaleString() + '원';
+  if (sub === 'ratio_error') return '실제 배분 비율: ' + document.getElementById('detailRatio').value + '%';
+  if (sub === 'campus_name_error') return '현재명: ' + document.getElementById('detailCurName').value + ' → 올바른 관코드: ' + document.getElementById('detailCorrectCode').value;
+  if (sub === 'campus_missing') return '추가 관코드: ' + document.getElementById('detailAddCode').value;
+  if (sub === 'campus_delete') return '삭제 관코드: ' + document.getElementById('detailDelCode').value;
+  return '';
+}
+
+async function submitReq() {
+  var btn = document.getElementById('reqSubmitBtn');
+  btn.disabled = true; btn.textContent = '⏳ 전송 중...';
+  var bld    = document.getElementById('reqBuilding').value;
+  var room   = document.getElementById('reqRoom').value;
+  var catSel = document.getElementById('reqCategory');
+  var subSel = document.getElementById('reqSub');
+  var cat    = catSel.options[catSel.selectedIndex].text;
+  var sub    = subSel.options[subSel.selectedIndex].text;
+  var detail = getReqDetail();
+  var memo   = document.getElementById('reqMemo').value;
+  var user   = currentUser ? currentUser.name + ' (' + (currentUser.role === 'hq' ? '본부장' : '원장') + ')' : '알 수 없음';
+  var now    = new Date().toLocaleString('ko-KR');
+
+  console.log('수정요청 제출:', {bld:bld, room:room, cat:cat, sub:sub, detail:detail, memo:memo, user:user, now:now});
+
+  // 성공 화면 표시 (Apps Script 프록시 연결 후 실제 노션 알림 전송 예정)
+  var body = document.getElementById('reqBody');
+  body.innerHTML = '';
+  var succDiv = document.createElement('div');
+  succDiv.className = 'req-success';
+  succDiv.innerHTML = '<div class="req-success-icon">✅</div>'
+    + '<div class="req-success-title">수정 요청이 전송되었습니다</div>'
+    + '<div class="req-success-sub">'
+    + bld + ' ' + room + '호 — ' + sub + '<br>'
+    + (detail ? detail + '<br>' : '')
+    + '<br>총무기획팀 노션에 알림이 전송되었습니다.<br>비용 배분 수정은 자산관리 ERP에서 처리됩니다.'
+    + '</div>';
+  body.appendChild(succDiv);
+  document.querySelector('.req-footer').style.display = 'none';
+  setTimeout(function() { closeReqModal(); }, 3000);
+}
+
+// 로그인/로그아웃 시 FAB 버튼 표시 제어
+var _origDoLogin = doLogin;
+doLogin = function() {
+  _origDoLogin();
+  if (currentUser) {
+    var fab = document.getElementById('reqFab');
+    if (fab) fab.style.display = 'flex';
+  }
+};
+var _origDoLogout = doLogout;
+doLogout = function() {
+  _origDoLogout();
+  var fab = document.getElementById('reqFab');
+  if (fab) fab.style.display = 'none';
+};
+
+
+// ── 수정요청 건물별 호실 맵 ──────────────────────────────
+var BLDG_ROOMS = {
+  b1:{name:'N타워 6층',    rooms:['601','603','604','605','606','607','608','611','612','대강의실']},
+  b2:{name:'다운타운 12층', rooms:['1201','1202','1203','1204','1205','1206','1207','1208','1209','1210','1211']},
+  b3:{name:'수내동빌딩',    rooms:['301','302','303','304','305','306','307','308','인증실(3층)','401','402','403','404','405','406','407','408','409','410','411','412','413','인증실(4층)']},
+  b4:{name:'정자',          rooms:['601','602','604','605','606','801','802','803','804','805','806','807']},
+  b5:{name:'다운타운 8층',  rooms:['801','802','803','804','805','806','807','808']},
+  b6:{name:'N타워 9층',     rooms:['901','902','903','905','906','908','자습실']},
+  b7:{name:'다운타운 6층',  rooms:['테디장비실','테디1','테디2','601','605','606','607','608','609','610','611','612','613','614','615','영재교무실']}
+};
+
+function initCorrPanel(tabId) {
+  var bldg = BLDG_ROOMS[tabId];
+  if (!bldg) return;
+  var roomSel = document.getElementById('corrRoom_' + tabId);
+  if (!roomSel) return;
+  roomSel.innerHTML = '<option value="">호실 선택</option>';
+  bldg.rooms.forEach(function(r) {
+    var opt = document.createElement('option');
+    opt.value = r;
+    opt.textContent = r + '호';
+    roomSel.appendChild(opt);
+  });
+}
+
+function toggleCorrPanel(tabId) {
+  var panel = document.getElementById('corrPanel_' + tabId);
+  var arrow = document.getElementById('corrArrow_' + tabId);
+  if (!panel) return;
+  var isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  if (arrow) arrow.textContent = isOpen ? '▼' : '▲';
+  if (!isOpen) initCorrPanel(tabId);
+}
+
+function updateCorrSubList(tabId) {
+  var cat = document.getElementById('corrCat_' + tabId).value;
+  var subSel = document.getElementById('corrSubSel_' + tabId);
+  subSel.innerHTML = '<option value="">오류 유형 선택</option>';
+  var opts = {
+    room:[
+      {v:'unused_shown', t:'미사용인데 사용 중으로 표시됨'},
+      {v:'used_hidden',  t:'사용 중인데 미사용으로 표시됨'},
+      {v:'area',         t:'강의실 면적 오류'},
+      {v:'name',         t:'강의실 호실 정보 오류'}
+    ],
+    schedule:[
+      {v:'start_time', t:'수업 시작 시간 오류'},
+      {v:'end_time',   t:'수업 종료 시간 오류'},
+      {v:'day',        t:'수업 요일 오류'},
+      {v:'campus',     t:'캠퍼스 배정 오류'}
+    ],
+    cost:[
+      {v:'amount', t:'배부금액이 실제와 다름'},
+      {v:'idle',   t:'유휴비용 계산 오류'},
+      {v:'ratio',  t:'캠퍼스 배분 비율 오류'}
+    ],
+    campus:[
+      {v:'name_err', t:'캠퍼스명(관코드) 오류'},
+      {v:'add',      t:'캠퍼스 추가 누락'},
+      {v:'remove',   t:'캠퍼스 삭제 필요'}
+    ]
+  };
+  if (opts[cat]) {
+    opts[cat].forEach(function(o) {
+      var opt = document.createElement('option');
+      opt.value = o.v; opt.textContent = o.t;
+      subSel.appendChild(opt);
+    });
+  }
+  var detail = document.getElementById('corrDetail_' + tabId);
+  if (detail) { detail.innerHTML = ''; detail.className = 'corr-sub'; }
+}
+
+function updateCorrSub(tabId) {
+  var cat = document.getElementById('corrCat_' + tabId).value;
+  var sub = document.getElementById('corrSubSel_' + tabId).value;
+  var detailDiv = document.getElementById('corrDetail_' + tabId);
+  if (!detailDiv) return;
+  detailDiv.innerHTML = '';
+  detailDiv.className = 'corr-sub';
+  if (!cat || !sub) return;
+  detailDiv.classList.add('show');
+  var h = '';
+  if (cat === 'schedule') {
+    if (sub === 'campus') {
+      h += '<div class="corr-label">변경 전 관코드</div>';
+      h += '<input class="corr-input" id="corrOldCode_' + tabId + '" placeholder="예: 303" style="margin-bottom:8px">';
+      h += '<div class="corr-label">변경 후 관코드 (실제 운영 관코드)</div>';
+      h += '<input class="corr-input" id="corrNewCode_' + tabId + '" placeholder="예: 316">';
+    } else if (sub === 'start_time') {
+      h += '<div class="corr-label">실제 시작 시간</div>';
+      h += '<input class="corr-input" id="corrTime_' + tabId + '" type="time">';
+    } else if (sub === 'end_time') {
+      h += '<div class="corr-label">실제 종료 시간</div>';
+      h += '<input class="corr-input" id="corrTime_' + tabId + '" type="time">';
+    } else if (sub === 'day') {
+      h += '<div class="corr-label">실제 수업 요일 (중복 선택 가능)</div>';
+      h += '<div class="corr-days" id="corrDays_' + tabId + '">';
+      ['월','화','수','목','금','토','일'].forEach(function(d) {
+        h += '<div class="corr-day" data-toggle="on" onclick="this.classList.toggle(this.dataset.toggle)">' + d + '</div>';
+      });
+      h += '</div>';
+    }
+  } else if (cat === 'room') {
+    if (sub === 'area') {
+      h += '<div class="corr-label">실제 면적 (평)</div>';
+      h += '<input class="corr-input" id="corrArea_' + tabId + '" placeholder="예: 5.2" type="number" step="0.1">';
+    } else if (sub === 'name') {
+      h += '<div class="corr-label">올바른 호실명</div>';
+      h += '<input class="corr-input" id="corrRoomName_' + tabId + '" placeholder="예: 602">';
+    }
+  } else if (cat === 'cost') {
+    if (sub === 'amount') {
+      h += '<div class="corr-label">실제 배부금액 (원)</div>';
+      h += '<input class="corr-input" id="corrAmt_' + tabId + '" placeholder="예: 1250000" type="number">';
+    } else if (sub === 'ratio') {
+      h += '<div class="corr-label">실제 배분 비율 (%)</div>';
+      h += '<input class="corr-input" id="corrRatio_' + tabId + '" placeholder="예: 45" type="number">';
+    }
+  } else if (cat === 'campus') {
+    if (sub === 'name_err') {
+      h += '<div class="corr-grid">';
+      h += '<div><div class="corr-label">현재 관코드</div><input class="corr-input" id="corrOldCode_' + tabId + '" placeholder="예: 303"></div>';
+      h += '<div><div class="corr-label">올바른 관코드</div><input class="corr-input" id="corrNewCode_' + tabId + '" placeholder="예: 316"></div>';
+      h += '</div>';
+    } else if (sub === 'add') {
+      h += '<div class="corr-label">추가할 관코드</div>';
+      h += '<input class="corr-input" id="corrNewCode_' + tabId + '" placeholder="예: 224">';
+    } else if (sub === 'remove') {
+      h += '<div class="corr-label">삭제할 관코드</div>';
+      h += '<input class="corr-input" id="corrOldCode_' + tabId + '" placeholder="예: 106">';
+    }
+  }
+  detailDiv.innerHTML = h;
+}
+
+function submitCorr(tabId) {
+  var bldg = BLDG_ROOMS[tabId];
+  if (!bldg) return;
+  var room = document.getElementById('corrRoom_' + tabId).value;
+  var cat  = document.getElementById('corrCat_' + tabId).value;
+  var sub  = document.getElementById('corrSubSel_' + tabId).value;
+  var memo = document.getElementById('corrMemo_' + tabId).value;
+  var catLabel = {room:'강의실 사용 현황 오류', schedule:'시간표 오류', cost:'배부금액 오류', campus:'캠퍼스 정보 오류'};
+  var subLabel = {
+    unused_shown:'미사용→사용중 표시', used_hidden:'사용중→미사용 표시',
+    area:'면적 오류', name:'호실정보 오류',
+    start_time:'시작시간 오류', end_time:'종료시간 오류',
+    day:'요일 오류', campus:'캠퍼스배정 오류',
+    amount:'배부금액 오류', idle:'유휴비용 오류', ratio:'배분비율 오류',
+    name_err:'관코드 오류', add:'캠퍼스 추가 누락', remove:'캠퍼스 삭제 필요'
+  };
+  if (!room || !cat || !sub) {
+    alert('건물·오류 구분·오류 유형을 모두 선택해주세요.'); return;
+  }
+  var detail = '';
+  var oldCode = document.getElementById('corrOldCode_' + tabId);
+  var newCode = document.getElementById('corrNewCode_' + tabId);
+  var time    = document.getElementById('corrTime_' + tabId);
+  var area    = document.getElementById('corrArea_' + tabId);
+  var rName   = document.getElementById('corrRoomName_' + tabId);
+  var amt     = document.getElementById('corrAmt_' + tabId);
+  var ratio   = document.getElementById('corrRatio_' + tabId);
+  var days    = document.getElementById('corrDays_' + tabId);
+  if (oldCode && oldCode.value) detail += '변경전:' + oldCode.value + ' ';
+  if (newCode && newCode.value) detail += '변경후:' + newCode.value + ' ';
+  if (time    && time.value)    detail += '시간:' + time.value + ' ';
+  if (area    && area.value)    detail += '면적:' + area.value + '평 ';
+  if (rName   && rName.value)   detail += '호실명:' + rName.value + ' ';
+  if (amt     && amt.value)     detail += '금액:' + parseInt(amt.value).toLocaleString() + '원 ';
+  if (ratio   && ratio.value)   detail += '비율:' + ratio.value + '% ';
+  if (days) {
+    var selDays = Array.from(days.querySelectorAll('.corr-day.on')).map(function(d){return d.textContent;});
+    if (selDays.length) detail += '요일:' + selDays.join(',') + ' ';
+  }
+  var now = new Date();
+  var dateStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  var timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  var userName = currentUser ? currentUser.name : '미확인';
+  var notionContent = '📋 수정요청\n'
+    + '건물: ' + bldg.name + '\n'
+    + '호실: ' + room + '호\n'
+    + '구분: ' + (catLabel[cat]||cat) + '\n'
+    + '유형: ' + (subLabel[sub]||sub) + '\n'
+    + (detail ? '세부: ' + detail.trim() + '\n' : '')
+    + (memo   ? '메모: ' + memo + '\n' : '')
+    + '요청자: ' + userName + '\n'
+    + '일시: ' + dateStr + ' ' + timeStr;
+  sendCorrNotionAlert(notionContent, bldg.name, room, catLabel[cat]||cat, tabId);
+}
+
+function sendCorrNotionAlert(content, bldg, room, cat, tabId) {
+  var NOTION_DB_ID = '33ac9995-7772-80b7-bf8a-ce30fe4769f7';
+  var proxyUrl = localStorage.getItem('graphrag_proxy_url') || '';
+  if (!proxyUrl) {
+    showCorrDone(tabId, bldg, room, cat);
+    return;
+  }
+  fetch(proxyUrl, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      action: 'notion_alert',
+      notion_db_id: NOTION_DB_ID,
+      title: '[수정요청] ' + bldg + ' ' + room + '호',
+      content: content
+    })
+  }).then(function() {
+    showCorrDone(tabId, bldg, room, cat);
+  }).catch(function() {
+    showCorrDone(tabId, bldg, room, cat);
+  });
+}
+
+function showCorrDone(tabId, bldg, room, cat) {
+  var panel = document.getElementById('corrPanel_' + tabId);
+  if (!panel) return;
+  var h = '<div class="corr-done" style="display:block;">';
+  h += '✅ 수정요청이 접수되었습니다.<br>';
+  h += '<span style="font-size:11px;color:#5d6d7e;font-weight:400;margin-top:4px;display:block;">';
+  h += bldg + ' · ' + room + '호 · ' + cat + '<br>';
+  h += '총무기획팀에 알림이 전송되었습니다.</span>';
+  h += '<button onclick="resetCorrPanel(\'' + tabId + '\')" ';
+  h += 'style="margin-top:12px;padding:6px 16px;background:#f0f4ff;border:1px solid #3d5a99;border-radius:6px;font-size:11px;color:#3d5a99;cursor:pointer;">추가 요청</button>';
+  h += '</div>';
+  panel.innerHTML = h;
+}
+
+function resetCorrPanel(tabId) {
+  var panel = document.getElementById('corrPanel_' + tabId);
+  if (!panel) return;
+  panel.innerHTML = getCorrPanelInnerHTML(tabId);
+  initCorrPanel(tabId);
+}
+
+function getCorrPanelInnerHTML(tabId) {
+  var h = '';
+  h += '<div class="corr-section">';
+  h += '<div class="corr-label">호실 선택</div>';
+  h += '<select class="corr-select" id="corrRoom_' + tabId + '"><option value="">호실 선택</option></select>';
+  h += '</div>';
+  h += '<div class="corr-section">';
+  h += '<div class="corr-label">오류 구분</div>';
+  h += '<select class="corr-select" id="corrCat_' + tabId + '" onchange="updateCorrSubList(\'' + tabId + '\')">';
+  h += '<option value="">구분 선택</option>';
+  h += '<option value="room">강의실 사용 현황 오류</option>';
+  h += '<option value="schedule">시간표 오류</option>';
+  h += '<option value="cost">배부금액 오류</option>';
+  h += '<option value="campus">캠퍼스 정보 오류</option>';
+  h += '</select></div>';
+  h += '<div class="corr-section">';
+  h += '<div class="corr-label">오류 유형</div>';
+  h += '<select class="corr-select" id="corrSubSel_' + tabId + '" onchange="updateCorrSub(\'' + tabId + '\')">';
+  h += '<option value="">오류 유형 선택</option>';
+  h += '</select></div>';
+  h += '<div id="corrDetail_' + tabId + '" class="corr-sub"></div>';
+  h += '<div class="corr-divider"></div>';
+  h += '<div class="corr-section">';
+  h += '<div class="corr-label">메모 (선택)</div>';
+  h += '<textarea class="corr-textarea" id="corrMemo_' + tabId + '" placeholder="추가 설명이 있으면 입력해주세요"></textarea>';
+  h += '</div>';
+  h += '<button class="corr-submit" onclick="submitCorr(\'' + tabId + '\')">수정요청 제출</button>';
+  return h;
+}
+
+
+// ── 호실 타임테이블 렌더링 ──────────────────────────────────
+var CAMPUS_COLOR_MAP = {
+  '106':'tt-c-106','224':'tt-c-224','301':'tt-c-301','302':'tt-c-302',
+  '303':'tt-c-303','304':'tt-c-304','316':'tt-c-316','206':'tt-c-206',
+  '초등수아':'tt-c-soo','중등수아':'tt-c-mid','중등영재':'tt-c-mid',
+  '테디':'tt-c-teddy','중등사스':'tt-c-sas','MIX':'tt-mix'
+};
+
+function getCampusClass(val) {
+  return CAMPUS_COLOR_MAP[val] || 'tt-c-other';
+}
+
+function renderTimetable(bldgKey) {
+  var bld = BUILDING_PATTERNS[bldgKey];
+  if (!bld || !bld.rooms) return '';
+  var days = ['월','화','수','목','금','토','일'];
+  var rdKey = {'b1':'ntower6','b2':'downtown12','b3':'sunaedong','b4':'jungja','b5':'downtown8','b6':'ntower9','b7':'downtown6'};
+  var rdBld = ROOM_DATA[rdKey[bldgKey]];
+
+  // 캠퍼스 목록 추출 (범례용)
+  var campusSet = {};
+  bld.rooms.forEach(function(r) {
+    r.pat.forEach(function(p) {
+      if (p && p !== 'MIX') campusSet[p] = true;
+    });
+  });
+  var campuses = Object.keys(campusSet);
+
+  // 빈 요일 카운트
+  var totalCells = bld.rooms.length * 7;
+  var emptyCells = 0;
+  bld.rooms.forEach(function(r) {
+    r.pat.forEach(function(p) { if (!p) emptyCells++; });
+  });
+  var availRate = Math.round((emptyCells / totalCells) * 100);
+
+  var h = '<div class="tt-wrap">';
+  h += '<div class="tt-title">호실별 요일 사용 현황';
+  h += '<span class="tt-avail-badge">빈 슬롯 ' + emptyCells + '개 (' + availRate + '%)</span>';
+  h += '</div>';
+
+  // 범례
+  h += '<div class="tt-legend">';
+  campuses.forEach(function(cp) {
+    h += '<div class="tt-leg"><div class="tt-leg-dot ' + getCampusClass(cp) + '"></div>' + cp + '</div>';
+  });
+  h += '<div class="tt-leg"><div class="tt-leg-dot tt-mix"></div>MIX</div>';
+  h += '<div class="tt-leg"><div class="tt-leg-dot tt-empty" style="border:1px dashed #ccc;background:#f0f0f4;"></div>미사용</div>';
+  h += '</div>';
+
+  // 테이블
+  h += '<table class="tt-table"><thead><tr>';
+  h += '<th class="tt-room-col">호실</th>';
+  days.forEach(function(d) { h += '<th>' + d + '</th>'; });
+  h += '<th>가용</th>';
+  h += '</tr></thead><tbody>';
+
+  bld.rooms.forEach(function(room) {
+    var freeCount = room.pat.filter(function(p){return !p;}).length;
+    h += '<tr class="tt-row">';
+    h += '<td class="tt-room-name">' + room.name;
+    if (room.type) h += '<span style="font-size:9px;color:var(--text3);margin-left:3px;">' + room.type + '형</span>';
+    // 면적
+    if (rdBld) {
+      var rd = rdBld.rooms.find(function(r){return String(r.id)===String(room.name);});
+      if (rd) h += '<br><span style="font-size:9px;color:var(--text3);">' + rd.area + '평</span>';
+    }
+    h += '</td>';
+    room.pat.forEach(function(p) {
+      if (!p) {
+        h += '<td><span class="tt-cell tt-empty">빈</span></td>';
+      } else if (p === 'MIX') {
+        h += '<td><span class="tt-cell tt-mix">MIX</span></td>';
+      } else {
+        h += '<td><span class="tt-cell ' + getCampusClass(p) + '">' + p + '</span></td>';
+      }
+    });
+    // 가용 요일 수
+    var freeClass = freeCount >= 4 ? 'color:#2e7d32;font-weight:700' : freeCount >= 2 ? 'color:#d4820a;font-weight:600' : 'color:#bbb';
+    h += '<td style="' + freeClass + ';font-size:11px;">' + freeCount + '일</td>';
+    h += '</tr>';
+  });
+  h += '</tbody></table>';
+
+  // 빈 슬롯 요약
+  h += '<div style="margin-top:10px;padding:10px 14px;background:#f8fff8;border-radius:8px;border:1px solid #c8e6c9;font-size:11px;color:#2e7d32;">';
+  h += '📋 <strong>신규 반 개설 가능 슬롯</strong>: ';
+  var freeSlots = [];
+  var dayNames = ['월','화','수','목','금','토','일'];
+  dayNames.forEach(function(day, di) {
+    var freeRooms = bld.rooms.filter(function(r){return !r.pat[di];}).length;
+    if (freeRooms > 0) freeSlots.push(day + '요일 ' + freeRooms + '개');
+  });
+  h += freeSlots.length ? freeSlots.join(' · ') : '없음';
+  h += '</div>';
+  h += '</div>';
+  return h;
+}
+
+// 각 건물 탭 로드 시 타임테이블 삽입
+function insertTimetable(bldgKey) {
+  var containerId = 'tt-container-' + bldgKey;
+  var el = document.getElementById(containerId);
+  if (el && el.innerHTML === '') {
+    el.innerHTML = renderTimetable(bldgKey);
+  }
+}
+
+// switchTab 오버라이드에 타임테이블 삽입 추가
+var _origSwitchTabTT = switchTab;
+switchTab = function(id) {
+  _origSwitchTabTT(id);
+  if (id && id !== 'summary') {
+    setTimeout(function() { insertTimetable(id); }, 50);
+  }
+};
+
+document.addEventListener('DOMContentLoaded', renderKeyStatus);
+</script>
+
+<!-- 수정요청 FAB 버튼 -->
+<button class="req-fab" id="reqFab" style="display:none;" onclick="openReqModal()">
+  ✏ 수정 요청
+</button>
+
+<!-- 수정요청 모달 -->
+<div class="req-overlay" id="reqOverlay">
+  <div class="req-modal" id="reqModal">
+    <div class="req-head">
+      <div>
+        <div class="req-head-title">강의실 · 시간표 수정 요청</div>
+        <div class="req-head-sub">오류 확인 후 총무기획팀으로 알림이 전송됩니다. 비용 배분은 자동 수정되지 않습니다.</div>
+      </div>
+      <button class="req-close" onclick="closeReqModal()">✕</button>
+    </div>
+    <div class="req-body" id="reqBody">
+
+      <!-- 건물 선택 -->
+      <div class="req-field">
+        <div class="req-label">건물 선택 <span class="req-required">*</span></div>
+        <select class="req-select" id="reqBuilding" onchange="onReqBuildingChange()">
+          <option value="">— 건물을 선택하세요 —</option>
+          <option value="N타워 6층">N타워 6층</option>
+          <option value="다운타운 12층">다운타운 12층</option>
+          <option value="수내동빌딩">수내동빌딩 (3·4층)</option>
+          <option value="정자">정자 (백궁·시그마)</option>
+          <option value="다운타운 8층">다운타운 8층</option>
+          <option value="N타워 9층">N타워 9층</option>
+          <option value="다운타운 6층">다운타운 6층</option>
+        </select>
+      </div>
+
+      <!-- 호실 선택 -->
+      <div class="req-field">
+        <div class="req-label">호실 선택 <span class="req-required">*</span></div>
+        <select class="req-select" id="reqRoom" disabled>
+          <option value="">— 건물 선택 후 호실을 선택하세요 —</option>
+        </select>
+      </div>
+
+      <!-- 대분류 -->
+      <div class="req-field">
+        <div class="req-label">수정 구분 <span class="req-required">*</span></div>
+        <select class="req-select" id="reqCategory" onchange="onReqCategoryChange()" disabled>
+          <option value="">— 수정 구분을 선택하세요 —</option>
+          <option value="room_status">강의실 사용 현황 오류</option>
+          <option value="timetable">시간표 오류</option>
+          <option value="cost">배부금액 오류</option>
+          <option value="campus_info">캠퍼스 정보 오류</option>
+        </select>
+      </div>
+
+      <!-- 중분류 -->
+      <div class="req-field" id="reqSubField" style="display:none;">
+        <div class="req-label">오류 유형 <span class="req-required">*</span></div>
+        <select class="req-select" id="reqSub" onchange="onReqSubChange()">
+          <option value="">— 오류 유형을 선택하세요 —</option>
+        </select>
+      </div>
+
+      <!-- 세부 입력 (동적) -->
+      <div id="reqDetailArea"></div>
+
+      <!-- 메모 -->
+      <div class="req-field" id="reqMemoField" style="display:none;">
+        <div class="req-label">추가 메모 (선택)</div>
+        <textarea class="req-textarea" id="reqMemo" placeholder="추가로 전달할 내용을 입력하세요..."></textarea>
+      </div>
+
+    </div>
+    <div class="req-footer">
+      <button class="req-btn-cancel" onclick="closeReqModal()">취소</button>
+      <button class="req-btn-submit" id="reqSubmitBtn" onclick="submitReq()" disabled>수정 요청 전송</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- 수정요청 FAB 버튼 -->
+<button class="req-fab" id="reqFab" style="display:none;" onclick="openReqModal()">
+  ✏ 수정 요청
+</button>
+
+<!-- 수정요청 모달 -->
+<div class="req-overlay" id="reqOverlay">
+  <div class="req-modal" id="reqModal">
+    <div class="req-head">
+      <div>
+        <div class="req-head-title">강의실 · 시간표 수정 요청</div>
+        <div class="req-head-sub">오류 확인 후 총무기획팀으로 알림이 전송됩니다. 비용 배분은 자동 수정되지 않습니다.</div>
+      </div>
+      <button class="req-close" onclick="closeReqModal()">✕</button>
+    </div>
+    <div class="req-body" id="reqBody">
+      <div class="req-field">
+        <div class="req-label">건물 선택 <span class="req-required">*</span></div>
+        <select class="req-select" id="reqBuilding" onchange="onReqBuildingChange()">
+          <option value="">— 건물을 선택하세요 —</option>
+          <option value="N타워 6층">N타워 6층</option>
+          <option value="다운타운 12층">다운타운 12층</option>
+          <option value="수내동빌딩">수내동빌딩 (3·4층)</option>
+          <option value="정자">정자 (백궁·시그마)</option>
+          <option value="다운타운 8층">다운타운 8층</option>
+          <option value="N타워 9층">N타워 9층</option>
+          <option value="다운타운 6층">다운타운 6층</option>
+        </select>
+      </div>
+      <div class="req-field">
+        <div class="req-label">호실 선택 <span class="req-required">*</span></div>
+        <select class="req-select" id="reqRoom" disabled>
+          <option value="">— 건물 선택 후 호실을 선택하세요 —</option>
+        </select>
+      </div>
+      <div class="req-field">
+        <div class="req-label">수정 구분 <span class="req-required">*</span></div>
+        <select class="req-select" id="reqCategory" onchange="onReqCategoryChange()" disabled>
+          <option value="">— 수정 구분을 선택하세요 —</option>
+          <option value="room_status">강의실 사용 현황 오류</option>
+          <option value="timetable">시간표 오류</option>
+          <option value="cost">배부금액 오류</option>
+          <option value="campus_info">캠퍼스 정보 오류</option>
+        </select>
+      </div>
+      <div class="req-field" id="reqSubField" style="display:none;">
+        <div class="req-label">오류 유형 <span class="req-required">*</span></div>
+        <select class="req-select" id="reqSub" onchange="onReqSubChange()">
+          <option value="">— 오류 유형을 선택하세요 —</option>
+        </select>
+      </div>
+      <div id="reqDetailArea"></div>
+      <div class="req-field" id="reqMemoField" style="display:none;">
+        <div class="req-label">추가 메모 (선택)</div>
+        <textarea class="req-textarea" id="reqMemo" placeholder="추가로 전달할 내용을 입력하세요..."></textarea>
+      </div>
+    </div>
+    <div class="req-footer">
+      <button class="req-btn-cancel" onclick="closeReqModal()">취소</button>
+      <button class="req-btn-submit" id="reqSubmitBtn" onclick="submitReq()" disabled>수정 요청 전송</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
