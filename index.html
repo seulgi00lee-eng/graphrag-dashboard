@@ -2144,6 +2144,13 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
 
       <!-- 보고서 미리보기 -->
       <div id="reportPreview" style="display:none;background:var(--bg3);border-radius:10px;padding:16px;border:0.5px solid var(--border);margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);">미리보기</div>
+          <div style="display:flex;gap:8px;">
+            <button onclick="downloadReportExcel()" style="padding:6px 14px;background:#217346;border:none;border-radius:6px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;font-family:'Nanum Gothic',sans-serif;">⬇ 엑셀</button>
+            <button onclick="downloadReportPDF()" style="padding:6px 14px;background:#e74c3c;border:none;border-radius:6px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;font-family:'Nanum Gothic',sans-serif;">⬇ PDF</button>
+          </div>
+        </div>
         <div id="reportContent"></div>
       </div>
 
@@ -2665,6 +2672,9 @@ function generateReport() {
   var maxRent    = Math.max.apply(null, totalRents);
   var minRent    = Math.min.apply(null, totalRents);
 
+  // 다운로드용 데이터 저장
+  _lastReportData = { title: reportTitle, periodKeys: periodKeys, avgRent: avgRent, maxRent: maxRent, minRent: minRent };
+
   content.innerHTML =
     '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">'
     + '📋 ' + reportTitle + ' <span style="font-size:11px;font-weight:500;color:var(--text3);">(' + periodKeys.length + '개월)</span>'
@@ -2978,6 +2988,89 @@ function initAllCompare() {
     if (monthEl) monthEl.value = 1;
     renderCompare(suffix);
   });
+}
+
+/* ── 보고서 다운로드 ── */
+var _lastReportData = null; // generateReport 시 저장
+
+function downloadReportExcel() {
+  if (!_lastReportData) { alert('먼저 보고서를 생성해주세요.'); return; }
+  var d = _lastReportData;
+
+  // CSV 형식으로 생성 (Excel에서 바로 열림)
+  var BOM = '\uFEFF';
+  var rows = [['월', '임차료(원)', '면적(평)', '평단가(원/평)', '강의실(개)', '메모']];
+  d.periodKeys.forEach(function(k) {
+    var r   = MONTH_DATA_REGISTRY[k];
+    var m   = k.split('-');
+    var ppp = Math.round(r.totalRent / r.totalArea);
+    rows.push([m[0]+'.'+m[1], r.totalRent, r.totalArea, ppp, r.totalRooms, r.memo||'']);
+  });
+  rows.push([]);
+  rows.push(['평균 임차료', d.avgRent, '', '', '', '']);
+  rows.push(['최고 임차료', d.maxRent, '', '', '', '']);
+  rows.push(['최저 임차료', d.minRent, '', '', '', '']);
+
+  var csv = BOM + rows.map(function(r){ return r.join(','); }).join('\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href   = url;
+  a.download = d.title.replace(/\s/g,'_') + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function downloadReportPDF() {
+  if (!_lastReportData) { alert('먼저 보고서를 생성해주세요.'); return; }
+  var d = _lastReportData;
+
+  var rows = d.periodKeys.map(function(k) {
+    var r   = MONTH_DATA_REGISTRY[k];
+    var m   = k.split('-');
+    var ppp = Math.round(r.totalRent / r.totalArea);
+    return '<tr>'
+      + '<td style="padding:8px 10px;border-bottom:1px solid #eee;font-weight:600;">' + m[0]+'.'+m[1] + '</td>'
+      + '<td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;color:#6c5ce7;font-weight:700;">' + r.totalRent.toLocaleString() + '원</td>'
+      + '<td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">' + r.totalArea + '평</td>'
+      + '<td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">' + ppp.toLocaleString() + '원</td>'
+      + '<td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">' + r.totalRooms + '개</td>'
+      + '<td style="padding:8px 10px;border-bottom:1px solid #eee;color:#888;font-size:12px;">' + (r.memo||'-') + '</td>'
+      + '</tr>';
+  }).join('');
+
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8">'
+    + '<title>' + d.title + '</title>'
+    + '<style>body{font-family:"Nanum Gothic",sans-serif;padding:40px;color:#1a1a2e;}'
+    + 'h1{font-size:20px;margin-bottom:4px;}h2{font-size:13px;color:#888;font-weight:400;margin-bottom:24px;}'
+    + 'table{width:100%;border-collapse:collapse;margin-bottom:24px;}'
+    + 'th{padding:10px;background:#f4f4f8;font-size:12px;color:#555;text-align:left;border-bottom:2px solid #ddd;}'
+    + '.stat-row{display:flex;gap:16px;margin-bottom:20px;}'
+    + '.stat{flex:1;padding:14px;background:#f9f9fc;border-radius:8px;border:1px solid #eee;}'
+    + '.stat-label{font-size:11px;color:#888;margin-bottom:4px;}'
+    + '.stat-val{font-size:16px;font-weight:700;}'
+    + '.footer{margin-top:40px;font-size:11px;color:#aaa;border-top:1px solid #eee;padding-top:12px;}'
+    + '@media print{body{padding:20px;}button{display:none;}}'
+    + '</style></head><body>'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
+    + '<h1>📋 ' + d.title + '</h1>'
+    + '<button onclick="window.print()" style="padding:8px 18px;background:#6c5ce7;border:none;border-radius:6px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">🖨 인쇄 / PDF 저장</button>'
+    + '</div>'
+    + '<h2>Graph RAG 임차료 대시보드 · 생성일: ' + new Date().toLocaleDateString('ko-KR') + ' · ' + d.periodKeys.length + '개월</h2>'
+    + '<table><thead><tr><th>월</th><th style="text-align:right">임차료</th><th style="text-align:right">면적</th><th style="text-align:right">평단가</th><th style="text-align:right">강의실</th><th>메모</th></tr></thead><tbody>' + rows + '</tbody></table>'
+    + '<div class="stat-row">'
+    + '<div class="stat"><div class="stat-label">평균 임차료</div><div class="stat-val" style="color:#6c5ce7">' + d.avgRent.toLocaleString() + '원</div></div>'
+    + '<div class="stat"><div class="stat-label">최고 임차료</div><div class="stat-val" style="color:#2ec4a0">' + d.maxRent.toLocaleString() + '원</div></div>'
+    + '<div class="stat"><div class="stat-label">최저 임차료</div><div class="stat-val" style="color:#f0b040">' + d.minRent.toLocaleString() + '원</div></div>'
+    + '</div>'
+    + '<div class="footer">플로우교육 경영관리본부 총무기획팀 · Graph RAG 임차료 대시보드</div>'
+    + '</body></html>';
+
+  var win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
 }
 
 function switchTab(id) {
