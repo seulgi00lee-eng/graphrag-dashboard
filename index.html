@@ -2615,7 +2615,6 @@ function generateReport() {
     var k = getPeriodKey(y, m);
     periodKeys = keys.filter(function(pk){ return pk === k; });
     reportTitle = y + '년 ' + m + '월 보고서';
-
   } else if (currentReportType === 'half') {
     var val  = document.getElementById('rHalfPeriod').value;
     var hy   = parseInt(val.substring(0,4));
@@ -2628,7 +2627,6 @@ function generateReport() {
       return py === hy && pm >= sM && pm <= eM;
     });
     reportTitle = hy + '년 ' + (half==='H1'?'상':'하') + '반기 보고서';
-
   } else {
     var sy = parseInt(document.getElementById('rCustStartYear').value);
     var sm = parseInt(document.getElementById('rCustStartMonth').value);
@@ -2636,10 +2634,7 @@ function generateReport() {
     var em = parseInt(document.getElementById('rCustEndMonth').value);
     var sKey = getPeriodKey(sy, sm);
     var eKey = getPeriodKey(ey, em);
-    if (sKey > eKey) {
-      alert('시작 월이 종료 월보다 늦습니다. 확인해주세요.');
-      return;
-    }
+    if (sKey > eKey) { alert('시작 월이 종료 월보다 늦습니다.'); return; }
     periodKeys = keys.filter(function(pk){ return pk >= sKey && pk <= eKey; });
     reportTitle = sy + '.' + String(sm).padStart(2,'0') + ' ~ ' + ey + '.' + String(em).padStart(2,'0') + ' 보고서';
   }
@@ -2653,49 +2648,135 @@ function generateReport() {
     return;
   }
 
-  var rows = periodKeys.map(function(k) {
-    var d   = MONTH_DATA_REGISTRY[k];
-    var m   = k.split('-');
+  /* ── 1. 전체 합계 ── */
+  var totalRents = periodKeys.map(function(k){ return MONTH_DATA_REGISTRY[k].totalRent; });
+  var avgRent = Math.round(totalRents.reduce(function(a,b){return a+b;},0) / totalRents.length);
+  var maxRent = Math.max.apply(null, totalRents);
+  var minRent = Math.min.apply(null, totalRents);
+  _lastReportData = { title: reportTitle, periodKeys: periodKeys, avgRent: avgRent, maxRent: maxRent, minRent: minRent };
+
+  /* ── 2. 월별 추이 테이블 ── */
+  var monthRows = periodKeys.map(function(k) {
+    var d = MONTH_DATA_REGISTRY[k]; var ms = k.split('-');
     var ppp = Math.round(d.totalRent / d.totalArea);
     return '<tr>'
-      + '<td style="font-weight:600">' + m[0] + '.' + m[1] + '</td>'
-      + '<td style="text-align:right;color:var(--purple);font-weight:600;">' + d.totalRent.toLocaleString() + '원</td>'
+      + '<td style="font-weight:600">' + ms[0]+'.'+ms[1] + '</td>'
+      + '<td style="text-align:right;color:var(--purple);font-weight:700;">' + d.totalRent.toLocaleString() + '원</td>'
       + '<td style="text-align:right;">' + d.totalArea + '평</td>'
       + '<td style="text-align:right;">' + ppp.toLocaleString() + '원</td>'
       + '<td style="text-align:right;">' + d.totalRooms + '개</td>'
-      + '<td style="color:var(--text3);font-size:11px;">' + (d.memo || '-') + '</td>'
+      + '<td style="color:var(--text3);font-size:11px;">' + (d.memo||'-') + '</td>'
       + '</tr>';
   }).join('');
 
-  var totalRents = periodKeys.map(function(k){ return MONTH_DATA_REGISTRY[k].totalRent; });
-  var avgRent    = Math.round(totalRents.reduce(function(a,b){return a+b;},0) / totalRents.length);
-  var maxRent    = Math.max.apply(null, totalRents);
-  var minRent    = Math.min.apply(null, totalRents);
+  /* ── 3. 지역별 분석 (BUILDING_TABLE_DATA 기준) ── */
+  var regionMap = {};
+  BUILDING_TABLE_DATA.forEach(function(b) {
+    if (!regionMap[b.region]) regionMap[b.region] = { rent:0, area:0, rooms:0, buildings:[] };
+    regionMap[b.region].rent  += b.rent;
+    regionMap[b.region].area  += b.area;
+    regionMap[b.region].rooms += b.rooms;
+    regionMap[b.region].buildings.push(b.building + ' ' + b.floor);
+  });
+  var totalRentBase = BUILDING_TABLE_DATA.reduce(function(s,b){return s+b.rent;},0);
+  var regionRows = Object.keys(regionMap).map(function(r) {
+    var d = regionMap[r];
+    var pct = ((d.rent / totalRentBase)*100).toFixed(1);
+    var ppp = Math.round(d.rent / d.area);
+    return '<tr>'
+      + '<td style="font-weight:700">' + r + '</td>'
+      + '<td style="color:var(--text3);font-size:11px;">' + [...new Set(d.buildings.map(function(x){return x.split(' ')[0];}))] .join(', ') + '</td>'
+      + '<td style="text-align:right;color:var(--purple);font-weight:700;">' + d.rent.toLocaleString() + '원</td>'
+      + '<td style="text-align:right;">' + pct + '%</td>'
+      + '<td style="text-align:right;">' + d.area.toFixed(1) + '평</td>'
+      + '<td style="text-align:right;">' + ppp.toLocaleString() + '원/평</td>'
+      + '<td style="text-align:right;">' + d.rooms + '개</td>'
+      + '</tr>';
+  }).join('');
 
-  // 다운로드용 데이터 저장
-  _lastReportData = { title: reportTitle, periodKeys: periodKeys, avgRent: avgRent, maxRent: maxRent, minRent: minRent };
+  /* ── 4. 건물별 분석 ── */
+  var buildingRows = BUILDING_TABLE_DATA.map(function(b) {
+    var pct = ((b.rent / totalRentBase)*100).toFixed(1);
+    var pppDiff = b.ppp - Math.round(totalRentBase / BUILDING_TABLE_DATA.reduce(function(s,x){return s+x.area;},0));
+    var diffColor = pppDiff > 0 ? '#f06080' : '#2ec4a0';
+    var diffStr   = (pppDiff > 0 ? '+' : '') + pppDiff.toLocaleString() + '원';
+    return '<tr>'
+      + '<td style="font-weight:600">' + b.region + '</td>'
+      + '<td style="font-weight:700">' + b.building + '</td>'
+      + '<td>' + b.floor + '</td>'
+      + '<td style="text-align:right;color:var(--purple);font-weight:700;">' + b.rent.toLocaleString() + '원</td>'
+      + '<td style="text-align:right;">' + pct + '%</td>'
+      + '<td style="text-align:right;">' + b.area + '평</td>'
+      + '<td style="text-align:right;">' + b.ppp.toLocaleString() + '원</td>'
+      + '<td style="text-align:right;color:' + diffColor + ';font-weight:600;font-size:11px;">' + diffStr + '</td>'
+      + '<td style="text-align:right;">' + b.rooms + '개</td>'
+      + '</tr>';
+  }).join('');
+
+  /* ── 5. 인사이트 자동 생성 ── */
+  var sorted = BUILDING_TABLE_DATA.slice().sort(function(a,b){return b.ppp - a.ppp;});
+  var highest = sorted[0];
+  var lowest  = sorted[sorted.length-1];
+  var avgPpp  = Math.round(totalRentBase / BUILDING_TABLE_DATA.reduce(function(s,b){return s+b.area;},0));
+
+  var insights = [
+    '📍 <strong>' + highest.building + ' ' + highest.floor + '</strong>이 평단가 ' + highest.ppp.toLocaleString() + '원/평으로 전체 최고 (평균 대비 +' + (highest.ppp - avgPpp).toLocaleString() + '원)',
+    '📍 <strong>' + lowest.building + ' ' + lowest.floor + '</strong>이 평단가 ' + lowest.ppp.toLocaleString() + '원/평으로 전체 최저 (평균 대비 ' + (lowest.ppp - avgPpp).toLocaleString() + '원)',
+    '📍 수내 지역 임차료 비중 <strong>' + ((regionMap['수내'] ? regionMap['수내'].rent : 0) / totalRentBase * 100).toFixed(1) + '%</strong> — 전체 캠퍼스 비용 집중도 확인 필요',
+    '📍 전체 평균 평단가 <strong>' + avgPpp.toLocaleString() + '원/평</strong> · 총 관리 면적 <strong>' + BUILDING_TABLE_DATA.reduce(function(s,b){return s+b.area;},0).toFixed(1) + '평</strong>'
+  ];
+
+  /* ── 렌더링 ── */
+  var sec = function(title, body) {
+    return '<div style="margin-bottom:20px;">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;padding:6px 0;border-bottom:1.5px solid var(--border);">' + title + '</div>'
+      + body + '</div>';
+  };
+  var tbl = function(head, body) {
+    return '<div style="overflow-x:auto;"><table class="log-table" style="margin-bottom:0;">'
+      + '<thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>';
+  };
+  var th = function(t, r) { return '<th' + (r?' style="text-align:right"':'') + '>' + t + '</th>'; };
 
   content.innerHTML =
-    '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">'
-    + '📋 ' + reportTitle + ' <span style="font-size:11px;font-weight:500;color:var(--text3);">(' + periodKeys.length + '개월)</span>'
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border);">'
+    + '📋 ' + reportTitle
+    + '<span style="font-size:11px;font-weight:500;color:var(--text3);margin-left:8px;">(' + periodKeys.length + '개월 · 기준 데이터 2026.01)</span>'
     + '</div>'
-    + '<table class="log-table" style="margin-bottom:12px;">'
-    + '<thead><tr><th>월</th><th style="text-align:right">임차료</th><th style="text-align:right">면적</th><th style="text-align:right">평단가</th><th style="text-align:right">강의실</th><th>메모</th></tr></thead>'
-    + '<tbody>' + rows + '</tbody>'
-    + '</table>'
-    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'
-    + '<div style="padding:10px 12px;background:rgba(108,92,231,0.06);border-radius:8px;font-size:11px;">'
-    + '<div style="color:var(--text3);margin-bottom:3px;">평균 임차료</div>'
-    + '<div style="font-weight:700;color:var(--purple);font-size:13px;">' + avgRent.toLocaleString() + '원</div></div>'
-    + '<div style="padding:10px 12px;background:rgba(46,196,160,0.06);border-radius:8px;font-size:11px;">'
-    + '<div style="color:var(--text3);margin-bottom:3px;">최고 임차료</div>'
-    + '<div style="font-weight:700;color:#2ec4a0;font-size:13px;">' + maxRent.toLocaleString() + '원</div></div>'
-    + '<div style="padding:10px 12px;background:rgba(240,176,64,0.06);border-radius:8px;font-size:11px;">'
-    + '<div style="color:var(--text3);margin-bottom:3px;">최저 임차료</div>'
-    + '<div style="font-weight:700;color:var(--amber);font-size:13px;">' + minRent.toLocaleString() + '원</div></div>'
-    + '</div>';
-}
 
+    // 전체 KPI
+    + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;">'
+    + ['총 임차료|' + totalRentBase.toLocaleString() + '원|var(--purple)',
+       '평균 평단가|' + avgPpp.toLocaleString() + '원/평|var(--amber)',
+       '총 면적|' + BUILDING_TABLE_DATA.reduce(function(s,b){return s+b.area;},0).toFixed(1) + '평|var(--teal)',
+       '총 강의실|' + BUILDING_TABLE_DATA.reduce(function(s,b){return s+b.rooms;},0) + '개|var(--blue)']
+      .map(function(x){ var p=x.split('|');
+        return '<div style="padding:12px;background:var(--bg3);border-radius:8px;border:0.5px solid var(--border);">'
+          + '<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">' + p[0] + '</div>'
+          + '<div style="font-size:14px;font-weight:700;color:' + p[2] + ';">' + p[1] + '</div></div>';
+      }).join('')
+    + '</div>'
+
+    // 월별 추이
+    + sec('① 월별 임차료 추이',
+        tbl([th('월'),th('임차료',1),th('면적',1),th('평단가',1),th('강의실',1),th('메모')].join(''), monthRows))
+
+    // 지역별
+    + sec('② 지역별 현황',
+        tbl([th('지역'),th('건물'),th('임차료',1),th('비중',1),th('면적',1),th('평단가',1),th('강의실',1)].join(''), regionRows))
+
+    // 건물별
+    + sec('③ 건물별 상세',
+        tbl([th('지역'),th('건물'),th('층수'),th('임차료',1),th('비중',1),th('면적',1),th('평단가',1),th('평균대비',1),th('강의실',1)].join(''), buildingRows))
+
+    // 인사이트
+    + sec('④ 자동 인사이트',
+        '<div style="display:flex;flex-direction:column;gap:8px;">'
+        + insights.map(function(i){
+            return '<div style="padding:9px 12px;background:rgba(108,92,231,0.05);border-left:3px solid var(--purple);border-radius:0 6px 6px 0;font-size:12px;color:var(--text2);">' + i + '</div>';
+          }).join('')
+        + '</div>');
+}
 
 function resetPermForm() {
   var permName = document.getElementById('permName');
