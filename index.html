@@ -295,6 +295,11 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
 .perm-input::placeholder{color:#aaaabc;font-weight:400;}
 .perm-hint{font-size:11px;color:#888899;margin-top:5px;font-weight:400;line-height:1.5;}
 .perm-code-wrap{display:flex;gap:8px;}
+.perm-chk-label{display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;}
+.perm-chk-label:hover{background:#f0eeff;}
+.perm-chk-label input[type=checkbox]{accent-color:#6c5ce7;cursor:pointer;}
+.perm-chk-label input[type=checkbox]:checked ~ span{font-weight:700;color:#6c5ce7;}
+.perm-chk-label:has(input:checked){background:#ede9ff;}
 .perm-code-select{flex:1;padding:10px 12px;border:1px solid #d0d0dc;border-radius:8px;font-size:13px;font-weight:500;color:#1a1a2e;background:#fff;outline:none;font-family:'Nanum Gothic','나눔고딕',sans-serif;cursor:pointer;}
 .perm-code-select:focus{border-color:#6c5ce7;}
 .perm-code-or{font-size:11px;color:#aaaabc;align-self:center;white-space:nowrap;font-weight:500;}
@@ -494,27 +499,27 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       <div class="perm-field">
         <div class="perm-label">관코드 <span class="perm-required">*</span></div>
         <div id="permCodeCheckboxes" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:12px;border:1px solid #d0d0dc;border-radius:8px;background:#fafafa;max-height:160px;overflow-y:auto;">
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="101" style="accent-color:#6c5ce7;cursor:pointer;"> 101</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="102" style="accent-color:#6c5ce7;cursor:pointer;"> 102</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="103" style="accent-color:#6c5ce7;cursor:pointer;"> 103</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="104" style="accent-color:#6c5ce7;cursor:pointer;"> 104</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="105" style="accent-color:#6c5ce7;cursor:pointer;"> 105</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="106" style="accent-color:#6c5ce7;cursor:pointer;"> 106</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="107" style="accent-color:#6c5ce7;cursor:pointer;"> 107</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="108" style="accent-color:#6c5ce7;cursor:pointer;"> 108</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="109" style="accent-color:#6c5ce7;cursor:pointer;"> 109</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="110" style="accent-color:#6c5ce7;cursor:pointer;"> 110</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="201" style="accent-color:#6c5ce7;cursor:pointer;"> 201</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="202" style="accent-color:#6c5ce7;cursor:pointer;"> 202</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="203" style="accent-color:#6c5ce7;cursor:pointer;"> 203</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="204" style="accent-color:#6c5ce7;cursor:pointer;"> 204</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="205" style="accent-color:#6c5ce7;cursor:pointer;"> 205</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="206" style="accent-color:#6c5ce7;cursor:pointer;"> 206</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="301" style="accent-color:#6c5ce7;cursor:pointer;"> 301</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="302" style="accent-color:#6c5ce7;cursor:pointer;"> 302</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="303" style="accent-color:#6c5ce7;cursor:pointer;"> 303</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="304" style="accent-color:#6c5ce7;cursor:pointer;"> 304</label>
-          <label style="display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:#1a1a2e;user-select:none;transition:background 0.15s;" onmouseover="this.style.background='#f0eeff'" onmouseout="if(!this.querySelector('input').checked)this.style.background='transparent';else this.style.background='#ede9ff'"><input type="checkbox" value="316" style="accent-color:#6c5ce7;cursor:pointer;"> 316</label>
+          <label class="perm-chk-label"><input type="checkbox" value="101"> <span>101</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="102"> <span>102</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="103"> <span>103</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="104"> <span>104</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="105"> <span>105</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="106"> <span>106</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="107"> <span>107</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="108"> <span>108</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="109"> <span>109</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="110"> <span>110</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="201"> <span>201</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="202"> <span>202</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="203"> <span>203</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="204"> <span>204</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="205"> <span>205</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="206"> <span>206</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="301"> <span>301</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="302"> <span>302</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="303"> <span>303</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="304"> <span>304</span></label>
+          <label class="perm-chk-label"><input type="checkbox" value="316"> <span>316</span></label>
         </div>
         <div class="perm-hint">클릭으로 다중 선택 가능 · 직접 입력 시 아래에 쉼표로 구분 입력</div>
         <input class="perm-input" id="permCodeInput" type="text" placeholder="예: 101,104  (직접 입력)" style="margin-top:7px;">
@@ -704,7 +709,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
               <option value="12층">12층</option>
             </select>
           </div>
-          <button onclick="applyBuildingFilter()" style="background:var(--purple);border:none;border-radius:7px;padding:8px 20px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;white-space:nowrap;font-family:'Nanum Gothic','나눔고딕',sans-serif;transition:background 0.2s;" onmouseover="this.style.background='var(--purple2)'" onmouseout="this.style.background='var(--purple)'">조회</button>
+          <button onclick="applyBuildingFilter()" style="background:var(--purple);border:none;border-radius:7px;padding:8px 20px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;white-space:nowrap;font-family:'Nanum Gothic','나눔고딕',sans-serif;transition:background 0.2s;">조회</button>
         </div>
         <!-- 결과 테이블 -->
         <div style="overflow-x:auto;">
@@ -2030,7 +2035,6 @@ function renderLogTab() {
   }
 }
 
-function switchTab(id) {
 var BUILDING_TABLE_DATA = [
   { region:'수내', building:'수내동빌딩', floor:'3·4층',   rent:17370045, area:209.7, rooms:23, ppp:82833  },
   { region:'수내', building:'N타워빌딩',  floor:'6층',     rent:13593400, area:130.8, rooms:20, ppp:103925 },
