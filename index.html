@@ -2606,6 +2606,18 @@ function generateReport() {
   var keys = Object.keys(MONTH_DATA_REGISTRY).sort();
   if (keys.length < 1) return;
 
+  /* ── 헬퍼 함수 ── */
+  var sec = function(title, body) {
+    return '<div style="margin-bottom:20px;">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;padding:6px 0;border-bottom:1.5px solid var(--border);">' + title + '</div>'
+      + body + '</div>';
+  };
+  var tbl = function(head, body) {
+    return '<div style="overflow-x:auto;"><table class="log-table" style="margin-bottom:0;">'
+      + '<thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>';
+  };
+  var th = function(t, r) { return '<th' + (r ? ' style="text-align:right"' : '') + '>' + t + '</th>'; };
+
   var periodKeys = [];
   var reportTitle = '';
 
@@ -2840,7 +2852,7 @@ function generateReport() {
       return '<tr>'
         + '<td style="font-weight:700">' + c.name + '</td>'
         + '<td style="font-size:11px;color:var(--text3);">' + typeStr + '</td>'
-        + '<td style="text-align:right;">' + c.typeArea.A>0?c.typeArea.A.toFixed(1):'-' + '평</td>'
+        + '<td style="text-align:right;">' + (c.typeArea.A>0 ? c.typeArea.A.toFixed(1) : '-') + '평</td>'
         + '<td style="text-align:right;font-size:11px;">' + typeAmtStr + '</td>'
         + '<td style="text-align:right;color:var(--purple);font-weight:700;">' + c.allocated.toLocaleString() + '원</td>'
         + '<td style="text-align:right;">' + (c.share*100).toFixed(1) + '%</td>'
