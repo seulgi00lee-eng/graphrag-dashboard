@@ -3248,79 +3248,134 @@ var _lastReportData = null; // generateReport 시 저장
 function downloadReportExcel() {
   if (!_lastReportData) { alert('먼저 보고서를 생성해주세요.'); return; }
   var d = _lastReportData;
-
-  // CSV 형식으로 생성 (Excel에서 바로 열림)
   var BOM = '\uFEFF';
-  var rows = [['월', '임차료(원)', '면적(평)', '평단가(원/평)', '강의실(개)', '메모']];
+
+  // ① 월별 추이
+  var rows = [['=== ' + d.title + ' ==='], []];
+  rows.push(['[① 월별 임차료 추이]']);
+  rows.push(['월','임차료(원)','면적(평)','평단가(원/평)','강의실(개)','메모']);
   d.periodKeys.forEach(function(k) {
-    var r   = MONTH_DATA_REGISTRY[k];
-    var m   = k.split('-');
+    var r = MONTH_DATA_REGISTRY[k]; var m = k.split('-');
     var ppp = Math.round(r.totalRent / r.totalArea);
     rows.push([m[0]+'.'+m[1], r.totalRent, r.totalArea, ppp, r.totalRooms, r.memo||'']);
   });
+  rows.push(['','평균',d.avgRent,'','','']);
+  rows.push(['','최고',d.maxRent,'','','']);
+  rows.push(['','최저',d.minRent,'','','']);
   rows.push([]);
-  rows.push(['평균 임차료', d.avgRent, '', '', '', '']);
-  rows.push(['최고 임차료', d.maxRent, '', '', '', '']);
-  rows.push(['최저 임차료', d.minRent, '', '', '', '']);
 
-  var csv = BOM + rows.map(function(r){ return r.join(','); }).join('\n');
-  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  var url  = URL.createObjectURL(blob);
-  var a    = document.createElement('a');
-  a.href   = url;
-  a.download = d.title.replace(/\s/g,'_') + '.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // ② 지역별
+  rows.push(['[② 지역별 현황]']);
+  rows.push(['지역','건물','임차료(원)','비중(%)','면적(평)','평단가(원/평)','강의실(개)']);
+  var totalRentBase = BUILDING_TABLE_DATA.reduce(function(s,b){return s+b.rent;},0);
+  var regionMap = {};
+  BUILDING_TABLE_DATA.forEach(function(b) {
+    if (!regionMap[b.region]) regionMap[b.region] = {rent:0,area:0,rooms:0,bldgs:[]};
+    regionMap[b.region].rent+=b.rent; regionMap[b.region].area+=b.area; regionMap[b.region].rooms+=b.rooms;
+    regionMap[b.region].bldgs.push(b.building);
+  });
+  Object.keys(regionMap).forEach(function(r) {
+    var rd=regionMap[r]; var pct=((rd.rent/totalRentBase)*100).toFixed(1);
+    rows.push([r,[...new Set(rd.bldgs)].join('/'),rd.rent,pct,rd.area.toFixed(1),Math.round(rd.rent/rd.area),rd.rooms]);
+  });
+  rows.push([]);
+
+  // ③ 건물별
+  rows.push(['[③ 건물별 상세]']);
+  rows.push(['지역','건물','층수','임차료(원)','비중(%)','면적(평)','평단가(원/평)','평균대비(원)','강의실(개)']);
+  var avgPpp = Math.round(totalRentBase/BUILDING_TABLE_DATA.reduce(function(s,b){return s+b.area;},0));
+  BUILDING_TABLE_DATA.forEach(function(b) {
+    rows.push([b.region,b.building,b.floor,b.rent,((b.rent/totalRentBase)*100).toFixed(1),b.area,b.ppp,(b.ppp-avgPpp),b.rooms]);
+  });
+  rows.push([]);
+
+  // ④ 건물별 캠퍼스 배부
+  rows.push(['[⑤ 건물별 캠퍼스 배부]']);
+  rows.push(['건물','캠퍼스/관','사용면적(평)','배부금액(원)','비중(%)','평균가동률(%)']);
+  var DAYS=['mon','tue','wed','thu','fri','sat','sun'];
+  Object.keys(ROOM_DATA).forEach(function(bkey) {
+    var bld=ROOM_DATA[bkey]; var campusSet={};
+    bld.rooms.forEach(function(r) {
+      var allC=new Set();
+      Object.values(r.schedule).forEach(function(d){if(d&&d!=='MIX')allC.add(d);});
+      allC.forEach(function(c){
+        if(!campusSet[c])campusSet[c]={area:0,usedDays:new Set()};
+        campusSet[c].area+=r.area;
+        DAYS.forEach(function(d,i){if(r.schedule[d]===c||r.schedule[d]==='MIX')campusSet[c].usedDays.add(d);});
+      });
+    });
+    var usedArea=bld.rooms.reduce(function(s,r){return s+(r.campus==='미사용'?0:r.area);},0);
+    Object.keys(campusSet).forEach(function(c){
+      var cs=campusSet[c];
+      var alloc=Math.round(bld.rent*(cs.area/usedArea));
+      var util=Math.round((cs.usedDays.size/7)*100);
+      rows.push([bld.name,c,cs.area.toFixed(1),alloc,((alloc/bld.rent)*100).toFixed(1),util]);
+    });
+  });
+
+  var csv = BOM + rows.map(function(r){
+    return r.map(function(cell){ var s=String(cell); return s.includes(',') ? '"'+s+'"' : s; }).join(',');
+  }).join('\n');
+  var blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href=url; a.download=d.title.replace(/\s/g,'_')+'.csv';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
 function downloadReportPDF() {
   if (!_lastReportData) { alert('먼저 보고서를 생성해주세요.'); return; }
   var d = _lastReportData;
 
-  var rows = d.periodKeys.map(function(k) {
-    var r   = MONTH_DATA_REGISTRY[k];
-    var m   = k.split('-');
-    var ppp = Math.round(r.totalRent / r.totalArea);
-    return '<tr>'
-      + '<td style="padding:8px 10px;border-bottom:1px solid #eee;font-weight:600;">' + m[0]+'.'+m[1] + '</td>'
-      + '<td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;color:#6c5ce7;font-weight:700;">' + r.totalRent.toLocaleString() + '원</td>'
-      + '<td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">' + r.totalArea + '평</td>'
-      + '<td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">' + ppp.toLocaleString() + '원</td>'
-      + '<td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">' + r.totalRooms + '개</td>'
-      + '<td style="padding:8px 10px;border-bottom:1px solid #eee;color:#888;font-size:12px;">' + (r.memo||'-') + '</td>'
-      + '</tr>';
-  }).join('');
+  // 미리보기에 렌더링된 내용을 그대로 사용
+  var reportInner = document.getElementById('reportContent').innerHTML;
 
   var html = '<!DOCTYPE html><html><head><meta charset="utf-8">'
     + '<title>' + d.title + '</title>'
-    + '<style>body{font-family:"Nanum Gothic",sans-serif;padding:40px;color:#1a1a2e;}'
-    + 'h1{font-size:20px;margin-bottom:4px;}h2{font-size:13px;color:#888;font-weight:400;margin-bottom:24px;}'
-    + 'table{width:100%;border-collapse:collapse;margin-bottom:24px;}'
-    + 'th{padding:10px;background:#f4f4f8;font-size:12px;color:#555;text-align:left;border-bottom:2px solid #ddd;}'
-    + '.stat-row{display:flex;gap:16px;margin-bottom:20px;}'
-    + '.stat{flex:1;padding:14px;background:#f9f9fc;border-radius:8px;border:1px solid #eee;}'
-    + '.stat-label{font-size:11px;color:#888;margin-bottom:4px;}'
-    + '.stat-val{font-size:16px;font-weight:700;}'
-    + '.footer{margin-top:40px;font-size:11px;color:#aaa;border-top:1px solid #eee;padding-top:12px;}'
-    + '@media print{body{padding:20px;}button{display:none;}}'
+    + '<link rel="preconnect" href="https://fonts.googleapis.com">'
+    + '<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">'
+    + '<style>'
+    + 'body{font-family:"Nanum Gothic",sans-serif;padding:32px 40px;color:#1a1a2e;font-size:13px;line-height:1.6;}'
+    + '.print-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}'
+    + 'h1{font-size:22px;font-weight:800;margin:0;}'
+    + '.sub{font-size:12px;color:#888;margin-bottom:28px;}'
+    + 'table{width:100%;border-collapse:collapse;margin-bottom:6px;font-size:12px;}'
+    + 'th{padding:8px 10px;background:#f4f4f8;font-size:11px;color:#555;text-align:left;border-bottom:2px solid #ddd;font-weight:700;}'
+    + 'td{padding:7px 10px;border-bottom:1px solid #eee;}'
+    + 'tr:last-child td{border-bottom:none;}'
+    + '.section-title{font-size:12px;font-weight:700;color:#333;margin:16px 0 6px;padding:5px 0;border-bottom:1.5px solid #ddd;}'
+    + '.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}'
+    + '.kpi-box{padding:10px 12px;background:#f9f9fc;border-radius:6px;border:1px solid #eee;}'
+    + '.kpi-label{font-size:10px;color:#888;margin-bottom:3px;}'
+    + '.kpi-val{font-size:14px;font-weight:700;}'
+    + '.stat-row{display:flex;gap:10px;margin-bottom:16px;}'
+    + '.stat{flex:1;padding:12px;background:#f9f9fc;border-radius:6px;border:1px solid #eee;}'
+    + '.stat-label{font-size:11px;color:#888;margin-bottom:3px;}'
+    + '.stat-val{font-size:15px;font-weight:700;}'
+    + '.insight{padding:8px 12px;border-left:3px solid #6c5ce7;border-radius:0 5px 5px 0;background:#f8f7ff;margin-bottom:6px;font-size:12px;}'
+    + '.building-block{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #eee;}'
+    + '.bld-title{font-size:13px;font-weight:700;color:#6c5ce7;margin-bottom:10px;}'
+    + '.op-badge{padding:8px 12px;border-radius:0 5px 5px 0;font-size:12px;margin-top:8px;}'
+    + '.footer{margin-top:32px;font-size:11px;color:#aaa;border-top:1px solid #eee;padding-top:12px;text-align:center;}'
+    + '@media print{'
+    + '  body{padding:16px 24px;}'
+    + '  button{display:none!important;}'
+    + '  .building-block{page-break-inside:avoid;}'
+    + '  tr{page-break-inside:avoid;}'
+    + '}'
     + '</style></head><body>'
-    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
+    + '<div class="print-header">'
     + '<h1>📋 ' + d.title + '</h1>'
-    + '<button onclick="window.print()" style="padding:8px 18px;background:#6c5ce7;border:none;border-radius:6px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">🖨 인쇄 / PDF 저장</button>'
+    + '<button onclick="window.print()" style="padding:8px 20px;background:#6c5ce7;border:none;border-radius:6px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">🖨 인쇄 / PDF 저장</button>'
     + '</div>'
-    + '<h2>Graph RAG 임차료 대시보드 · 생성일: ' + new Date().toLocaleDateString('ko-KR') + ' · ' + d.periodKeys.length + '개월</h2>'
-    + '<table><thead><tr><th>월</th><th style="text-align:right">임차료</th><th style="text-align:right">면적</th><th style="text-align:right">평단가</th><th style="text-align:right">강의실</th><th>메모</th></tr></thead><tbody>' + rows + '</tbody></table>'
-    + '<div class="stat-row">'
-    + '<div class="stat"><div class="stat-label">평균 임차료</div><div class="stat-val" style="color:#6c5ce7">' + d.avgRent.toLocaleString() + '원</div></div>'
-    + '<div class="stat"><div class="stat-label">최고 임차료</div><div class="stat-val" style="color:#2ec4a0">' + d.maxRent.toLocaleString() + '원</div></div>'
-    + '<div class="stat"><div class="stat-label">최저 임차료</div><div class="stat-val" style="color:#f0b040">' + d.minRent.toLocaleString() + '원</div></div>'
-    + '</div>'
+    + '<div class="sub">플로우교육 경영관리본부 총무기획팀 · Graph RAG 임차료 대시보드 · 생성일: ' + new Date().toLocaleDateString('ko-KR') + ' · ' + d.periodKeys.length + '개월</div>'
+    + reportInner
     + '<div class="footer">플로우교육 경영관리본부 총무기획팀 · Graph RAG 임차료 대시보드</div>'
     + '</body></html>';
 
   var win = window.open('', '_blank');
+  if (!win) { alert('팝업이 차단됐습니다. 브라우저 팝업 허용 후 다시 시도해주세요.'); return; }
   win.document.write(html);
   win.document.close();
 }
