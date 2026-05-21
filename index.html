@@ -2048,34 +2048,110 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       </div>
     </div>
 
-    <!-- ── 반기 보고서 ── -->
+    <!-- ── 보고서 ── -->
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-        <div class="card-title" style="margin-bottom:0;">📊 반기 보고서</div>
-        <span id="reportBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:rgba(158,158,158,0.15);color:var(--text3);">6개월 이상 데이터 필요</span>
+        <div class="card-title" style="margin-bottom:0;">📊 보고서 생성</div>
+        <span id="reportBadge" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:rgba(158,158,158,0.15);color:var(--text3);">데이터 1개월 이상 필요</span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+
+      <!-- 보고서 유형 선택 -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button id="rTypeMonth" onclick="setReportType('month')" style="flex:1;padding:9px;border:1.5px solid var(--purple);border-radius:8px;background:var(--purple);font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:'Nanum Gothic',sans-serif;">월별 보고서</button>
+        <button id="rTypeHalf" onclick="setReportType('half')" style="flex:1;padding:9px;border:1.5px solid var(--border2);border-radius:8px;background:var(--bg3);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;font-family:'Nanum Gothic',sans-serif;">반기 보고서</button>
+        <button id="rTypeCustom" onclick="setReportType('custom')" style="flex:1;padding:9px;border:1.5px solid var(--border2);border-radius:8px;background:var(--bg3);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;font-family:'Nanum Gothic',sans-serif;">기간 직접 설정</button>
+      </div>
+
+      <!-- 월별 설정 -->
+      <div id="rSetMonth" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
         <div>
-          <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:6px;">보고서 기간</div>
-          <select class="period-select" id="reportPeriod" style="width:100%;font-size:13px;padding:8px 10px;">
+          <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:5px;">연도</div>
+          <select class="period-select" id="rMonthYear" style="width:100%;font-size:13px;padding:7px 10px;">
+            <option value="2025">2025년</option>
+            <option value="2026" selected>2026년</option>
+            <option value="2027">2027년</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:5px;">월</div>
+          <select class="period-select" id="rMonthMonth" style="width:100%;font-size:13px;padding:7px 10px;">
+            <option value="1" selected>1월</option><option value="2">2월</option><option value="3">3월</option>
+            <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+            <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+            <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end;">
+          <button onclick="generateReport()" id="reportBtn" style="width:100%;padding:8px;background:var(--purple);border:none;border-radius:8px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:'Nanum Gothic',sans-serif;">📋 생성</button>
+        </div>
+      </div>
+
+      <!-- 반기 설정 -->
+      <div id="rSetHalf" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div>
+          <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:5px;">반기 선택</div>
+          <select class="period-select" id="rHalfPeriod" style="width:100%;font-size:13px;padding:7px 10px;">
             <option value="2026H1">2026년 상반기 (1~6월)</option>
             <option value="2026H2">2026년 하반기 (7~12월)</option>
             <option value="2025H1">2025년 상반기 (1~6월)</option>
             <option value="2025H2">2025년 하반기 (7~12월)</option>
+            <option value="2027H1">2027년 상반기 (1~6월)</option>
+            <option value="2027H2">2027년 하반기 (7~12월)</option>
           </select>
         </div>
         <div style="display:flex;align-items:flex-end;">
-          <button onclick="generateReport()" id="reportBtn" disabled style="width:100%;padding:9px;background:var(--text3);border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:not-allowed;font-family:'Nanum Gothic',sans-serif;">📋 보고서 생성</button>
+          <button onclick="generateReport()" style="width:100%;padding:8px;background:var(--purple);border:none;border-radius:8px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:'Nanum Gothic',sans-serif;">📋 생성</button>
         </div>
       </div>
-      <div id="reportPreview" style="display:none;background:var(--bg3);border-radius:10px;padding:16px;border:0.5px solid var(--border);">
-        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;">보고서 미리보기</div>
+
+      <!-- 기간 직접 설정 -->
+      <div id="rSetCustom" style="display:none;margin-bottom:14px;">
+        <div style="display:grid;grid-template-columns:1fr auto 1fr auto;gap:8px;align-items:end;">
+          <div>
+            <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:5px;">시작 연월</div>
+            <div style="display:flex;gap:4px;">
+              <select class="period-select" id="rCustStartYear" style="flex:1;font-size:12px;padding:6px 8px;">
+                <option value="2025">2025년</option><option value="2026" selected>2026년</option><option value="2027">2027년</option>
+              </select>
+              <select class="period-select" id="rCustStartMonth" style="flex:1;font-size:12px;padding:6px 8px;">
+                <option value="1" selected>1월</option><option value="2">2월</option><option value="3">3월</option>
+                <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+                <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+                <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+              </select>
+            </div>
+          </div>
+          <div style="padding-bottom:8px;color:var(--text3);font-size:13px;font-weight:600;">~</div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:5px;">종료 연월</div>
+            <div style="display:flex;gap:4px;">
+              <select class="period-select" id="rCustEndYear" style="flex:1;font-size:12px;padding:6px 8px;">
+                <option value="2025">2025년</option><option value="2026" selected>2026년</option><option value="2027">2027년</option>
+              </select>
+              <select class="period-select" id="rCustEndMonth" style="flex:1;font-size:12px;padding:6px 8px;">
+                <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+                <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+                <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+                <option value="10">10월</option><option value="11">11월</option><option value="12" selected>12월</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <button onclick="generateReport()" style="width:100%;padding:8px 14px;background:var(--purple);border:none;border-radius:8px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:'Nanum Gothic',sans-serif;">📋 생성</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 보고서 미리보기 -->
+      <div id="reportPreview" style="display:none;background:var(--bg3);border-radius:10px;padding:16px;border:0.5px solid var(--border);margin-bottom:12px;">
         <div id="reportContent"></div>
       </div>
+
+      <!-- 자동 생성 항목 안내 -->
       <div style="background:rgba(108,92,231,0.05);border-radius:8px;padding:12px 14px;border:0.5px solid rgba(108,92,231,0.15);">
-        <div style="font-size:11px;color:var(--purple);font-weight:700;margin-bottom:6px;">📋 자동 생성 항목 (6개월 데이터 확보 시)</div>
+        <div style="font-size:11px;color:var(--purple);font-weight:700;margin-bottom:6px;">📋 자동 생성 항목</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;color:var(--text3);">
-          <span>✓ 월별 임차료 추이 차트</span>
+          <span>✓ 월별 임차료 추이</span>
           <span>✓ 평단가 변동 분석</span>
           <span>✓ 강의실 가동률 추이</span>
           <span>✓ 유휴비용 현황</span>
@@ -2439,19 +2515,13 @@ function renderDataCalendar() {
   document.getElementById('statFirstMonth').textContent = allKeys.length ? allKeys[0].replace('-','.') : '-';
   document.getElementById('statLastUpdate').textContent = allKeys.length ? allKeys[allKeys.length-1].replace('-','.') : '-';
 
-  // 보고서 버튼 활성화
-  var reportReady = allKeys.length >= 6;
-  document.getElementById('statReportReady').textContent = reportReady ? allKeys.length + '개월 ✅' : allKeys.length + '개월 (6개월 필요)';
-  document.getElementById('statReportReady').style.color = reportReady ? '#2ec4a0' : 'var(--text3)';
-  var reportBtn = document.getElementById('reportBtn');
+  // 보고서 버튼 항상 활성
   var reportBadge = document.getElementById('reportBadge');
-  if (reportReady) {
-    reportBtn.disabled = false;
-    reportBtn.style.background = 'var(--purple)';
-    reportBtn.style.cursor = 'pointer';
-    reportBadge.style.background = 'rgba(46,196,160,0.15)';
-    reportBadge.style.color = '#2ec4a0';
-    reportBadge.textContent = '✅ 보고서 생성 가능';
+  if (reportBadge) {
+    var allKeys2 = Object.keys(MONTH_DATA_REGISTRY);
+    reportBadge.textContent = allKeys2.length > 0 ? '✅ ' + allKeys2.length + '개월 데이터 보유' : '데이터 1개월 이상 필요';
+    reportBadge.style.background = allKeys2.length > 0 ? 'rgba(46,196,160,0.15)' : 'rgba(158,158,158,0.15)';
+    reportBadge.style.color = allKeys2.length > 0 ? '#2ec4a0' : 'var(--text3)';
   }
 }
 
@@ -2507,36 +2577,81 @@ function saveMonthData() {
   updatePeriod();
 }
 
+var currentReportType = 'month';
+
+function setReportType(type) {
+  currentReportType = type;
+  var types = ['month','half','custom'];
+  types.forEach(function(t) {
+    var btn = document.getElementById('rType' + t.charAt(0).toUpperCase() + t.slice(1));
+    var set = document.getElementById('rSet'  + t.charAt(0).toUpperCase() + t.slice(1));
+    if (btn) {
+      btn.style.background   = t === type ? 'var(--purple)' : 'var(--bg3)';
+      btn.style.color        = t === type ? '#fff' : 'var(--text2)';
+      btn.style.borderColor  = t === type ? 'var(--purple)' : 'var(--border2)';
+    }
+    if (set) set.style.display = t === type ? 'grid' : 'none';
+  });
+  document.getElementById('reportPreview').style.display = 'none';
+}
+
 function generateReport() {
   var keys = Object.keys(MONTH_DATA_REGISTRY).sort();
   if (keys.length < 1) return;
-  var periodVal = document.getElementById('reportPeriod').value;
-  var year = parseInt(periodVal.substring(0,4));
-  var half = periodVal.substring(4);
-  var startM = half === 'H1' ? 1 : 7;
-  var endM   = half === 'H1' ? 6 : 12;
 
-  var periodKeys = keys.filter(function(k) {
-    var y = parseInt(k.split('-')[0]);
-    var m = parseInt(k.split('-')[1]);
-    return y === year && m >= startM && m <= endM;
-  });
+  var periodKeys = [];
+  var reportTitle = '';
+
+  if (currentReportType === 'month') {
+    var y = parseInt(document.getElementById('rMonthYear').value);
+    var m = parseInt(document.getElementById('rMonthMonth').value);
+    var k = getPeriodKey(y, m);
+    periodKeys = keys.filter(function(pk){ return pk === k; });
+    reportTitle = y + '년 ' + m + '월 보고서';
+
+  } else if (currentReportType === 'half') {
+    var val  = document.getElementById('rHalfPeriod').value;
+    var hy   = parseInt(val.substring(0,4));
+    var half = val.substring(4);
+    var sM   = half === 'H1' ? 1 : 7;
+    var eM   = half === 'H1' ? 6 : 12;
+    periodKeys = keys.filter(function(pk){
+      var py = parseInt(pk.split('-')[0]);
+      var pm = parseInt(pk.split('-')[1]);
+      return py === hy && pm >= sM && pm <= eM;
+    });
+    reportTitle = hy + '년 ' + (half==='H1'?'상':'하') + '반기 보고서';
+
+  } else {
+    var sy = parseInt(document.getElementById('rCustStartYear').value);
+    var sm = parseInt(document.getElementById('rCustStartMonth').value);
+    var ey = parseInt(document.getElementById('rCustEndYear').value);
+    var em = parseInt(document.getElementById('rCustEndMonth').value);
+    var sKey = getPeriodKey(sy, sm);
+    var eKey = getPeriodKey(ey, em);
+    if (sKey > eKey) {
+      alert('시작 월이 종료 월보다 늦습니다. 확인해주세요.');
+      return;
+    }
+    periodKeys = keys.filter(function(pk){ return pk >= sKey && pk <= eKey; });
+    reportTitle = sy + '.' + String(sm).padStart(2,'0') + ' ~ ' + ey + '.' + String(em).padStart(2,'0') + ' 보고서';
+  }
 
   var preview = document.getElementById('reportPreview');
   var content = document.getElementById('reportContent');
   preview.style.display = 'block';
 
   if (periodKeys.length === 0) {
-    content.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px;">해당 기간 데이터가 없습니다.</div>';
+    content.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px;">해당 기간 데이터가 없습니다.<br>월별 데이터를 먼저 등록해주세요.</div>';
     return;
   }
 
   var rows = periodKeys.map(function(k) {
-    var d = MONTH_DATA_REGISTRY[k];
-    var m = k.split('-');
+    var d   = MONTH_DATA_REGISTRY[k];
+    var m   = k.split('-');
     var ppp = Math.round(d.totalRent / d.totalArea);
     return '<tr>'
-      + '<td>' + m[0] + '.' + m[1] + '</td>'
+      + '<td style="font-weight:600">' + m[0] + '.' + m[1] + '</td>'
       + '<td style="text-align:right;color:var(--purple);font-weight:600;">' + d.totalRent.toLocaleString() + '원</td>'
       + '<td style="text-align:right;">' + d.totalArea + '평</td>'
       + '<td style="text-align:right;">' + ppp.toLocaleString() + '원</td>'
@@ -2546,21 +2661,31 @@ function generateReport() {
   }).join('');
 
   var totalRents = periodKeys.map(function(k){ return MONTH_DATA_REGISTRY[k].totalRent; });
-  var avgRent = Math.round(totalRents.reduce(function(a,b){return a+b;},0) / totalRents.length);
+  var avgRent    = Math.round(totalRents.reduce(function(a,b){return a+b;},0) / totalRents.length);
+  var maxRent    = Math.max.apply(null, totalRents);
+  var minRent    = Math.min.apply(null, totalRents);
 
   content.innerHTML =
-    '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">'
-    + year + '년 ' + (half==='H1'?'상':'하') + '반기 임차료 현황 (' + periodKeys.length + '개월)'
+    '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">'
+    + '📋 ' + reportTitle + ' <span style="font-size:11px;font-weight:500;color:var(--text3);">(' + periodKeys.length + '개월)</span>'
     + '</div>'
     + '<table class="log-table" style="margin-bottom:12px;">'
     + '<thead><tr><th>월</th><th style="text-align:right">임차료</th><th style="text-align:right">면적</th><th style="text-align:right">평단가</th><th style="text-align:right">강의실</th><th>메모</th></tr></thead>'
     + '<tbody>' + rows + '</tbody>'
     + '</table>'
-    + '<div style="padding:10px 12px;background:rgba(108,92,231,0.06);border-radius:8px;font-size:12px;color:var(--text2);">'
-    + '📊 ' + periodKeys.length + '개월 평균 임차료: <strong style="color:var(--purple)">' + avgRent.toLocaleString() + '원</strong>'
-    + (periodKeys.length < 6 ? ' &nbsp;|&nbsp; <span style="color:var(--amber)">⚠ ' + (6-periodKeys.length) + '개월 더 쌓이면 완전한 반기 분석 가능</span>' : ' &nbsp;|&nbsp; <span style="color:#2ec4a0">✅ 반기 분석 완료</span>')
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'
+    + '<div style="padding:10px 12px;background:rgba(108,92,231,0.06);border-radius:8px;font-size:11px;">'
+    + '<div style="color:var(--text3);margin-bottom:3px;">평균 임차료</div>'
+    + '<div style="font-weight:700;color:var(--purple);font-size:13px;">' + avgRent.toLocaleString() + '원</div></div>'
+    + '<div style="padding:10px 12px;background:rgba(46,196,160,0.06);border-radius:8px;font-size:11px;">'
+    + '<div style="color:var(--text3);margin-bottom:3px;">최고 임차료</div>'
+    + '<div style="font-weight:700;color:#2ec4a0;font-size:13px;">' + maxRent.toLocaleString() + '원</div></div>'
+    + '<div style="padding:10px 12px;background:rgba(240,176,64,0.06);border-radius:8px;font-size:11px;">'
+    + '<div style="color:var(--text3);margin-bottom:3px;">최저 임차료</div>'
+    + '<div style="font-weight:700;color:var(--amber);font-size:13px;">' + minRent.toLocaleString() + '원</div></div>'
     + '</div>';
 }
+
 
 function resetPermForm() {
   var permName = document.getElementById('permName');
