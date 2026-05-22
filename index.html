@@ -1195,7 +1195,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       </div>
       <div class="two-col">
         <div class="card">
-          <div class="card-title">캠퍼스별 배부 (강의실 직접비)</div>
+          <div class="card-title">캠퍼스별 배부 <span style="font-size:10px;color:var(--text3);font-weight:400;">(임차A + 임차B + 임차E 포함)</span></div>
           <div class="bar-item">
             <div class="bar-meta"><span class="bar-name">304</span><span class="bar-val">1,957,303원</span></div>
             <div class="bar-stack"><span style="width:55%;background:#4a9ef0"></span><span style="width:45%;background:#2e7ab0"></span></div>
@@ -1216,10 +1216,23 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
             <div class="bar-meta"><span class="bar-name">303</span><span class="bar-val">160,342원</span></div>
             <div class="bar-stack"><span style="width:100%;background:#f06080"></span></div>
           </div>
-          <div style="margin-top:10px;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
-            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">공용부 풀 (미배분)</div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>유휴비용</span><span>935,326원</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>잔여공용부 (66.7평)</span><span>6,931,803원</span></div>
+          <div style="margin-top:10px;border:0.5px solid var(--teal);border-radius:8px;overflow:hidden;">
+            <div style="background:rgba(46,196,160,0.1);padding:7px 12px;display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:11px;font-weight:700;color:var(--teal);">임차E 배부 풀</span>
+              <span style="font-size:12px;font-weight:700;color:var(--teal);">6,931,803원</span>
+            </div>
+            <div style="padding:8px 12px;background:var(--bg2);">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:3px;">
+                <span>잔여공용부 (66.7평)</span><span>6,931,803원</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px;">
+                <span>임차B 유휴비용</span><span>0원</span>
+              </div>
+              <div style="height:0.5px;background:var(--border);margin-bottom:6px;"></div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">관별 균등 배부 (1/n)</div>
+              <div style="font-size:11px;color:var(--text2);font-style:italic;">※ 실제 관 수는 ROOM_DATA 확정 후 반영</div>
+            </div>
+          </div>
           </div>
         </div>
         <div class="card">
@@ -1241,7 +1254,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
             <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--purple)"></div></div>
           </div>
           <div class="bar-item">
-            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name" style="color:var(--teal)">임차 E</span><span class="bar-val" style="color:var(--text3)">- (추후 반영)</span></div>
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name" style="color:var(--teal)">임차 E</span><span class="bar-val" style="color:var(--teal)">임차E 풀 ÷ 관 수</span></div>
             <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--teal)"></div></div>
           </div>
           <div style="margin-top:12px;padding:8px 12px;background:rgba(240,176,64,0.08);border-radius:6px;border:0.5px solid rgba(240,176,64,0.2)">
@@ -1346,7 +1359,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       </div>
       <div class="two-col">
         <div class="card">
-          <div class="card-title">캠퍼스별 배부</div>
+          <div class="card-title">캠퍼스별 배부 <span style="font-size:10px;color:var(--text3);font-weight:400;">(임차A + 임차B + 임차E 포함)</span></div>
           <div class="bar-item">
             <div class="bar-meta"><span class="bar-name">303</span><span class="bar-val">573,060원 (임차A)</span></div>
             <div class="bar-stack"><span style="width:100%;background:#4a9ef0"></span></div>
@@ -1363,10 +1376,23 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
             <div class="bar-meta"><span class="bar-name">301</span><span class="bar-val">28,685원 (임차B)</span></div>
             <div class="bar-stack"><span style="width:100%;background:#2ec4a0"></span></div>
           </div>
-          <div style="margin-top:10px;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
-            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">공용부 풀 (미배분)</div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>임차B 유휴비용</span><span style="color:var(--red)">1,478,387원</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>잔여공용부 (82.9평)</span><span>6,507,761원</span></div>
+          <div style="margin-top:10px;border:0.5px solid var(--teal);border-radius:8px;overflow:hidden;">
+            <div style="background:rgba(46,196,160,0.1);padding:7px 12px;display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:11px;font-weight:700;color:var(--teal);">임차E 배부 풀</span>
+              <span style="font-size:12px;font-weight:700;color:var(--teal);">7,986,148원</span>
+            </div>
+            <div style="padding:8px 12px;background:var(--bg2);">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:3px;">
+                <span>잔여공용부 (82.9평)</span><span>6,507,761원</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px;">
+                <span>임차B 유휴비용</span><span>1,478,387원</span>
+              </div>
+              <div style="height:0.5px;background:var(--border);margin-bottom:6px;"></div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">관별 균등 배부 (1/n)</div>
+              <div style="font-size:11px;color:var(--text2);font-style:italic;">※ 실제 관 수는 ROOM_DATA 확정 후 반영</div>
+            </div>
+          </div>
           </div>
         </div>
         <div class="card">
@@ -1388,7 +1414,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
             <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--purple)"></div></div>
           </div>
           <div class="bar-item">
-            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name" style="color:var(--teal)">임차 E</span><span class="bar-val" style="color:var(--text3)">- (추후 반영)</span></div>
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name" style="color:var(--teal)">임차 E</span><span class="bar-val" style="color:var(--teal)">임차E 풀 ÷ 관 수</span></div>
             <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--teal)"></div></div>
           </div>
           <div style="margin-top:12px;padding:8px 12px;background:rgba(240,96,128,0.08);border-radius:6px;border:0.5px solid rgba(240,96,128,0.2)">
@@ -1493,14 +1519,28 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       </div>
       <div class="two-col">
         <div class="card">
-          <div class="card-title">캠퍼스별 배부</div>
+          <div class="card-title">캠퍼스별 배부 <span style="font-size:10px;color:var(--text3);font-weight:400;">(임차A + 임차B + 임차E 포함)</span></div>
           <div class="bar-item">
             <div class="bar-meta"><span class="bar-name">초등수아</span><span class="bar-val">9,368,393원</span></div>
             <div class="bar-stack"><span style="width:53.9%;background:#2ec4a0"></span><span style="width:11.3%;background:#1a8f72"></span></div>
           </div>
-          <div style="margin-top:10px;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
-            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">공용부 풀 (미배분)</div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>잔여공용부 (96.6평)</span><span>8,001,652원</span></div>
+          <div style="margin-top:10px;border:0.5px solid var(--teal);border-radius:8px;overflow:hidden;">
+            <div style="background:rgba(46,196,160,0.1);padding:7px 12px;display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:11px;font-weight:700;color:var(--teal);">임차E 배부 풀</span>
+              <span style="font-size:12px;font-weight:700;color:var(--teal);">8,001,652원</span>
+            </div>
+            <div style="padding:8px 12px;background:var(--bg2);">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:3px;">
+                <span>잔여공용부 (96.6평)</span><span>8,001,652원</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px;">
+                <span>임차B 유휴비용</span><span>0원</span>
+              </div>
+              <div style="height:0.5px;background:var(--border);margin-bottom:6px;"></div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">관별 균등 배부 (1/n)</div>
+              <div style="font-size:11px;color:var(--text2);font-style:italic;">※ 실제 관 수는 ROOM_DATA 확정 후 반영</div>
+            </div>
+          </div>
           </div>
           <div style="margin-top:8px;padding:8px 12px;background:rgba(46,196,160,0.08);border-radius:6px;border:0.5px solid rgba(46,196,160,0.2)">
             <span style="font-size:10px;color:var(--teal)">✓ 단일 캠퍼스 운영</span>
@@ -1526,7 +1566,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
             <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--purple)"></div></div>
           </div>
           <div class="bar-item">
-            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name" style="color:var(--teal)">임차 E</span><span class="bar-val" style="color:var(--text3)">- (추후 반영)</span></div>
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name" style="color:var(--teal)">임차 E</span><span class="bar-val" style="color:var(--teal)">임차E 풀 ÷ 관 수</span></div>
             <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--teal)"></div></div>
           </div>
           <div style="margin-top:12px;padding:8px 12px;background:rgba(46,196,160,0.08);border-radius:6px;border:0.5px solid rgba(46,196,160,0.2)">
@@ -1631,7 +1671,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       </div>
       <div class="two-col">
         <div class="card">
-          <div class="card-title">캠퍼스별 배부</div>
+          <div class="card-title">캠퍼스별 배부 <span style="font-size:10px;color:var(--text3);font-weight:400;">(임차A + 임차B + 임차E 포함)</span></div>
           <div class="bar-item">
             <div class="bar-meta"><span class="bar-name">316</span><span class="bar-val">3,519,982원</span></div>
             <div class="bar-stack"><span style="width:67%;background:#4a9ef0"></span><span style="width:33%;background:#2e7ab0"></span></div>
@@ -1648,10 +1688,23 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
             <div class="bar-meta"><span class="bar-name">304</span><span class="bar-val">512,132원</span></div>
             <div class="bar-stack"><span style="width:100%;background:#2ec4a0"></span></div>
           </div>
-          <div style="margin-top:10px;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
-            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">공용부 풀 (미배분)</div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>임차B 유휴비용</span><span>495,388원</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>잔여공용부 (56.1평)</span><span>4,247,571원</span></div>
+          <div style="margin-top:10px;border:0.5px solid var(--teal);border-radius:8px;overflow:hidden;">
+            <div style="background:rgba(46,196,160,0.1);padding:7px 12px;display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:11px;font-weight:700;color:var(--teal);">임차E 배부 풀</span>
+              <span style="font-size:12px;font-weight:700;color:var(--teal);">4,742,959원</span>
+            </div>
+            <div style="padding:8px 12px;background:var(--bg2);">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:3px;">
+                <span>잔여공용부 (56.1평)</span><span>4,247,571원</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px;">
+                <span>임차B 유휴비용</span><span>495,388원</span>
+              </div>
+              <div style="height:0.5px;background:var(--border);margin-bottom:6px;"></div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">관별 균등 배부 (1/n)</div>
+              <div style="font-size:11px;color:var(--text2);font-style:italic;">※ 실제 관 수는 ROOM_DATA 확정 후 반영</div>
+            </div>
+          </div>
           </div>
         </div>
         <div class="card">
@@ -1673,7 +1726,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
             <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--purple)"></div></div>
           </div>
           <div class="bar-item">
-            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name" style="color:var(--teal)">임차 E</span><span class="bar-val" style="color:var(--text3)">- (추후 반영)</span></div>
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name" style="color:var(--teal)">임차 E</span><span class="bar-val" style="color:var(--teal)">임차E 풀 ÷ 관 수</span></div>
             <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--teal)"></div></div>
           </div>
         </div>
@@ -1774,7 +1827,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       </div>
       <div class="two-col">
         <div class="card">
-          <div class="card-title">캠퍼스별 배부</div>
+          <div class="card-title">캠퍼스별 배부 <span style="font-size:10px;color:var(--text3);font-weight:400;">(임차A + 임차B + 임차E 포함)</span></div>
           <div class="bar-item">
             <div class="bar-meta"><span class="bar-name">316</span><span class="bar-val">5,191,152원</span></div>
             <div class="bar-stack"><span style="width:100%;background:#4a9ef0"></span></div>
@@ -1795,10 +1848,23 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
             <div class="bar-meta"><span class="bar-name">206</span><span class="bar-val">332,612원</span></div>
             <div class="bar-stack"><span style="width:100%;background:#f06080"></span></div>
           </div>
-          <div style="margin-top:10px;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
-            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">공용부 풀 (미배분)</div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>임차B 유휴비용</span><span>126,792원</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>잔여공용부 (103.2평)</span><span>8,802,730원</span></div>
+          <div style="margin-top:10px;border:0.5px solid var(--teal);border-radius:8px;overflow:hidden;">
+            <div style="background:rgba(46,196,160,0.1);padding:7px 12px;display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:11px;font-weight:700;color:var(--teal);">임차E 배부 풀</span>
+              <span style="font-size:12px;font-weight:700;color:var(--teal);">8,929,522원</span>
+            </div>
+            <div style="padding:8px 12px;background:var(--bg2);">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:3px;">
+                <span>잔여공용부 (103.2평)</span><span>8,802,730원</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px;">
+                <span>임차B 유휴비용</span><span>126,792원</span>
+              </div>
+              <div style="height:0.5px;background:var(--border);margin-bottom:6px;"></div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">관별 균등 배부 (1/n)</div>
+              <div style="font-size:11px;color:var(--text2);font-style:italic;">※ 실제 관 수는 ROOM_DATA 확정 후 반영</div>
+            </div>
+          </div>
           </div>
         </div>
         <div class="card">
@@ -1816,7 +1882,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
             <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--purple)"></div></div>
           </div>
           <div class="bar-item">
-            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name" style="color:var(--teal)">임차 E</span><span class="bar-val" style="color:var(--text3)">- (추후 반영)</span></div>
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name" style="color:var(--teal)">임차 E</span><span class="bar-val" style="color:var(--teal)">임차E 풀 ÷ 관 수</span></div>
             <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--teal)"></div></div>
           </div>
           <div style="margin-top:12px;padding:8px 12px;background:rgba(139,127,240,0.08);border-radius:6px;border:0.5px solid rgba(139,127,240,0.2)">
@@ -1921,14 +1987,28 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       </div>
       <div class="two-col">
         <div class="card">
-          <div class="card-title">캠퍼스별 배부</div>
+          <div class="card-title">캠퍼스별 배부 <span style="font-size:10px;color:var(--text3);font-weight:400;">(임차A + 임차B + 임차E 포함)</span></div>
           <div class="bar-item">
             <div class="bar-meta"><span class="bar-name">중등수아</span><span class="bar-val">6,630,420원</span></div>
             <div class="bar-stack"><span style="width:48.8%;background:#4a9ef0"></span><span style="width:14.7%;background:#2e7ab0"></span></div>
           </div>
-          <div style="margin-top:10px;padding:8px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
-            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">공용부 풀 (미배분)</div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2)"><span>잔여공용부 (67.0평)</span><span>6,962,980원</span></div>
+          <div style="margin-top:10px;border:0.5px solid var(--teal);border-radius:8px;overflow:hidden;">
+            <div style="background:rgba(46,196,160,0.1);padding:7px 12px;display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:11px;font-weight:700;color:var(--teal);">임차E 배부 풀</span>
+              <span style="font-size:12px;font-weight:700;color:var(--teal);">6,962,980원</span>
+            </div>
+            <div style="padding:8px 12px;background:var(--bg2);">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:3px;">
+                <span>잔여공용부 (67.0평)</span><span>6,962,980원</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px;">
+                <span>임차B 유휴비용</span><span>0원</span>
+              </div>
+              <div style="height:0.5px;background:var(--border);margin-bottom:6px;"></div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">관별 균등 배부 (1/n)</div>
+              <div style="font-size:11px;color:var(--text2);font-style:italic;">※ 실제 관 수는 ROOM_DATA 확정 후 반영</div>
+            </div>
+          </div>
           </div>
           <div style="margin-top:8px;padding:8px 12px;background:rgba(46,196,160,0.08);border-radius:6px;border:0.5px solid rgba(46,196,160,0.2)">
             <span style="font-size:10px;color:var(--teal)">✓ 단일 캠퍼스 운영</span>
@@ -1954,7 +2034,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
             <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--purple)"></div></div>
           </div>
           <div class="bar-item">
-            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name" style="color:var(--teal)">임차 E</span><span class="bar-val" style="color:var(--text3)">- (추후 반영)</span></div>
+            <div class="bar-meta" style="margin-bottom:5px"><span class="bar-name" style="color:var(--teal)">임차 E</span><span class="bar-val" style="color:var(--teal)">임차E 풀 ÷ 관 수</span></div>
             <div class="bar-track"><div class="bar-fill" style="width:0%;background:var(--teal)"></div></div>
           </div>
           <div style="margin-top:12px;padding:8px 12px;background:rgba(240,176,64,0.08);border-radius:6px;border:0.5px solid rgba(240,176,64,0.2)">
@@ -2045,27 +2125,46 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
   <div class="two-col">
     <div class="card">
       <div class="card-title">캠퍼스별 배부 현황</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">임차A + 임차B + 임차E (관당 균등) 합산</div>
       <div class="bar-item">
-        <div class="bar-meta"><span class="bar-name">중등영재</span><span class="bar-val">5,800,820원</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#8b7ff0"></div></div>
-      </div>
-      <div class="bar-item">
-        <div class="bar-meta"><span class="bar-name">테디</span><span class="bar-val">1,053,651원</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:18.2%;background:#2ec4a0"></div></div>
-      </div>
-      <div class="bar-item">
-        <div class="bar-meta"><span class="bar-name">중등사스</span><span class="bar-val">277,486원</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:4.8%;background:#f0b040"></div></div>
-      </div>
-      <div style="margin-top:12px;padding:10px 12px;background:rgba(0,0,0,0.03);border-radius:6px;border:0.5px solid var(--border)">
-        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">공용부 풀 (미배분)</div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
-          <span style="color:var(--text2)">임차B 유휴비용</span>
-          <span style="color:var(--red)">368,196원</span>
+        <div class="bar-meta"><span class="bar-name">중등영재</span><span class="bar-val" style="color:var(--purple)">5,800,820원 <span style="font-size:9px;color:var(--teal)">+ E</span></span></div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:85%;background:#8b7ff0"></div>
+          <div class="bar-fill" style="width:15%;background:var(--teal);opacity:0.6"></div>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:11px">
-          <span style="color:var(--text2)">잔여 공용부 (49.7평)</span>
-          <span style="color:var(--text2)">4,269,847원</span>
+      </div>
+      <div class="bar-item">
+        <div class="bar-meta"><span class="bar-name">테디</span><span class="bar-val" style="color:var(--teal)">1,053,651원 <span style="font-size:9px;color:var(--teal)">+ E</span></span></div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:15%;background:#2ec4a0"></div>
+          <div class="bar-fill" style="width:3%;background:var(--teal);opacity:0.6"></div>
+        </div>
+      </div>
+      <div class="bar-item">
+        <div class="bar-meta"><span class="bar-name">중등사스</span><span class="bar-val" style="color:var(--amber)">277,486원 <span style="font-size:9px;color:var(--teal)">+ E</span></span></div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:4%;background:#f0b040"></div>
+          <div class="bar-fill" style="width:2%;background:var(--teal);opacity:0.6"></div>
+        </div>
+      </div>
+      <div style="margin-top:8px;padding:6px 10px;background:rgba(46,196,160,0.06);border-radius:6px;font-size:10px;color:var(--teal);">
+        ℹ 임차E (녹색 바) = 임차E 풀 ÷ 3개관 — ROOM_DATA 확정 후 정확한 금액 반영
+      </div>
+      <div style="margin-top:12px;border:0.5px solid var(--teal);border-radius:8px;overflow:hidden;">
+        <div style="background:rgba(46,196,160,0.1);padding:7px 12px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:11px;font-weight:700;color:var(--teal);">임차E 배부 풀</span>
+          <span style="font-size:12px;font-weight:700;color:var(--teal);">4,638,043원</span>
+        </div>
+        <div style="padding:8px 12px;background:var(--bg2);">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:3px;">
+            <span>잔여공용부 (49.7평)</span><span>4,269,847원</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px;">
+            <span>임차B 유휴비용</span><span>368,196원</span>
+          </div>
+          <div style="height:0.5px;background:var(--border);margin-bottom:6px;"></div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">관별 균등 배부 (1/n)</div>
+          <div style="font-size:11px;color:var(--text2);font-style:italic;">※ 실제 관 수는 ROOM_DATA 확정 후 반영</div>
         </div>
       </div>
     </div>
@@ -3838,6 +3937,38 @@ var INP_BLD_ROOMS = {
   nt9:  ['901','902','903','904'],
   bg:   ['101','102','103','104','201','202'],
 };
+
+// 입력 탭 bld키 → BUILDING_PATTERNS 탭키 매핑
+var INP_TO_BID = {
+  dt6:'b7', dt8:'b5', dt12:'b2', sn34:'b3', nt6:'b1', nt9:'b6', bg:'b4'
+};
+
+// inpData → BUILDING_PATTERNS 반영 (관코드만)
+function inpSyncToBuildingPatterns() {
+  if (!inpCurrentBld || !inpData) return;
+  var bid  = INP_TO_BID[inpCurrentBld];
+  if (!bid || !BUILDING_PATTERNS[bid]) return;
+  var DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
+
+  BUILDING_PATTERNS[bid].rooms.forEach(function(room) {
+    var rName = room.name;
+    var roomData = inpData[rName];
+    if (!roomData) return;
+    // 각 요일별 관코드 추출
+    room.pat = DAYS.map(function(d, di) {
+      var entries = roomData[di];
+      if (!entries || entries.length === 0) return null;
+      if (entries.length > 1) return 'MIX';
+      return entries[0].code || null;
+    });
+  });
+
+  // 해당 건물 탭 즉시 재렌더링
+  buildHeatmap(bid);
+  if (typeof buildUsageTable === 'function') buildUsageTable(bid);
+  if (typeof renderTimetable === 'function') renderTimetable(bid);
+  console.log('[inpSync] ' + inpCurrentBld + ' → ' + bid + ' 반영 완료');
+}
 var INP_BLD_NAMES = {
   dt6:'다운타운 6층', dt8:'다운타운 8층', dt12:'다운타운 12층',
   sn34:'수내동빌딩 3·4층', nt6:'N타워빌딩 6층', nt9:'N타워빌딩 9층',
@@ -4196,6 +4327,8 @@ function inpModalSave() {
   inpRenderCell(inpCurrentRoom, inpCurrentDay);
   inpCloseCellModal();
   inpCheckErrors();
+  // 실시간으로 건물별 탭 반영
+  inpSyncToBuildingPatterns();
 }
 
 function inpCheckErrors() {
@@ -4276,7 +4409,8 @@ function inpGoPhase(n) {
 }
 
 function inpTempSave() {
-  alert('임시저장 완료\n(실제 구현 시 Supabase에 저장됩니다)');
+  inpSyncToBuildingPatterns();
+  alert('임시저장 완료 — 건물별 탭에 반영됐습니다.\n(실제 구현 시 Supabase에 저장됩니다)');
 }
 
 function inpSubmit() {
@@ -4287,6 +4421,7 @@ function inpSubmit() {
     return;
   }
   if (confirm('제출하시겠습니까? 제출 후 총무기획팀에서 검토합니다.')) {
+    inpSyncToBuildingPatterns();
     inpGoPhase(3);
   }
 }
