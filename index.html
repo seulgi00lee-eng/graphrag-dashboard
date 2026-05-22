@@ -24,11 +24,11 @@
   --red: #dc2626;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔고딕',sans-serif;font-size:14px;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔고딕',sans-serif;font-size:14px;min-height:100vh;}
 
 /* ── 헤더 ── */
-.header{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:0.5px solid var(--border);background:var(--bg2);flex-shrink:0;}
-.period-bar{display:flex;align-items:center;gap:12px;padding:10px 28px;background:var(--bg2);border-bottom:0.5px solid var(--border);font-size:12px;flex-shrink:0;}
+.header{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:0.5px solid var(--border);background:var(--bg2);}
+.period-bar{display:flex;align-items:center;gap:12px;padding:10px 28px;background:var(--bg2);border-bottom:0.5px solid var(--border);font-size:12px;}
 .period-label{color:var(--text3);font-weight:600;font-size:11px;letter-spacing:0.3px;}
 .period-select{background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--text);font-family:'Nanum Gothic','나눔고딕',sans-serif;outline:none;cursor:pointer;font-weight:500;}
 .period-badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;}
@@ -66,15 +66,15 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
 .badge{font-size:10px;padding:3px 10px;border-radius:20px;background:rgba(139,127,240,0.15);border:0.5px solid rgba(139,127,240,0.4);color:var(--purple);}
 
 /* ── 탭 네비게이션 ── */
-.tab-nav{display:flex;align-items:center;gap:0;padding:0 28px;background:var(--bg2);border-bottom:0.5px solid var(--border);overflow-x:auto;flex-shrink:0;}
+.tab-nav{display:flex;align-items:center;gap:0;padding:0 28px;background:var(--bg2);border-bottom:0.5px solid var(--border);overflow-x:auto;}
 .tab-btn{padding:12px 18px;font-size:12px;font-weight:500;color:var(--text3);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap;flex-shrink:0;}
 .tab-btn:hover{color:var(--text2);}
 .tab-btn.active{color:var(--purple);border-bottom-color:var(--purple);}
 .tab-content{display:none;}
-.tab-content.active{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
+.tab-content.active{display:flex;flex-direction:column;min-height:0;}
 
 /* ── 레이아웃 ── */
-.main{display:grid;grid-template-columns:1fr 340px;flex:1;min-height:0;overflow:hidden;}
+.main{display:grid;grid-template-columns:1fr 340px;height:calc(100vh - 105px);}
 .left{overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px;height:100%;min-height:0;}
 .right{border-left:0.5px solid var(--border);display:flex;flex-direction:column;background:#fafafa;}
 
@@ -525,9 +525,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
    ═══════════════════════════════════ */
 @media (max-width: 768px) {
 
-  /* 모바일: body 스크롤 허용 */
-  body { height: auto !important; overflow: auto !important; }
-
   /* 헤더 */
   .header { padding: 12px 16px; }
   .header-title { font-size: 13px; }
@@ -544,12 +541,9 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
 
   /* 메인 레이아웃: 2컬럼 → 1컬럼 세로 */
   .main {
-    display: flex !important;
-    flex-direction: column !important;
+    grid-template-columns: 1fr 260px !important;
     height: auto !important;
-    min-height: 0;
-    flex: 1 !important;
-    overflow: visible !important;
+    min-height: calc(100vh - 90px);
   }
   .left {
     height: auto !important;
@@ -557,8 +551,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
     gap: 12px;
   }
   .right {
-    border-left: none !important;
-    border-top: 0.5px solid var(--border);
+    border-left: 0.5px solid var(--border) !important;
     height: auto;
     max-height: none;
   }
@@ -581,8 +574,9 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
   /* 로그인 박스 */
   .auth-box { width: 92vw !important; max-width: 380px; padding: 24px 20px !important; }
 
-  /* 오른쪽 패널 (AI/노션 등) 폭 조정 */
-  .right { width: 100% !important; }
+  /* 오른쪽 패널: 480px 이하에서도 오른쪽 고정 유지 */
+  .main { grid-template-columns: 1fr 200px !important; }
+  .right { width: auto !important; }
 
   /* 테이블 스크롤 */
   .log-table { font-size: 11px; }
@@ -1276,40 +1270,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       <div class="card" style="padding:20px;">
         <div id="tt-container-b1"></div>
       </div>
-      <button class="corr-btn" id="corrBtn_b1" onclick="toggleCorrPanel('b1')">
-        <div class="corr-btn-icon">✏</div>
-        강의실·시간표 수정요청
-        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b1">▼</span>
-      </button>
-      <div class="corr-panel" id="corrPanel_b1">
-        <div class="corr-section">
-          <div class="corr-label">호실 선택</div>
-          <select class="corr-select" id="corrRoom_b1"><option value="">호실 선택</option></select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 구분</div>
-          <select class="corr-select" id="corrCat_b1" onchange="updateCorrSubList('b1')">
-            <option value="">구분 선택</option>
-            <option value="room">강의실 사용 현황 오류</option>
-            <option value="schedule">시간표 오류</option>
-            <option value="cost">배부금액 오류</option>
-            <option value="campus">캠퍼스 정보 오류</option>
-          </select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 유형</div>
-          <select class="corr-select" id="corrSubSel_b1" onchange="updateCorrSub('b1')">
-            <option value="">오류 유형 선택</option>
-          </select>
-        </div>
-        <div id="corrDetail_b1" class="corr-sub"></div>
-        <div class="corr-divider"></div>
-        <div class="corr-section">
-          <div class="corr-label">메모 (선택)</div>
-          <textarea class="corr-textarea" id="corrMemo_b1" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
-        </div>
-        <button class="corr-submit" onclick="submitCorr('b1')">수정요청 제출</button>
-      </div>
 
       <!-- ── 전월/당월 비교 ── -->
       <div class="card" id="compareCard-b1">
@@ -1436,40 +1396,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       <div class="card" style="padding:20px;">
         <div id="tt-container-b2"></div>
       </div>
-      <button class="corr-btn" id="corrBtn_b2" onclick="toggleCorrPanel('b2')">
-        <div class="corr-btn-icon">✏</div>
-        강의실·시간표 수정요청
-        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b2">▼</span>
-      </button>
-      <div class="corr-panel" id="corrPanel_b2">
-        <div class="corr-section">
-          <div class="corr-label">호실 선택</div>
-          <select class="corr-select" id="corrRoom_b2"><option value="">호실 선택</option></select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 구분</div>
-          <select class="corr-select" id="corrCat_b2" onchange="updateCorrSubList('b2')">
-            <option value="">구분 선택</option>
-            <option value="room">강의실 사용 현황 오류</option>
-            <option value="schedule">시간표 오류</option>
-            <option value="cost">배부금액 오류</option>
-            <option value="campus">캠퍼스 정보 오류</option>
-          </select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 유형</div>
-          <select class="corr-select" id="corrSubSel_b2" onchange="updateCorrSub('b2')">
-            <option value="">오류 유형 선택</option>
-          </select>
-        </div>
-        <div id="corrDetail_b2" class="corr-sub"></div>
-        <div class="corr-divider"></div>
-        <div class="corr-section">
-          <div class="corr-label">메모 (선택)</div>
-          <textarea class="corr-textarea" id="corrMemo_b2" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
-        </div>
-        <button class="corr-submit" onclick="submitCorr('b2')">수정요청 제출</button>
-      </div>
 
       <!-- ── 전월/당월 비교 ── -->
       <div class="card" id="compareCard-b2">
@@ -1587,40 +1513,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       <!-- 타임테이블 -->
       <div class="card" style="padding:20px;">
         <div id="tt-container-b3"></div>
-      </div>
-      <button class="corr-btn" id="corrBtn_b3" onclick="toggleCorrPanel('b3')">
-        <div class="corr-btn-icon">✏</div>
-        강의실·시간표 수정요청
-        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b3">▼</span>
-      </button>
-      <div class="corr-panel" id="corrPanel_b3">
-        <div class="corr-section">
-          <div class="corr-label">호실 선택</div>
-          <select class="corr-select" id="corrRoom_b3"><option value="">호실 선택</option></select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 구분</div>
-          <select class="corr-select" id="corrCat_b3" onchange="updateCorrSubList('b3')">
-            <option value="">구분 선택</option>
-            <option value="room">강의실 사용 현황 오류</option>
-            <option value="schedule">시간표 오류</option>
-            <option value="cost">배부금액 오류</option>
-            <option value="campus">캠퍼스 정보 오류</option>
-          </select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 유형</div>
-          <select class="corr-select" id="corrSubSel_b3" onchange="updateCorrSub('b3')">
-            <option value="">오류 유형 선택</option>
-          </select>
-        </div>
-        <div id="corrDetail_b3" class="corr-sub"></div>
-        <div class="corr-divider"></div>
-        <div class="corr-section">
-          <div class="corr-label">메모 (선택)</div>
-          <textarea class="corr-textarea" id="corrMemo_b3" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
-        </div>
-        <button class="corr-submit" onclick="submitCorr('b3')">수정요청 제출</button>
       </div>
 
       <!-- ── 전월/당월 비교 ── -->
@@ -1743,40 +1635,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       <!-- 타임테이블 -->
       <div class="card" style="padding:20px;">
         <div id="tt-container-b4"></div>
-      </div>
-      <button class="corr-btn" id="corrBtn_b4" onclick="toggleCorrPanel('b4')">
-        <div class="corr-btn-icon">✏</div>
-        강의실·시간표 수정요청
-        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b4">▼</span>
-      </button>
-      <div class="corr-panel" id="corrPanel_b4">
-        <div class="corr-section">
-          <div class="corr-label">호실 선택</div>
-          <select class="corr-select" id="corrRoom_b4"><option value="">호실 선택</option></select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 구분</div>
-          <select class="corr-select" id="corrCat_b4" onchange="updateCorrSubList('b4')">
-            <option value="">구분 선택</option>
-            <option value="room">강의실 사용 현황 오류</option>
-            <option value="schedule">시간표 오류</option>
-            <option value="cost">배부금액 오류</option>
-            <option value="campus">캠퍼스 정보 오류</option>
-          </select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 유형</div>
-          <select class="corr-select" id="corrSubSel_b4" onchange="updateCorrSub('b4')">
-            <option value="">오류 유형 선택</option>
-          </select>
-        </div>
-        <div id="corrDetail_b4" class="corr-sub"></div>
-        <div class="corr-divider"></div>
-        <div class="corr-section">
-          <div class="corr-label">메모 (선택)</div>
-          <textarea class="corr-textarea" id="corrMemo_b4" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
-        </div>
-        <button class="corr-submit" onclick="submitCorr('b4')">수정요청 제출</button>
       </div>
 
       <!-- ── 전월/당월 비교 ── -->
@@ -1904,40 +1762,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       <div class="card" style="padding:20px;">
         <div id="tt-container-b5"></div>
       </div>
-      <button class="corr-btn" id="corrBtn_b5" onclick="toggleCorrPanel('b5')">
-        <div class="corr-btn-icon">✏</div>
-        강의실·시간표 수정요청
-        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b5">▼</span>
-      </button>
-      <div class="corr-panel" id="corrPanel_b5">
-        <div class="corr-section">
-          <div class="corr-label">호실 선택</div>
-          <select class="corr-select" id="corrRoom_b5"><option value="">호실 선택</option></select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 구분</div>
-          <select class="corr-select" id="corrCat_b5" onchange="updateCorrSubList('b5')">
-            <option value="">구분 선택</option>
-            <option value="room">강의실 사용 현황 오류</option>
-            <option value="schedule">시간표 오류</option>
-            <option value="cost">배부금액 오류</option>
-            <option value="campus">캠퍼스 정보 오류</option>
-          </select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 유형</div>
-          <select class="corr-select" id="corrSubSel_b5" onchange="updateCorrSub('b5')">
-            <option value="">오류 유형 선택</option>
-          </select>
-        </div>
-        <div id="corrDetail_b5" class="corr-sub"></div>
-        <div class="corr-divider"></div>
-        <div class="corr-section">
-          <div class="corr-label">메모 (선택)</div>
-          <textarea class="corr-textarea" id="corrMemo_b5" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
-        </div>
-        <button class="corr-submit" onclick="submitCorr('b5')">수정요청 제출</button>
-      </div>
 
       <!-- ── 전월/당월 비교 ── -->
       <div class="card" id="compareCard-b5">
@@ -2055,40 +1879,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       <!-- 타임테이블 -->
       <div class="card" style="padding:20px;">
         <div id="tt-container-b6"></div>
-      </div>
-      <button class="corr-btn" id="corrBtn_b6" onclick="toggleCorrPanel('b6')">
-        <div class="corr-btn-icon">✏</div>
-        강의실·시간표 수정요청
-        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b6">▼</span>
-      </button>
-      <div class="corr-panel" id="corrPanel_b6">
-        <div class="corr-section">
-          <div class="corr-label">호실 선택</div>
-          <select class="corr-select" id="corrRoom_b6"><option value="">호실 선택</option></select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 구분</div>
-          <select class="corr-select" id="corrCat_b6" onchange="updateCorrSubList('b6')">
-            <option value="">구분 선택</option>
-            <option value="room">강의실 사용 현황 오류</option>
-            <option value="schedule">시간표 오류</option>
-            <option value="cost">배부금액 오류</option>
-            <option value="campus">캠퍼스 정보 오류</option>
-          </select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 유형</div>
-          <select class="corr-select" id="corrSubSel_b6" onchange="updateCorrSub('b6')">
-            <option value="">오류 유형 선택</option>
-          </select>
-        </div>
-        <div id="corrDetail_b6" class="corr-sub"></div>
-        <div class="corr-divider"></div>
-        <div class="corr-section">
-          <div class="corr-label">메모 (선택)</div>
-          <textarea class="corr-textarea" id="corrMemo_b6" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
-        </div>
-        <button class="corr-submit" onclick="submitCorr('b6')">수정요청 제출</button>
       </div>
 
       <!-- ── 전월/당월 비교 ── -->
@@ -2216,40 +2006,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
       <!-- 타임테이블 -->
       <div class="card" style="padding:20px;">
         <div id="tt-container-b7"></div>
-      </div>
-      <button class="corr-btn" id="corrBtn_b7" onclick="toggleCorrPanel('b7')">
-        <div class="corr-btn-icon">✏</div>
-        강의실·시간표 수정요청
-        <span style="margin-left:auto;font-size:10px;color:#95a5a6;" id="corrArrow_b7">▼</span>
-      </button>
-      <div class="corr-panel" id="corrPanel_b7">
-        <div class="corr-section">
-          <div class="corr-label">호실 선택</div>
-          <select class="corr-select" id="corrRoom_b7"><option value="">호실 선택</option></select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 구분</div>
-          <select class="corr-select" id="corrCat_b7" onchange="updateCorrSubList('b7')">
-            <option value="">구분 선택</option>
-            <option value="room">강의실 사용 현황 오류</option>
-            <option value="schedule">시간표 오류</option>
-            <option value="cost">배부금액 오류</option>
-            <option value="campus">캠퍼스 정보 오류</option>
-          </select>
-        </div>
-        <div class="corr-section">
-          <div class="corr-label">오류 유형</div>
-          <select class="corr-select" id="corrSubSel_b7" onchange="updateCorrSub('b7')">
-            <option value="">오류 유형 선택</option>
-          </select>
-        </div>
-        <div id="corrDetail_b7" class="corr-sub"></div>
-        <div class="corr-divider"></div>
-        <div class="corr-section">
-          <div class="corr-label">메모 (선택)</div>
-          <textarea class="corr-textarea" id="corrMemo_b7" placeholder="추가 설명이 있으면 입력해주세요"></textarea>
-        </div>
-        <button class="corr-submit" onclick="submitCorr('b7')">수정요청 제출</button>
       </div>
 
       <!-- ── 전월/당월 비교 ── -->
@@ -5352,6 +5108,26 @@ var TAB_MAP = {
 
 var currentUser = null;
 
+function adjustMainHeight() {
+  var h = 0;
+  ['header','periodBar','tab-nav-bar'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (!el) {
+      // id 없으면 class로 찾기
+    }
+  });
+  var header = document.querySelector('.header');
+  var periodBar = document.getElementById('periodBar');
+  var tabNav = document.querySelector('.tab-nav');
+  var main = document.querySelector('.main');
+  if (!main) return;
+  var total = 0;
+  if (header) total += header.offsetHeight;
+  if (periodBar && periodBar.style.display !== 'none') total += periodBar.offsetHeight;
+  if (tabNav) total += tabNav.offsetHeight;
+  main.style.height = 'calc(100vh - ' + total + 'px)';
+}
+
 function doLogin() {
   var id = document.getElementById('authId').value.trim();
   var pw = document.getElementById('authPw').value;
@@ -5379,6 +5155,7 @@ function doLogin() {
   document.getElementById('periodBar').style.display = 'flex';
   updatePeriod();
   applyTabPermissions(user);
+  adjustMainHeight();
 }
 
 function doLogout() {
@@ -5401,6 +5178,7 @@ function doLogout() {
     btn.classList.remove('locked-tab');
   });
   switchTab('summary');
+  adjustMainHeight();
 }
 
 function applyTabPermissions(user) {
@@ -6249,71 +6027,6 @@ document.addEventListener('DOMContentLoaded', renderKeyStatus);
         <textarea class="req-textarea" id="reqMemo" placeholder="추가로 전달할 내용을 입력하세요..."></textarea>
       </div>
 
-    </div>
-    <div class="req-footer">
-      <button class="req-btn-cancel" onclick="closeReqModal()">취소</button>
-      <button class="req-btn-submit" id="reqSubmitBtn" onclick="submitReq()" disabled>수정 요청 전송</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- 수정요청 FAB 버튼 -->
-<button class="req-fab" id="reqFab" style="display:none;" onclick="openReqModal()">
-  ✏ 수정 요청
-</button>
-
-<!-- 수정요청 모달 -->
-<div class="req-overlay" id="reqOverlay">
-  <div class="req-modal" id="reqModal">
-    <div class="req-head">
-      <div>
-        <div class="req-head-title">강의실 · 시간표 수정 요청</div>
-        <div class="req-head-sub">오류 확인 후 총무기획팀으로 알림이 전송됩니다. 비용 배분은 자동 수정되지 않습니다.</div>
-      </div>
-      <button class="req-close" onclick="closeReqModal()">✕</button>
-    </div>
-    <div class="req-body" id="reqBody">
-      <div class="req-field">
-        <div class="req-label">건물 선택 <span class="req-required">*</span></div>
-        <select class="req-select" id="reqBuilding" onchange="onReqBuildingChange()">
-          <option value="">— 건물을 선택하세요 —</option>
-          <option value="N타워 6층">N타워 6층</option>
-          <option value="다운타운 12층">다운타운 12층</option>
-          <option value="수내동빌딩">수내동빌딩 (3·4층)</option>
-          <option value="정자">정자 (백궁·시그마)</option>
-          <option value="다운타운 8층">다운타운 8층</option>
-          <option value="N타워 9층">N타워 9층</option>
-          <option value="다운타운 6층">다운타운 6층</option>
-        </select>
-      </div>
-      <div class="req-field">
-        <div class="req-label">호실 선택 <span class="req-required">*</span></div>
-        <select class="req-select" id="reqRoom" disabled>
-          <option value="">— 건물 선택 후 호실을 선택하세요 —</option>
-        </select>
-      </div>
-      <div class="req-field">
-        <div class="req-label">수정 구분 <span class="req-required">*</span></div>
-        <select class="req-select" id="reqCategory" onchange="onReqCategoryChange()" disabled>
-          <option value="">— 수정 구분을 선택하세요 —</option>
-          <option value="room_status">강의실 사용 현황 오류</option>
-          <option value="timetable">시간표 오류</option>
-          <option value="cost">배부금액 오류</option>
-          <option value="campus_info">캠퍼스 정보 오류</option>
-        </select>
-      </div>
-      <div class="req-field" id="reqSubField" style="display:none;">
-        <div class="req-label">오류 유형 <span class="req-required">*</span></div>
-        <select class="req-select" id="reqSub" onchange="onReqSubChange()">
-          <option value="">— 오류 유형을 선택하세요 —</option>
-        </select>
-      </div>
-      <div id="reqDetailArea"></div>
-      <div class="req-field" id="reqMemoField" style="display:none;">
-        <div class="req-label">추가 메모 (선택)</div>
-        <textarea class="req-textarea" id="reqMemo" placeholder="추가로 전달할 내용을 입력하세요..."></textarea>
-      </div>
     </div>
     <div class="req-footer">
       <button class="req-btn-cancel" onclick="closeReqModal()">취소</button>
