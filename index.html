@@ -71,7 +71,7 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
 .tab-btn:hover{color:var(--text2);}
 .tab-btn.active{color:var(--purple);border-bottom-color:var(--purple);}
 .tab-content{display:none;}
-.tab-content.active{display:flex;flex-direction:column;min-height:0;}
+.tab-content.active{display:block;}
 
 /* ── 레이아웃 ── */
 .main{display:grid;grid-template-columns:1fr 340px;height:calc(100vh - 105px);}
@@ -547,13 +547,16 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
   }
   .left {
     height: auto !important;
+    overflow-y: visible !important;
     padding: 14px 12px;
     gap: 12px;
   }
   .right {
     border-left: 0.5px solid var(--border) !important;
-    height: auto;
-    max-height: none;
+    height: calc(100vh - 90px) !important;
+    position: sticky !important;
+    top: 0 !important;
+    overflow-y: auto !important;
   }
 
   /* KPI 그리드: 4열 → 2열 */
