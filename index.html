@@ -3963,6 +3963,8 @@ function inpBuildTable() {
     if (prev[room]) {
       Object.keys(prev[room]).forEach(function(di) {
         inpData[room][di] = JSON.parse(JSON.stringify(prev[room][di]));
+        // 전월 데이터는 미확정 표시
+        inpData[room][di].forEach(function(e) { e.isPrev = true; e.confirmed = false; });
       });
     }
     var tr = document.createElement('tr');
@@ -3978,10 +3980,13 @@ function inpBuildTable() {
       td.onclick = (function(r, di) {
         return function() { inpOpenCellModal(r, di); };
       })(room, i);
-      inpRenderCell(room, i);
       tr.appendChild(td);
     });
     body.appendChild(tr);
+    // DOM에 추가된 후 렌더링
+    DAYS.forEach(function(d, i) {
+      inpRenderCell(room, i);
+    });
   });
 }
 
