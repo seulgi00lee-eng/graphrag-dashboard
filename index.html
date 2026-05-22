@@ -3876,7 +3876,7 @@ function switchTab(id) {
       break;
     }
   }
-  if (id !== 'summary') buildHeatmap(id);
+  if (id !== 'summary' && id !== 'input' && id !== 'admin') buildHeatmap(id);
   var left = document.querySelector('.left');
   if (left) left.scrollTop = 0;
 }
@@ -5480,7 +5480,10 @@ switchTab = function(id) {
     });
   }
   var suffix = id === 'summary' ? 'summary' : id;
-  setTimeout(function() { renderCompare(suffix); }, 50);
+  // input·admin 탭은 renderCompare/buildHeatmap 불필요
+  if (id !== 'input' && id !== 'admin') {
+    setTimeout(function() { renderCompare(suffix); }, 50);
+  }
 };
 
 // 카드 클릭 권한 체크
