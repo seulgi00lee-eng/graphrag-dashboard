@@ -519,100 +519,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
 .inp-status-chip.err{background:rgba(240,96,128,0.12);color:#f06080;}
 .inp-complete{text-align:center;padding:48px 20px;}
 .inp-complete-icon{width:56px;height:56px;background:rgba(27,122,78,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;}
-
-/* ═══════════════════════════════════
-   모바일 반응형 (@media max-width:768px)
-   ═══════════════════════════════════ */
-@media (max-width: 768px) {
-
-  /* 헤더 */
-  .header { padding: 12px 16px; }
-  .header-title { font-size: 13px; }
-  .header-sub { display: none; }
-  .badge { font-size: 9px; padding: 2px 7px; }
-
-  /* 기간 바 */
-  .period-bar { padding: 8px 12px; gap: 8px; flex-wrap: wrap; }
-  .period-divider { display: none; }
-
-  /* 탭 네비 */
-  .tab-nav { padding: 0 8px; }
-  .tab-btn { padding: 10px 12px; font-size: 11px; }
-
-  /* 메인 레이아웃: 2컬럼 → 1컬럼 세로 */
-  .main {
-    display: flex !important;
-    flex-direction: column !important;
-    height: auto !important;
-    min-height: calc(100vh - 90px);
-  }
-  .left {
-    height: auto !important;
-    padding: 14px 12px;
-    gap: 12px;
-  }
-  .right {
-    border-left: none !important;
-    border-top: 0.5px solid var(--border);
-    height: auto;
-    max-height: none;
-  }
-
-  /* KPI 그리드: 4열 → 2열 */
-  .kpi-row { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; }
-  .kpi-row-6 { grid-template-columns: repeat(2, 1fr) !important; gap: 6px; }
-  .kpi-val { font-size: 16px; }
-  .kpi-val-sm { font-size: 14px; }
-  .kpi { padding: 10px 12px; }
-
-  /* 카드 */
-  .two-col { grid-template-columns: 1fr !important; }
-  .three-col { grid-template-columns: 1fr !important; }
-
-  /* 데이터 통계 행: 4열 → 2열 */
-  .data-stat-row { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; }
-  .data-month-grid { grid-template-columns: repeat(4, 1fr) !important; }
-
-  /* 로그인 박스 */
-  .auth-box { width: 92vw !important; max-width: 380px; padding: 24px 20px !important; }
-
-  /* 오른쪽 패널 (AI/노션 등) 폭 조정 */
-  .right { width: 100% !important; }
-
-  /* 테이블 스크롤 */
-  .log-table { font-size: 11px; }
-  .log-table th, .log-table td { padding: 6px 8px; }
-
-  /* 건물 카드 그리드 */
-  .building-grid, [style*="grid-template-columns: repeat(3"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* 인트로 스플래시 모바일 */
-  #introTop img, #introBottom img { height: 70px !important; }
-  #introBrand div[style*="font-size:26px"] { font-size: 18px !important; }
-  #introBrand div[style*="width:52px"] { width: 38px !important; height: 38px !important; font-size: 17px !important; }
-  #introTop { padding-right: calc(50% + 8px) !important; }
-  #introBottom { padding-left: calc(50% + 8px) !important; }
-
-  /* 보고서 KPI 그리드 */
-  .kpi-grid, [style*="grid-template-columns:repeat(4,1fr)"] {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-}
-
-/* 아주 좁은 화면 (max-width: 480px) 추가 조정 */
-@media (max-width: 480px) {
-  .header { padding: 10px 12px; }
-  .header-title { font-size: 12px; }
-  .tab-btn { padding: 9px 10px; font-size: 10px; }
-  .left { padding: 10px 10px; }
-  .kpi-val { font-size: 15px; }
-  #introTop img, #introBottom img { height: 55px !important; }
-  #introBrand div[style*="font-size:26px"],
-  #introBrand div[style*="font-size:18px"] { font-size: 15px !important; }
-  .data-month-grid { grid-template-columns: repeat(3, 1fr) !important; }
-}
 </style>
 </head>
 <body>
@@ -1326,7 +1232,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
           </div>
         </div>
         <div id="compareBody-b1"></div>
-      </div>
 
 </div><!-- /tab-b1 -->
 
@@ -1486,7 +1391,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
           </div>
         </div>
         <div id="compareBody-b2"></div>
-      </div>
 
 </div><!-- /tab-b2 -->
 
@@ -1638,7 +1542,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
           </div>
         </div>
         <div id="compareBody-b3"></div>
-      </div>
 
 </div><!-- /tab-b3 -->
 
@@ -1794,7 +1697,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
           </div>
         </div>
         <div id="compareBody-b4"></div>
-      </div>
 
 </div><!-- /tab-b4 -->
 
@@ -1954,7 +1856,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
           </div>
         </div>
         <div id="compareBody-b5"></div>
-      </div>
 
 </div><!-- /tab-b5 -->
 
@@ -2106,7 +2007,6 @@ body{background:var(--bg);color:var(--text);font-family:'Nanum Gothic','나눔�
           </div>
         </div>
         <div id="compareBody-b6"></div>
-      </div>
 
 </div><!-- /tab-b6 -->
 
