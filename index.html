@@ -3938,12 +3938,35 @@ function uploadEffExcel(input) {
 
         // 헤더 행 찾기 (bldgKey 포함된 행)
         let hdrRow = -1;
-        raw1.forEach((row, i) => { if (String(row[0]).includes('bldgKey') || row[0]==='건물키(bldgKey)') hdrRow = i; });
+        raw1.forEach((row, i) => {
+          const r0 = String(row[0]||'').trim();
+          const r1 = String(row[1]||'').trim();
+          const r2 = String(row[2]||'').trim();
+          // v4: 첫 컬럼이 region/지역
+          if (r0 === 'region' || r0 === '지역' || r0.includes('region\n') || r0.includes('region')) {
+            hdrRow = i; return;
+          }
+          // 구버전: bldgKey 포함
+          if (r0.includes('bldgKey') || r0 === '건물키(bldgKey)') {
+            hdrRow = i; return;
+          }
+          // 컬럼 조합으로 감지 (건물명+층수 or 관코드 등)
+          if ((r1.includes('건물') || r1.includes('building')) &&
+              (r2.includes('층') || r2.includes('floor'))) {
+            hdrRow = i; return;
+          }
+        });
         if (hdrRow < 0) { showToast('❌ 헤더 행을 찾을 수 없습니다. 템플릿 형식을 확인해주세요.', true); return; }
 
-        // 데이터 행 (헤더+2부터 — 키행, 안내행 스킵)
-        const dataStart = hdrRow + 3;
-        const rows1 = raw1.slice(dataStart).filter(r => r[0] && String(r[0]).trim());
+        // 헤더 다음 행이 키행([region] 등)인지 확인해서 스킵 수 결정
+        const nextRow = raw1[hdrRow + 1] ? String(raw1[hdrRow + 1][0]||'') : '';
+        const isKeyRow = nextRow.startsWith('[') || nextRow.includes('BUILDINGS');
+        // v4: 헤더+키행+안내행 = +3, 또는 헤더+안내행 = +2
+        const guideRows = isKeyRow ? 2 : 1;  // 키행 있으면 2개, 없으면 1개 스킵
+        const dataStart = hdrRow + 1 + guideRows;
+        const rows1 = raw1.slice(dataStart).filter(r =>
+          r[0] && String(r[0]).trim() && !String(r[0]).startsWith('⚠') && !String(r[0]).startsWith('[')
+        );
 
         // 시트2: 교시별_수업정보 (선택)
         const ws2 = wb.Sheets['교시별_수업정보'];
@@ -4000,26 +4023,21 @@ function uploadEffExcel(input) {
 
           if (!room || !campus) { skipCount++; return; }
 
-          // 중복 체크 (같은 bldgKey + campus + room)
-          const dup = EFF_DATA.find(r => r.bldgKey===bldgKey && r.campus===campus && r.room===room);
-          if (dup) { skipCount++; return; }
-
-          // 교시 데이터
-          const rowId = idx + 1;
-          const periods = (periodMap[rowId]||[]).map(p => ({
-            time: p.time, className: p.className, students: p.students, fee: p.fee,
-          }));
-
-          // BUILDINGS에서 지역 덮어쓰기 (건물탭 설정값 우선)
-          const bInfo = getEffBldgInfo(bldgKey);
-          const finalRegion = bInfo.region || region;
+          // 중복 체크: class_key + day 조합 (v4) 또는 bldgKey+campus+room (구버전)
+          const dupKey = classKey
+            ? EFF_DATA.find(r => r.classKey===classKey && r.day===day)
+            : EFF_DATA.find(r => r.bldgKey===bldgKey && r.campus===campus && r.room===room && r.day===day);
+          if (dupKey) { skipCount++; return; }
 
           EFF_DATA.push({
             id: maxId + addCount + 1,
             bldgKey,
             dept, campus, spaceType, room,
-            area, maxCapacity: maxCap, curStudents, className, stdFee,
-            ...(periods.length ? { periods } : {}),
+            area, maxCapacity: maxCap,
+            curStudents: students, className, stdFee,
+            // v4 추가 필드
+            classKey: classKey || `${bldgKey}_${room}_${campus}_${className}`,
+            day, timeStart, timeEnd, grade, teacher, ym, memo,
           });
           addCount++;
         });
