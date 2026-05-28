@@ -1690,7 +1690,7 @@ function renderBuildingFull(b) {
         ${b.calcRows.map(r => `
         <tr>
           <td style="font-weight:700">${r.room}</td>
-          <td style="color:var(--text-sub)">${r.area}평</td>
+          <td style="color:var(--text-sub)">${r.area||"-"}평</td>
           <td><span class="badge ${r.type}">${r.type}</span></td>
           <td><span class="badge ${b.campusColors[r.campus]}">${r.campus}</span></td>
           <td class="num">${r.A ? fmt(r.A) : '-'}</td>
@@ -2998,7 +2998,9 @@ function renderEffKPI() {
     const totalMax      = rows.reduce((s,r) => s+r.maxCapacity, 0);
     const totalMaxSales = stats.reduce((s,st) => s+st.totalMaxSales, 0);
     const totalCurSales = stats.reduce((s,st) => s+st.totalCurSales, 0);
-    const capRate  = totalMax ? (totalStudents / (stats.reduce((s,st)=>s+st.periodCount,0) * (totalMax/rows.length)) * 100).toFixed(1) : 0;
+    const totalPeriods = stats.reduce((s,st)=>s+(st.periodCount||1),0);
+    const avgMax = rows.length ? totalMax/rows.length : 0;
+    const capRate = (totalPeriods && avgMax) ? (totalStudents / (totalPeriods * avgMax) * 100).toFixed(1) : 0;
     const salesRate= totalMaxSales ? (totalCurSales/totalMaxSales*100).toFixed(1) : 0;
     const grade = capRate >= 80 ? '#2f9e44' : capRate >= 60 ? '#e67700' : '#e03131';
     const badgeCls = campusColorMap[camp] || '';
@@ -3046,7 +3048,7 @@ function buildEffContext(camp) {
 
   const roomDetails = data.map(r => {
     const eff = r.maxCapacity ? (r.curStudents/r.maxCapacity*100).toFixed(0) : 0;
-    return `  - ${r.room}호 (${r.area}평, 최대${r.maxCapacity}명): ${r.className} / 현재 ${r.curStudents}명 / 효율 ${eff}% / 수강료 ${r.stdFee.toLocaleString()}원`;
+    return `  - ${r.room}호 (${r.area||"-"}평, 최대${r.maxCapacity}명): ${r.className} / 현재 ${r.curStudents}명 / 효율 ${eff}% / 수강료 ${r.stdFee.toLocaleString()}원`;
   }).join('\n');
 
   return `당신은 교육 사업 공간 운영 전략 컨설턴트입니다.
@@ -3431,7 +3433,7 @@ function renderEffTable() {
     const hasPeriods = r.periods && r.periods.length > 0;
     // 교시별 수업명 표시
     const classLabel = hasPeriods
-      ? r.periods.map((p,i) => `${i+1}교시: ${p.className||'-'}`).join(' / ')
+      ? (r.periods||[]).map((p,i) => `${i+1}교시: ${p.className||'-'}`).join(' / ')
       : (r.className || '-');
 
     return `<tr style="border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
@@ -3445,7 +3447,7 @@ function renderEffTable() {
                      background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">임차${r.spaceType}</span>
       </td>
       <td style="padding:8px 10px;font-weight:700">${r.room}</td>
-      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${r.area}평</td>
+      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${r.area||"-"}평</td>
       <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${r.maxCapacity}명</td>
       <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
         ${r._totalStudents}명
@@ -3811,7 +3813,7 @@ function _doDownloadTemplate() {
     // 컬럼 헤더
     ['region\n지역','building\n건물명','floor\n층수','dept\n사업부','campus\n관코드','room\n호실','space_type\n공간타입','max_capacity\n최대수용(명)','area\n평수','class_key\n수업키(고유)','class_name\n수업명/반명','grade\n학년','teacher\n강사명','day\n수업요일(단일)','time_start\n시작시간','time_end\n종료시간','students\n수강생(명)','fee_monthly\n월수강료(원)','ym\n기준월','memo\n메모'],
     // 입력 안내
-    ['수지/수내\n광교/영통\n이매/정자','다운타운\n비즈마루\n수내동빌딩 등','6층/9층\n2층/3_4층 등','중등사업부\n초등사업부\n고등사업부\n테디사업부','영재/중사/테디\n103/203\n307/308/309\n초등수아/고N','605/606\n테디1/201 등','A:전용(일기준)\nB:공유(시간기준)\nC:자습(일기준)','숫자만\n예: 12','숫자만\n예: 5.0','bldgKey_room_campus\n_수업명 조합\n예:b7_605_영재\n_수학심화A\n※같은반=같은값','수업명그대로\n비즈메카 복붙OK','숫자만\n예:2\n또는 무학년','강사명','단일 요일만\n월/화/수/목/금/토/일\n(파싱후 결과)','시작시간\n15:00/15시\n1500/오후3시\n모두 허용','종료시간\n17:00/17시\n1700/오후5시\n모두 허용','⚠class_key기준\n1회만 카운트\n같은반=\n같은수강생\n월1회','⚠class_key기준\n1회만 카운트\n월1회납부\n요일횟수무관','2026-04\n형식','MIX여부\n특이사항'],
+    ['수지/수내\n광교/영통\n이매/정자','다운타운\n비즈마루\n수내동빌딩 등','6층/9층\n2층/3_4층 등','중등사업부\n초등사업부\n고등사업부\n테디사업부','영재/중사/테디\n103/203\n307/308/309\n초등수아/고N','605/606\n테디1/201 등','A:전용(일기준)\nB:공유(시간기준)\nC:자습(일기준)','숫자만\n예: 12','숫자만\n예: 5.0\n(공란 허용)','bldgKey_room_campus\n_수업명 조합\n예:b7_605_영재\n_수학심화A\n※같은반=같은값','수업명그대로\n비즈메카 복붙OK','숫자만\n예:2\n또는 무학년','강사명','단일 요일만\n월/화/수/목/금/토/일\n(파싱후 결과)','시작시간\n15:00/15시\n1500/오후3시\n모두 허용','종료시간\n17:00/17시\n1700/오후5시\n모두 허용','⚠class_key기준\n1회만 카운트\n같은반=\n같은수강생\n월1회','⚠class_key기준\n1회만 카운트\n월1회납부\n요일횟수무관','2026-04\n형식','MIX여부\n특이사항'],
     // 샘플 데이터
     ['수지','다운타운','6층','중등사업부','영재','605','A',12,5.0,'b7_605_영재_수학심화A','중등수학심화A',2,'홍길동','월','15:00','17:00',10,280000,'2026-04','임차A 단독'],
     ['수지','다운타운','6층','중등사업부','영재','605','A',12,5.0,'b7_605_영재_수학심화A','중등수학심화A',2,'홍길동','수','15:00','17:00',10,280000,'2026-04','⚠수강생/매출 중복집계 주의'],
@@ -4043,9 +4045,11 @@ function uploadEffExcel(input) {
         });
 
         initEffFilters();
+        effFilter = { region:'', building:'', dept:'', campus:'', spaceType:'' };
+        effFilterPending = { region:'', building:'', dept:'', campus:'', spaceType:'' };
         renderEffKPI();
         renderEffTable();
-        showToast(`✅ 업로드 완료: ${addCount}개 추가, ${skipCount}개 중복/오류 건너뜀`);
+        showToast(`✅ 업로드 완료: ${addCount}개 추가, ${skipCount}개 건너뜀 | 총 ${EFF_DATA.length}개`);
       } catch(err) {
         showToast('❌ 파일 파싱 오류: ' + err.message, true);
         console.error(err);
