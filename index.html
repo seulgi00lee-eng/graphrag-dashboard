@@ -3024,7 +3024,6 @@ function renderDeptKPI() {
       </div>
       <div style="font-size:11px;color:var(--text-sub);border-top:1px solid var(--border);padding-top:8px">
         호실 <strong>${s.roomCount}개</strong> · 수업 <strong>${s.classCount}개</strong><br>
-        현재 <strong>${s.totalStudents}명</strong> / 최대 <strong>${s.totalMaxCap}명</strong><br>
         표준매출 ${Math.round(s.totalMaxSales).toLocaleString()}원<br>
         발생매출(추정) <strong style="color:#4263eb">${Math.round(s.totalCurSales).toLocaleString()}원</strong>
       </div>
@@ -3582,7 +3581,6 @@ function renderEffKPI() {
       <div style="font-size:18px;font-weight:800;color:${grade};font-family:'JetBrains Mono',monospace">${s.salesRate}%</div>
       <div style="font-size:11px;color:var(--text-sub);margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
         호실 <strong>${s.roomCount}개</strong> · 수업 <strong>${s.classCount}개</strong><br>
-        현재 <strong>${s.totalStudents}명</strong> / 최대 <strong>${s.totalMaxCap}명</strong><br>
         표준매출 ${Math.round(s.totalMaxSales).toLocaleString()}원<br>
         발생매출(추정) <strong style="color:#4263eb">${Math.round(s.totalCurSales).toLocaleString()}원</strong>
       </div>
