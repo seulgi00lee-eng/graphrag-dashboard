@@ -3197,16 +3197,45 @@ function renderOccupancy() {
   window._occAllData = data;
   window.renderOccDayChart = function(dept) {
     const filtered = dept === '전체' ? data : data.filter(r => r.dept === dept);
-    const rooms = [...new Set(filtered.map(r=>(r.bldgKey||'')+'::'+(r.room||'')))];
-    const total = rooms.length || 1;
+    // 분모: 해당 사업부(또는 전체)의 실제 호실 수
+    const deptRooms = [...new Set(filtered.map(r=>(r.bldgKey||'')+'::'+(r.room||'')))];
+    const total = deptRooms.length || 1;
     const dayEl = document.getElementById('occ_day_chart');
     if (!dayEl) return;
-    dayEl.innerHTML = DAYS_KR.map(d => {
-      const rows = filtered.filter(r => r.day === d);
-      const oRooms = [...new Set(rows.map(r=>(r.bldgKey||'')+'::'+(r.room||'')))];
-      const rate = (oRooms.length/total*100).toFixed(1);
-      return barRow(d+'요일', rate, oRooms.length+'호실/'+rows.length+'건');
-    }).join('');
+
+    if (dept === '전체') {
+      // 전체 탭: 사업부별로 각각 계산해서 표시
+      const DEPT_ORDER_D = ['초등사업부','중등사업부','고등사업부','테디사업부'];
+      const deptList = [...new Set(data.map(r=>r.dept).filter(Boolean))]
+        .sort((a,b)=>(DEPT_ORDER_D.indexOf(a)<0?99:DEPT_ORDER_D.indexOf(a))-(DEPT_ORDER_D.indexOf(b)<0?99:DEPT_ORDER_D.indexOf(b)));
+
+      dayEl.innerHTML = DAYS_KR.map(d => {
+        const dayRows = data.filter(r => r.day === d);
+        if (!dayRows.length) return barRow(d+'요일', 0, '0호실');
+
+        // 사업부별 mini 바 표시
+        const deptBars = deptList.map(dp => {
+          const dpRooms = [...new Set(data.filter(r=>r.dept===dp).map(r=>(r.bldgKey||'')+'::'+(r.room||'')))];
+          const dpTotal = dpRooms.length || 1;
+          const dpUsed  = [...new Set(dayRows.filter(r=>r.dept===dp).map(r=>(r.bldgKey||'')+'::'+(r.room||'')))];
+          const dpRate  = (dpUsed.length/dpTotal*100).toFixed(0);
+          const dpColor = dp==='초등사업부'?'#2d6a4f':dp==='중등사업부'?'#4263eb':dp==='고등사업부'?'#c05621':'#7048e8';
+          return `<span style="font-size:10px;color:${dpColor};font-weight:700;margin-left:6px">${dp.replace('사업부','')} ${dpRate}%</span>`;
+        }).join('');
+
+        const oRooms = [...new Set(dayRows.map(r=>(r.bldgKey||'')+'::'+(r.room||'')))];
+        const rate = (oRooms.length/total*100).toFixed(1);
+        return barRow(d+'요일', rate, oRooms.length+'호실') + deptBars + '</div>';
+      }).map(s => `<div style="margin-bottom:9px">${s}</div>`).join('').replace(/<div[^>]*><div[^>]*>/g,'<div style="margin-bottom:9px"><div style="display:flex;align-items:center;gap:0">').replace(/(<\/div>){2,}/g,'</div>');
+    } else {
+      // 특정 사업부 탭: 해당 사업부 호실 수 기준
+      dayEl.innerHTML = DAYS_KR.map(d => {
+        const rows = filtered.filter(r => r.day === d);
+        const oRooms = [...new Set(rows.map(r=>(r.bldgKey||'')+'::'+(r.room||'')))];
+        const rate = (oRooms.length/total*100).toFixed(1);
+        return barRow(d+'요일', rate, oRooms.length+'호실/'+total+'개 중');
+      }).join('');
+    }
   };
   window.selectOccDayDept = function(dept) {
     _occDayDept = dept;
@@ -3255,43 +3284,38 @@ function renderOccupancy() {
       const fWithType    = filtered.filter(r => r.classType && String(r.classType).trim());
       const fWithoutType = filtered.filter(r => !r.classType || !String(r.classType).trim());
 
-      // 교시별 집계
+      // 분모: 해당 사업부의 실제 호실 수 기준
+      const fTotalRooms = [...new Set(filtered.map(r=>(r.bldgKey||'')+'::'+(r.room||'')))].length || 1;
+
+      // 교시별 집계: 호실 DISTINCT (건수 아님)
       const fTypeStats = {};
       fWithType.forEach(r => {
         const t = String(r.classType).trim();
-        if (!fTypeStats[t]) fTypeStats[t] = { rooms:new Set(), count:0 };
+        if (!fTypeStats[t]) fTypeStats[t] = { rooms: new Set() };
         fTypeStats[t].rooms.add((r.bldgKey||'')+'::'+(r.room||''));
-        fTypeStats[t].count++;
       });
 
-      // 시간대별 집계 (toMin 개선: 다양한 형식 허용)
+      // 시간대별 집계: 호실 DISTINCT (건수 아님)
       const fTimeSlots = {};
-      for (let h=9;h<22;h++) fTimeSlots[`${String(h).padStart(2,'0')}:00`] = { count:0 };
+      for (let h=9;h<22;h++) fTimeSlots[`${String(h).padStart(2,'0')}:00`] = { rooms: new Set() };
       const safeToMin = t => {
         if (!t && t !== 0) return 0;
         const raw = String(t).trim();
-        // 엑셀 시간 소수점 형식 처리 (예: 0.770833 = 18:30)
-        if (/^0\.\d+$/.test(raw)) {
-          const mins = Math.round(parseFloat(raw)*24*60);
-          return mins;
-        }
+        if (/^0\.\d+$/.test(raw)) return Math.round(parseFloat(raw)*24*60);
         const s = raw.replace(/오전|오후|분/g,'').replace(/시(?=\d|:|$)/g,':').replace(/시$/g,':00').trim();
         const parts = s.replace(/[~\-]/g,':').split(':');
-        const h = parseInt(parts[0])||0;
-        const m = parseInt(parts[1])||0;
-        return h*60+m;
+        return (parseInt(parts[0])||0)*60+(parseInt(parts[1])||0);
       };
       fWithoutType.forEach(r => {
         const st = safeToMin(r.timeStart), en = safeToMin(r.timeEnd);
         if (!st && !en) return;
         if (en <= st) return;
+        const roomKey = (r.bldgKey||'')+'::'+(r.room||'');
         Object.keys(fTimeSlots).forEach(slot => {
           const sh = parseInt(slot)*60;
-          if (sh>=st && sh<en) fTimeSlots[slot].count++;
+          if (sh >= st && sh < en) fTimeSlots[slot].rooms.add(roomKey);
         });
       });
-      const fMaxTime = Math.max(...Object.values(fTimeSlots).map(v=>v.count),1);
-      const fTotalRooms = [...new Set(filtered.map(r=>(r.bldgKey||'')+'::'+(r.room||'')))].length || 1;
 
       let html2 = '';
       if (Object.keys(fTypeStats).length > 0) {
@@ -3303,18 +3327,20 @@ function renderOccupancy() {
         html2 += '<div style="font-size:11px;font-weight:800;color:#2d6a4f;margin-bottom:8px">📚 교시별</div>';
         html2 += sorted.map(([type,v])=>{
           const pct = (v.rooms.size/fTotalRooms*100).toFixed(1);
-          return barRow(type, pct, v.rooms.size+'호실/'+v.count+'건', '#7048e8');
+          return barRow(type, pct, v.rooms.size+'호실/'+fTotalRooms+'개 중', '#7048e8');
         }).join('');
       }
 
-      const hasTimeData = Object.values(fTimeSlots).some(v=>v.count>0);
+      const hasTimeData = Object.values(fTimeSlots).some(v=>v.rooms.size>0);
       if (fWithoutType.length > 0) {
         html2 += `<div style="font-size:11px;font-weight:800;color:#c05621;margin:${Object.keys(fTypeStats).length>0?'14px':'0'}px 0 8px">🕐 시간대별</div>`;
         if (hasTimeData) {
           html2 += Object.entries(fTimeSlots)
-            .filter(([,v])=>v.count>0)
-            .map(([slot,v])=>barRow(slot, (v.count/fMaxTime*100).toFixed(1), v.count+'건', '#c05621'))
-            .join('');
+            .filter(([,v])=>v.rooms.size>0)
+            .map(([slot,v])=>{
+              const pct = (v.rooms.size/fTotalRooms*100).toFixed(1);
+              return barRow(slot, pct, v.rooms.size+'호실/'+fTotalRooms+'개 중', '#c05621');
+            }).join('');
         } else {
           html2 += '<div style="font-size:11px;color:var(--text-sub);padding:8px">시작/종료 시간 데이터를 확인해주세요</div>';
         }
