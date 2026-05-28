@@ -4560,8 +4560,8 @@ function uploadEffExcel(input) {
           const campus     = String(row[4]||'').trim();
           const room       = String(row[5]||'').trim();
           const spaceType  = String(row[6]||'A').trim();
-          const maxCap     = parseInt(row[7])||0;
-          const area       = parseFloat(row[8])||0;
+          const maxCap     = parseInt(String(row[7]||'').replace(/,/g,''))||0;
+          const area       = parseFloat(String(row[8]||'').replace(/,/g,''))||0;
           // v5: bldgKey(9), classKey(10), className(11), grade(12), teacher(13)
           //     classType(14), day(15), timeStart(16), timeEnd(17), duration(18)
           //     students(19), stdFee(20), ym(21)
@@ -4579,8 +4579,12 @@ function uploadEffExcel(input) {
           const day        = String(row[isV5?15:13]||'').trim();
           const timeStart  = String(row[isV5?16:14]||'').trim();
           const timeEnd    = String(row[isV5?17:15]||'').trim();
-          const students   = parseInt(row[isV5?19:16])||0;
-          const stdFee     = parseInt(row[isV5?20:17])||0;
+          // 숫자 파싱: raw:false 시 "320,000" 형식으로 오므로 쉼표 제거
+          const parseNum = v => parseInt(String(v||'').replace(/,/g,''))||0;
+          const parseFlt = v => parseFloat(String(v||'').replace(/,/g,''))||0;
+
+          const students   = parseNum(row[isV5?19:16]);
+          const stdFee     = parseNum(row[isV5?20:17]);
           const ym         = String(row[isV5?21:18]||'').trim();
           const memo       = '';
           // bldgKey 자동 매핑 (건물명+층수 기반)
