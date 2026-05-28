@@ -3215,33 +3215,110 @@ function renderOccupancy() {
   // 요일별 차트 (기본: 전체)
   window.renderOccDayChart('전체');
 
-  // 교시별(초등/중등) + 시간대별(고등) 차트
+  // 교시별(초등/중등) + 시간대별(고등) 차트 + 사업부 탭
   const timeEl = document.getElementById('occ_time_chart');
   if (timeEl) {
-    let html2 = '';
-    if (Object.keys(typeStats).length > 0) {
-      // 교시 있는 사업부
-      const ORDER = ['1교시','2교시','3교시','특목','성대경시'];
-      const sorted = Object.entries(typeStats).sort((a,b) => {
-        const ai=ORDER.indexOf(a[0]), bi=ORDER.indexOf(b[0]);
-        return (ai<0?99:ai)-(bi<0?99:bi);
+    // 사업부 탭 생성
+    const timeDepts = ['전체', ...new Set(data.map(r=>r.dept).filter(Boolean))].sort((a,b)=>a==='전체'?-1:b==='전체'?1:0);
+    let _occTimeDept = '전체';
+
+    const tabBar = `<div id="occ_time_dept_tabs" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">
+      ${timeDepts.map(d=>`
+        <button id="occ_time_tab_${d.replace(/\s/g,'_')}" onclick="selectOccTimeDept('${d}')"
+          style="padding:3px 10px;border-radius:12px;border:1px solid ${d==='전체'?'#c05621':'var(--border)'};
+                 background:${d==='전체'?'#c05621':'transparent'};
+                 color:${d==='전체'?'#fff':'var(--text-sub)'};
+                 font-size:11px;font-weight:700;cursor:pointer;
+                 font-family:'Nanum Gothic',sans-serif;transition:all .15s">
+          ${d}
+        </button>`).join('')}
+    </div>`;
+
+    timeEl.innerHTML = tabBar + '<div id="occ_time_content"></div>';
+
+    // 시간대별 차트 렌더 (사업부 필터)
+    window.renderOccTimeChart = function(dept) {
+      const filtered = dept==='전체' ? data : data.filter(r=>r.dept===dept);
+      const fWithType    = filtered.filter(r => r.classType && String(r.classType).trim());
+      const fWithoutType = filtered.filter(r => !r.classType || !String(r.classType).trim());
+
+      // 교시별 집계
+      const fTypeStats = {};
+      fWithType.forEach(r => {
+        const t = String(r.classType).trim();
+        if (!fTypeStats[t]) fTypeStats[t] = { rooms:new Set(), count:0 };
+        fTypeStats[t].rooms.add((r.bldgKey||'')+'::'+(r.room||''));
+        fTypeStats[t].count++;
       });
-      html2 += '<div style="font-size:11px;font-weight:800;color:#2d6a4f;margin-bottom:8px">📚 교시별 (초등·중등)</div>';
-      html2 += sorted.map(([type,v]) => {
-        const pct = totalRooms ? (v.rooms.size/totalRooms*100).toFixed(1) : 0;
-        return barRow(type, pct, v.rooms.size+'호실/'+v.count+'건', '#7048e8');
-      }).join('');
-    }
-    if (withoutType.length > 0) {
-      // 시간 기준 (고등)
-      html2 += '<div style="font-size:11px;font-weight:800;color:#c05621;margin:'+(Object.keys(typeStats).length>0?'14px':'0')+'px 0 8px">🕐 시간대별 (고등)</div>';
-      html2 += Object.entries(timeSlots)
-        .filter(([,v])=>v.count>0)
-        .map(([slot,v]) => barRow(slot, (v.count/maxTimeCount*100).toFixed(1), v.count+'건', '#c05621'))
-        .join('');
-    }
-    if (!html2) html2 = '<div style="color:var(--text-sub);padding:20px;text-align:center">데이터 없음</div>';
-    timeEl.innerHTML = html2;
+
+      // 시간대별 집계 (toMin 개선: 다양한 형식 허용)
+      const fTimeSlots = {};
+      for (let h=9;h<22;h++) fTimeSlots[`${String(h).padStart(2,'0')}:00`] = { count:0 };
+      const safeToMin = t => {
+        if (!t) return 0;
+        const s = String(t).replace(/오전|오후|분/g,'').replace(/시/g,':').trim();
+        const parts = s.split(':');
+        const h = parseInt(parts[0])||0;
+        const m = parseInt(parts[1])||0;
+        return h*60+m;
+      };
+      fWithoutType.forEach(r => {
+        const st = safeToMin(r.timeStart), en = safeToMin(r.timeEnd);
+        if (!st && !en) return;
+        if (en <= st) return;
+        Object.keys(fTimeSlots).forEach(slot => {
+          const sh = parseInt(slot)*60;
+          if (sh>=st && sh<en) fTimeSlots[slot].count++;
+        });
+      });
+      const fMaxTime = Math.max(...Object.values(fTimeSlots).map(v=>v.count),1);
+      const fTotalRooms = [...new Set(filtered.map(r=>(r.bldgKey||'')+'::'+(r.room||'')))].length || 1;
+
+      let html2 = '';
+      if (Object.keys(fTypeStats).length > 0) {
+        const ORDER = ['1교시','2교시','3교시','특목','성대경시'];
+        const sorted = Object.entries(fTypeStats).sort((a,b)=>{
+          const ai=ORDER.indexOf(a[0]),bi=ORDER.indexOf(b[0]);
+          return (ai<0?99:ai)-(bi<0?99:bi);
+        });
+        html2 += '<div style="font-size:11px;font-weight:800;color:#2d6a4f;margin-bottom:8px">📚 교시별</div>';
+        html2 += sorted.map(([type,v])=>{
+          const pct = (v.rooms.size/fTotalRooms*100).toFixed(1);
+          return barRow(type, pct, v.rooms.size+'호실/'+v.count+'건', '#7048e8');
+        }).join('');
+      }
+
+      const hasTimeData = Object.values(fTimeSlots).some(v=>v.count>0);
+      if (fWithoutType.length > 0) {
+        html2 += `<div style="font-size:11px;font-weight:800;color:#c05621;margin:${Object.keys(fTypeStats).length>0?'14px':'0'}px 0 8px">🕐 시간대별</div>`;
+        if (hasTimeData) {
+          html2 += Object.entries(fTimeSlots)
+            .filter(([,v])=>v.count>0)
+            .map(([slot,v])=>barRow(slot, (v.count/fMaxTime*100).toFixed(1), v.count+'건', '#c05621'))
+            .join('');
+        } else {
+          html2 += '<div style="font-size:11px;color:var(--text-sub);padding:8px">시작/종료 시간 데이터를 확인해주세요</div>';
+        }
+      }
+      if (!html2) html2 = '<div style="color:var(--text-sub);padding:20px;text-align:center">데이터 없음</div>';
+
+      const content = document.getElementById('occ_time_content');
+      if (content) content.innerHTML = html2;
+    };
+
+    window.selectOccTimeDept = function(dept) {
+      timeDepts.forEach(d => {
+        const btn = document.getElementById('occ_time_tab_'+d.replace(/\s/g,'_'));
+        if (!btn) return;
+        const sel = d===dept;
+        btn.style.background  = sel?'#c05621':'transparent';
+        btn.style.color       = sel?'#fff':'var(--text-sub)';
+        btn.style.borderColor = sel?'#c05621':'var(--border)';
+      });
+      window.renderOccTimeChart(dept);
+    };
+
+    window.renderOccTimeChart('전체');
   }
 
   // 사업부별 차트
