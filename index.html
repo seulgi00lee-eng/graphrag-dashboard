@@ -2672,6 +2672,16 @@ function renderAdmin() {
           onclick="applyEffFilter()">🔍 조회</button>
         <button class="btn btn-secondary" style="font-size:12px" onclick="resetEffFilter()">초기화</button>
         <button class="btn btn-primary"   style="font-size:12px;margin-left:auto" onclick="openAddEffRow()">+ 데이터 추가</button>
+        <button onclick="deleteSelectedEff()"
+          style="padding:6px 14px;background:#fff5f5;border:1px solid #fca5a5;border-radius:6px;
+                 color:#e03131;font-size:12px;font-weight:700;cursor:pointer;font-family:'Nanum Gothic',sans-serif">
+          ✕ 선택 삭제
+        </button>
+        <button onclick="deleteAllEff()"
+          style="padding:6px 14px;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;
+                 color:#b91c1c;font-size:12px;font-weight:700;cursor:pointer;font-family:'Nanum Gothic',sans-serif">
+          🗑 전체 삭제
+        </button>
         <button class="btn btn-secondary" style="font-size:12px" onclick="exportEffExcel()">📥 데이터 다운로드</button>
         <button class="btn btn-secondary" style="font-size:12px;border-color:#7048e8;color:#7048e8" onclick="downloadEffTemplate()">📋 템플릿 다운로드</button>
         <label style="padding:5px 12px;background:#f5f3ff;border:1px solid #7048e8;border-radius:6px;
@@ -3766,6 +3776,7 @@ function renderEffViz(container, parsed, camp) {
 
 // ── 메인 테이블
 const EFF_COLS = [
+  { key:'_chk',        label:'', calc:true },
   { key:'region',      label:'지역' },
   { key:'dept',        label:'사업부' },
   { key:'campus',      label:'관코드' },
@@ -3781,7 +3792,7 @@ const EFF_COLS = [
   { key:'capRate',     label:'수용효율%', calc:true },
   { key:'stdFee',      label:'표준수강료' },
   { key:'stdSales',    label:'표준매출', calc:true },
-  { key:'curSales',    label:'현재매출', calc:true },
+  { key:'curSales',    label:'발생매출(추정)', calc:true },
   { key:'salesRate',   label:'매출효율%', calc:true },
   { key:'grade',       label:'등급', calc:true },
   { key:'_edit',       label:'관리', calc:true },
@@ -3794,12 +3805,19 @@ function renderEffTable() {
 
   // 헤더
   thead.innerHTML = `<tr style="background:var(--surface2)">` +
-    EFF_COLS.map(c => `
-    <th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-sub);
-               white-space:nowrap;cursor:${c.calc?'default':'pointer'};border-bottom:2px solid var(--border)"
-        ${c.calc?'':` onclick="sortEff('${c.key}')"`}>
-      ${c.label}${effSortCol===c.key ? (effSortAsc?'▲':'▼') : ''}
-    </th>`).join('') + `</tr>`;
+    EFF_COLS.map(c => {
+      if (c.key === '_chk') return `
+        <th style="padding:8px 10px;border-bottom:2px solid var(--border);width:36px;text-align:center">
+          <input type="checkbox" id="eff_chk_all" onchange="toggleAllEffChk(this.checked)"
+            title="전체 선택" style="cursor:pointer;width:14px;height:14px">
+        </th>`;
+      return `
+      <th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-sub);
+                 white-space:nowrap;cursor:${c.calc?'default':'pointer'};border-bottom:2px solid var(--border)"
+          ${c.calc?'':` onclick="sortEff('${c.key}')"`}>
+        ${c.label}${effSortCol===c.key ? (effSortAsc?'▲':'▼') : ''}
+      </th>`;
+    }).join('') + `</tr>`;
 
   // 데이터 정렬 - classKey DISTINCT 기준으로 수강생/매출 계산
   const seenClassKeys = new Set();
@@ -3851,8 +3869,12 @@ function renderEffTable() {
            background:${isDup?'#f5f5f5':'#eef2ff'};color:${isDup?'#ccc':'#4263eb'}">${r.day}</span>`
       : '-';
 
-    return `<tr style="border-bottom:1px solid var(--border);${dupAlpha}"
+    return `<tr id="eff_row_${r.id}" style="border-bottom:1px solid var(--border);${dupAlpha}"
       onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+      <td style="padding:8px 10px;text-align:center;width:36px">
+        <input type="checkbox" class="eff_row_chk" data-id="${r.id}"
+          style="cursor:pointer;width:14px;height:14px">
+      </td>
       <td style="padding:8px 10px;font-size:12px">${r.region}</td>
       <td style="padding:8px 10px;font-size:12px">${r.dept}</td>
       <td style="padding:8px 10px"><span class="badge ${badgeCls}">${r.campus}</span></td>
@@ -4200,6 +4222,30 @@ function saveEffRow() {
   showToast(_editEffId ? '수정되었습니다.' : '추가되었습니다.');
 }
 
+function toggleAllEffChk(checked) {
+  document.querySelectorAll('.eff_row_chk').forEach(chk => chk.checked = checked);
+}
+
+function deleteSelectedEff() {
+  const selected = [...document.querySelectorAll('.eff_row_chk:checked')].map(c => parseInt(c.dataset.id));
+  if (!selected.length) { showToast('선택된 항목이 없습니다.', true); return; }
+  if (!confirm(`선택한 ${selected.length}개를 삭제하시겠습니까?`)) return;
+  EFF_DATA = EFF_DATA.filter(r => !selected.includes(r.id));
+  // 전체선택 체크박스 해제
+  const allChk = document.getElementById('eff_chk_all');
+  if (allChk) allChk.checked = false;
+  initEffFilters(); renderDeptKPI(); renderEffKPI(); renderEffTable();
+  showToast(`✅ ${selected.length}개 삭제 완료`);
+}
+
+function deleteAllEff() {
+  if (!EFF_DATA.length) { showToast('데이터가 없습니다.', true); return; }
+  if (!confirm(`전체 ${EFF_DATA.length}개를 모두 삭제하시겠습니까?`)) return;
+  EFF_DATA = [];
+  initEffFilters(); renderDeptKPI(); renderEffKPI(); renderEffTable();
+  showToast('✅ 전체 삭제 완료');
+}
+
 function deleteEffRow(id) {
   if (!confirm('이 데이터를 삭제하시겠습니까?')) return;
   EFF_DATA = EFF_DATA.filter(r => r.id !== id);
@@ -4500,7 +4546,7 @@ function uploadEffExcel(input) {
 // ── 엑셀 다운로드 (CSV)
 function exportEffExcel() {
   const data = getFilteredEff();
-  const headers = ['지역','사업부','관코드','건물','층수','공간타입','호실','평수','최대수용','현재인원','수업명/반명','수용효율%','표준수강료','표준매출','현재매출','매출효율%'];
+  const headers = ['지역','사업부','관코드','건물','층수','공간타입','호실','평수','최대수용','현재인원','수업명/반명','수용효율%','표준수강료','표준매출','발생매출(추정)','매출효율%'];
   const rows = data.map(r => {
     const capRate  = r.maxCapacity ? (r.curStudents/r.maxCapacity*100).toFixed(1) : 0;
     const stdSales = r.maxCapacity * r.stdFee;
