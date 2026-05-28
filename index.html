@@ -2999,7 +2999,12 @@ function renderDeptKPI() {
     '고등사업부':'#c05621','테디사업부':'#7048e8','미분류':'#888'
   };
 
-  el.innerHTML = Object.entries(byDept).map(([dept, rows]) => {
+  const DEPT_ORDER = ['초등사업부','중등사업부','고등사업부','테디사업부'];
+  const sortedDepts = Object.entries(byDept).sort((a,b)=>{
+    const ai=DEPT_ORDER.indexOf(a[0]), bi=DEPT_ORDER.indexOf(b[0]);
+    return (ai<0?99:ai)-(bi<0?99:bi);
+  });
+  el.innerHTML = sortedDepts.map(([dept, rows]) => {
     const s = calcDeptStats(rows);
     const grade = s.capRate>=80?'#2f9e44':s.capRate>=60?'#e67700':'#e03131';
     const color = deptColors[dept] || '#888';
@@ -3170,7 +3175,11 @@ function renderOccupancy() {
 
   // ── 요일별 차트 사업부 탭 생성
   let _occDayDept = '전체';
-  const depts = ['전체', ...new Set(data.map(r=>r.dept).filter(Boolean))].sort((a,b) => a==='전체'?-1:b==='전체'?1:a.localeCompare(b));
+  const DEPT_ORDER3 = ['초등사업부','중등사업부','고등사업부','테디사업부'];
+  const depts = ['전체', ...new Set(data.map(r=>r.dept).filter(Boolean))].sort((a,b)=>{
+    if(a==='전체') return -1; if(b==='전체') return 1;
+    return (DEPT_ORDER3.indexOf(a)<0?99:DEPT_ORDER3.indexOf(a))-(DEPT_ORDER3.indexOf(b)<0?99:DEPT_ORDER3.indexOf(b));
+  });
   const tabsEl = document.getElementById('occ_day_dept_tabs');
   if (tabsEl) {
     tabsEl.innerHTML = depts.map(d => `
@@ -3219,7 +3228,11 @@ function renderOccupancy() {
   const timeEl = document.getElementById('occ_time_chart');
   if (timeEl) {
     // 사업부 탭 생성
-    const timeDepts = ['전체', ...new Set(data.map(r=>r.dept).filter(Boolean))].sort((a,b)=>a==='전체'?-1:b==='전체'?1:0);
+    const DEPT_ORDER2 = ['초등사업부','중등사업부','고등사업부','테디사업부'];
+  const timeDepts = ['전체', ...new Set(data.map(r=>r.dept).filter(Boolean))].sort((a,b)=>{
+    if(a==='전체') return -1; if(b==='전체') return 1;
+    return (DEPT_ORDER2.indexOf(a)<0?99:DEPT_ORDER2.indexOf(a))-(DEPT_ORDER2.indexOf(b)<0?99:DEPT_ORDER2.indexOf(b));
+  });
     let _occTimeDept = '전체';
 
     const tabBar = `<div id="occ_time_dept_tabs" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">
@@ -3255,9 +3268,15 @@ function renderOccupancy() {
       const fTimeSlots = {};
       for (let h=9;h<22;h++) fTimeSlots[`${String(h).padStart(2,'0')}:00`] = { count:0 };
       const safeToMin = t => {
-        if (!t) return 0;
-        const s = String(t).replace(/오전|오후|분/g,'').replace(/시/g,':').trim();
-        const parts = s.split(':');
+        if (!t && t !== 0) return 0;
+        const raw = String(t).trim();
+        // 엑셀 시간 소수점 형식 처리 (예: 0.770833 = 18:30)
+        if (/^0\.\d+$/.test(raw)) {
+          const mins = Math.round(parseFloat(raw)*24*60);
+          return mins;
+        }
+        const s = raw.replace(/오전|오후|분/g,'').replace(/시(?=\d|:|$)/g,':').replace(/시$/g,':00').trim();
+        const parts = s.replace(/[~\-]/g,':').split(':');
         const h = parseInt(parts[0])||0;
         const m = parseInt(parts[1])||0;
         return h*60+m;
@@ -4470,7 +4489,7 @@ function uploadEffExcel(input) {
         // 시트: 입력_데이터 (v4) 또는 구버전 강의실_기본정보 둘 다 지원
         const ws1 = wb.Sheets['입력_데이터'] || wb.Sheets['강의실_기본정보'];
         if (!ws1) { showToast('❌ "입력_데이터" 시트를 찾을 수 없습니다. 템플릿 v4를 사용해주세요.', true); return; }
-        const raw1 = XLSX.utils.sheet_to_json(ws1, { header:1, defval:'' });
+        const raw1 = XLSX.utils.sheet_to_json(ws1, { header:1, defval:'', raw:false });
 
         // 헤더 행 찾기 (bldgKey 포함된 행)
         let hdrRow = -1;
@@ -4548,7 +4567,10 @@ function uploadEffExcel(input) {
           //     students(19), stdFee(20), ym(21)
           // v4: classKey(9), className(10), grade(11), teacher(12)
           //     day(13), timeStart(14), timeEnd(15), students(16), stdFee(17), ym(18)
-          const isV5 = row.length >= 20 && String(row[14]||'').match(/^[0-9교시특목성대경시]*$/);
+          // v5: 22컬럼 (bldgKey자동+classKey+classType 포함)
+          // v4: 20컬럼 (classKey+수업명+학년+강사명+요일+시작+종료+수강생+수강료+기준월)
+          // 컬럼 수로 버전 판별 (v5=22, v4=20, 더 안전한 방법)
+          const isV5 = row.length >= 21;
           const classKey   = String(row[isV5?10:9]||'').trim();
           const className  = String(row[isV5?11:10]||'').trim();
           const grade      = String(row[isV5?12:11]||'').trim();
