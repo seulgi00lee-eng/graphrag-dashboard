@@ -3324,23 +3324,79 @@ function renderOccupancy() {
           const ai=ORDER.indexOf(a[0]),bi=ORDER.indexOf(b[0]);
           return (ai<0?99:ai)-(bi<0?99:bi);
         });
-        html2 += '<div style="font-size:11px;font-weight:800;color:#2d6a4f;margin-bottom:8px">📚 교시별</div>';
-        html2 += sorted.map(([type,v])=>{
-          const pct = (v.rooms.size/fTotalRooms*100).toFixed(1);
-          return barRow(type, pct, v.rooms.size+'호실/'+fTotalRooms+'개 중', '#7048e8');
-        }).join('');
+
+        // 전체 운영 효율 계산 (전체 슬롯 대비)
+        const totalSlots = fTotalRooms * sorted.length; // 호실수 × 교시수
+        const totalUsed  = sorted.reduce((s,[,v])=>s+v.rooms.size, 0);
+        const overallEff = totalSlots ? (totalUsed/totalSlots*100).toFixed(1) : 0;
+
+        html2 += `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <!-- 교시별 독립 가동률 -->
+          <div>
+            <div style="font-size:11px;font-weight:800;color:#2d6a4f;margin-bottom:8px">
+              📚 교시별 독립 가동률
+              <span style="font-size:10px;font-weight:400;color:var(--text-sub);margin-left:4px">각 교시 강의실 점유율</span>
+            </div>
+            ${sorted.map(([type,v])=>{
+              const pct = (v.rooms.size/fTotalRooms*100).toFixed(1);
+              return barRow(type, pct, v.rooms.size+'/'+fTotalRooms+'호실', '#7048e8');
+            }).join('')}
+          </div>
+          <!-- 전체 운영 효율 -->
+          <div>
+            <div style="font-size:11px;font-weight:800;color:#4263eb;margin-bottom:8px">
+              📊 전체 운영 효율
+              <span style="font-size:10px;font-weight:400;color:var(--text-sub);margin-left:4px">전체 슬롯 대비 활용도</span>
+            </div>
+            <div style="padding:10px;background:#f0f4ff;border-radius:8px;margin-bottom:10px;text-align:center">
+              <div style="font-size:10px;color:var(--text-sub)">전체 효율</div>
+              <div style="font-size:24px;font-weight:800;color:${overallEff>=80?'#2f9e44':overallEff>=60?'#4263eb':'#e67700'};font-family:'JetBrains Mono',monospace">${overallEff}%</div>
+              <div style="font-size:10px;color:var(--text-sub)">${totalUsed}슬롯 / 전체 ${totalSlots}슬롯</div>
+            </div>
+            ${sorted.map(([type,v])=>{
+              const pct = totalSlots ? (v.rooms.size/totalSlots*100).toFixed(1) : 0;
+              return barRow(type, pct, v.rooms.size+'/'+totalSlots+'슬롯', '#4263eb');
+            }).join('')}
+          </div>
+        </div>`;
       }
 
       const hasTimeData = Object.values(fTimeSlots).some(v=>v.rooms.size>0);
       if (fWithoutType.length > 0) {
-        html2 += `<div style="font-size:11px;font-weight:800;color:#c05621;margin:${Object.keys(fTypeStats).length>0?'14px':'0'}px 0 8px">🕐 시간대별</div>`;
+        html2 += `<div style="font-size:11px;font-weight:800;color:#c05621;margin:${Object.keys(fTypeStats).length>0?'14px':'0'}px 0 8px">🕐 시간대별 가동률
+          <span style="font-size:10px;font-weight:400;color:var(--text-sub);margin-left:4px">각 시간대 강의실 점유율</span>
+        </div>`;
         if (hasTimeData) {
-          html2 += Object.entries(fTimeSlots)
-            .filter(([,v])=>v.rooms.size>0)
-            .map(([slot,v])=>{
-              const pct = (v.rooms.size/fTotalRooms*100).toFixed(1);
-              return barRow(slot, pct, v.rooms.size+'호실/'+fTotalRooms+'개 중', '#c05621');
-            }).join('');
+          // 전체 운영 효율 (시간대 기준)
+          const timeEntries = Object.entries(fTimeSlots).filter(([,v])=>v.rooms.size>0);
+          const timeTotal  = fTotalRooms * Object.keys(fTimeSlots).length;
+          const timeUsed   = timeEntries.reduce((s,[,v])=>s+v.rooms.size, 0);
+          const timeEff    = timeTotal ? (timeUsed/timeTotal*100).toFixed(1) : 0;
+
+          html2 += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <!-- 시간대별 독립 가동률 -->
+            <div>
+              <div style="font-size:10px;color:var(--text-sub);margin-bottom:6px;font-weight:700">각 시간대 점유율</div>
+              ${timeEntries.map(([slot,v])=>{
+                const pct = (v.rooms.size/fTotalRooms*100).toFixed(1);
+                return barRow(slot, pct, v.rooms.size+'/'+fTotalRooms+'호실', '#c05621');
+              }).join('')}
+            </div>
+            <!-- 전체 운영 효율 -->
+            <div>
+              <div style="font-size:10px;color:var(--text-sub);margin-bottom:6px;font-weight:700">전체 슬롯 대비 활용도</div>
+              <div style="padding:10px;background:#fff9f0;border-radius:8px;margin-bottom:10px;text-align:center">
+                <div style="font-size:10px;color:var(--text-sub)">전체 효율</div>
+                <div style="font-size:24px;font-weight:800;color:${timeEff>=80?'#2f9e44':timeEff>=60?'#c05621':'#e67700'};font-family:'JetBrains Mono',monospace">${timeEff}%</div>
+                <div style="font-size:10px;color:var(--text-sub)">${timeUsed}슬롯 / 전체 ${timeTotal}슬롯</div>
+              </div>
+              ${timeEntries.map(([slot,v])=>{
+                const pct = timeTotal ? (v.rooms.size/timeTotal*100).toFixed(1) : 0;
+                return barRow(slot, pct, v.rooms.size+'/'+timeTotal+'슬롯', '#e67700');
+              }).join('')}
+            </div>
+          </div>`;
         } else {
           html2 += '<div style="font-size:11px;color:var(--text-sub);padding:8px">시작/종료 시간 데이터를 확인해주세요</div>';
         }
