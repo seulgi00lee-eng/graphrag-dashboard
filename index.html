@@ -1794,7 +1794,7 @@ function renderInput() {
                onclick="${b.rent?`selectBldg('${id}')`:''}">
             <div style="font-size:13px;font-weight:800;color:${b.rent?'var(--text)':'var(--text-sub)'}">${b.name}</div>
             <div style="font-size:11px;color:var(--text-sub);margin-top:3px">
-              ${b.rent ? `${b.area}평 · ${Math.round(b.rent/10000)}만원` : '데이터 미등록'}
+              ${b.rent ? `${b.area}평 · ${Math.round(b.rent).toLocaleString()}원` : '데이터 미등록'}
             </div>
             ${!b.rent?'<div style="font-size:10px;color:var(--text-sub);margin-top:4px">준비중</div>':''}
           </div>`).join('')}
@@ -3025,8 +3025,8 @@ function renderDeptKPI() {
       <div style="font-size:11px;color:var(--text-sub);border-top:1px solid var(--border);padding-top:8px">
         호실 <strong>${s.roomCount}개</strong> · 수업 <strong>${s.classCount}개</strong><br>
         현재 <strong>${s.totalStudents}명</strong> / 최대 <strong>${s.totalMaxCap}명</strong><br>
-        표준매출 ${Math.round(s.totalMaxSales/10000)}만원<br>
-        발생매출(추정) <strong style="color:#4263eb">${Math.round(s.totalCurSales/10000)}만원</strong>
+        표준매출 ${Math.round(s.totalMaxSales).toLocaleString()}원<br>
+        발생매출(추정) <strong style="color:#4263eb">${Math.round(s.totalCurSales).toLocaleString()}원</strong>
       </div>
     </div>`;
   }).join('') || '<div style="color:var(--text-sub);padding:20px">데이터 없음</div>';
@@ -3583,8 +3583,8 @@ function renderEffKPI() {
       <div style="font-size:11px;color:var(--text-sub);margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
         호실 <strong>${s.roomCount}개</strong> · 수업 <strong>${s.classCount}개</strong><br>
         현재 <strong>${s.totalStudents}명</strong> / 최대 <strong>${s.totalMaxCap}명</strong><br>
-        표준매출 ${Math.round(s.totalMaxSales/10000)}만원<br>
-        발생매출(추정) <strong style="color:#4263eb">${Math.round(s.totalCurSales/10000)}만원</strong>
+        표준매출 ${Math.round(s.totalMaxSales).toLocaleString()}원<br>
+        발생매출(추정) <strong style="color:#4263eb">${Math.round(s.totalCurSales).toLocaleString()}원</strong>
       </div>
       <button onclick="openEffAnalysis('${camp}')"
         style="width:100%;margin-top:10px;padding:7px;border:none;border-radius:7px;
@@ -3624,7 +3624,7 @@ function buildEffContext(camp) {
 [${camp} 캠퍼스 운영 현황]
 - 총 호실: ${data.length}개 | 현재 수강인원: ${totalStudents}명 / 최대수용: ${totalMax}명
 - 수용효율: ${capRate}% | 여유좌석: ${totalVacant}석 | 매출효율: ${salesRate}%
-- 현재 월매출: ${Math.round(totalCurSales/10000)}만원 | 최대가능 매출: ${Math.round(totalStdSales/10000)}만원 | 갭: ${Math.round((totalStdSales-totalCurSales)/10000)}만원
+- 현재 월매출: ${Math.round(totalCurSales).toLocaleString()}원 | 최대가능 매출: ${Math.round(totalStdSales).toLocaleString()}원 | 갭: ${Math.round(totalStdSales-totalCurSales).toLocaleString()}원
 
 [호실별 상세]
 ${roomDetails}
@@ -3871,7 +3871,7 @@ function renderEffViz(container, parsed, camp) {
         <div style="flex:1;height:14px;background:#e9ecef;border-radius:7px;overflow:hidden">
           <div style="width:${salesPct}%;height:100%;background:${color};opacity:.7;border-radius:7px"></div>
         </div>
-        <span style="font-size:12px;font-weight:800;color:${color};width:60px;text-align:right">${Math.round(s.monthlySales/10000)}만원</span>
+        <span style="font-size:12px;font-weight:800;color:${color};width:60px;text-align:right">${Math.round(s.monthlySales).toLocaleString()}원</span>
       </div>
       <div style="margin-top:3px;font-size:11px;color:var(--text-sub);padding-left:60px">
         수강인원 ${s.students}명
@@ -4270,8 +4270,8 @@ function updatePeriodSummary() {
     <div style="display:flex;gap:16px;flex-wrap:wrap">
       <span>📚 <strong>${periods.length}교시</strong></span>
       <span>👥 평균수용효율 <strong style="color:${avgCap>=80?'#2f9e44':avgCap>=60?'#e67700':'#e03131'}">${avgCap}%</strong></span>
-      <span>💰 총 최대매출 <strong>${Math.round(totalMaxSales/10000)}만원</strong></span>
-      <span>💵 총 발생매출(추정) <strong style="color:#4263eb">${Math.round(totalCurSales/10000)}만원</strong></span>
+      <span>💰 총 최대매출 <strong>${Math.round(totalMaxSales).toLocaleString()}원</strong></span>
+      <span>💵 총 발생매출(추정) <strong style="color:#4263eb">${Math.round(totalCurSales).toLocaleString()}원</strong></span>
     </div>`;
 }
 
