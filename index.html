@@ -2947,6 +2947,40 @@ function initEffAnalysis() {
   renderEffTable();
 }
 
+// ── classKey DISTINCT 집계 헬퍼 (요일 중복 완전 제거)
+function getClassMapByDept(rows) {
+  const classMap = new Map();
+  rows.forEach(r => {
+    const ck = r.classKey || `${r.bldgKey||''}_${r.room}_${r.campus}_${r.className}`;
+    if (!classMap.has(ck)) classMap.set(ck, { ...r, _ck: ck });
+    // 요일만 추가 (다른 필드는 첫 행 기준)
+  });
+  return [...classMap.values()];
+}
+
+function calcDeptStats(rows) {
+  const uniqueRooms   = new Set(rows.map(r => (r.bldgKey||'')+'::'+(r.room||'')));
+  const deduped       = getClassMapByDept(rows); // classKey 기준 1개씩
+  let totalStudents=0, totalMaxSales=0, totalCurSales=0, totalMaxCap=0;
+  deduped.forEach(r => {
+    const st = calcEffStats(r);
+    totalStudents += st.totalStudents;
+    totalMaxSales += st.totalMaxSales;
+    totalCurSales += st.totalCurSales;
+    totalMaxCap   += (r.maxCapacity||0);
+  });
+  return {
+    roomCount:     uniqueRooms.size,
+    classCount:    deduped.length,
+    totalStudents,
+    totalMaxCap,
+    totalMaxSales,
+    totalCurSales,
+    capRate:   totalMaxCap   ? (totalStudents/totalMaxCap*100).toFixed(1)   : 0,
+    salesRate: totalMaxSales ? (totalCurSales/totalMaxSales*100).toFixed(1) : 0,
+  };
+}
+
 // ── 사업부별 KPI 카드
 function renderDeptKPI() {
   const el = document.getElementById('eff_dept_kpi_row');
@@ -2961,50 +2995,33 @@ function renderDeptKPI() {
   });
 
   const deptColors = {
-    '중등사업부': '#4263eb', '초등사업부': '#2d6a4f',
-    '고등사업부': '#c05621', '테디사업부': '#7048e8', '미분류': '#888'
+    '중등사업부':'#4263eb','초등사업부':'#2d6a4f',
+    '고등사업부':'#c05621','테디사업부':'#7048e8','미분류':'#888'
   };
 
   el.innerHTML = Object.entries(byDept).map(([dept, rows]) => {
-    const seenClass = new Set();
-    let totalStudents=0, totalMaxSales=0, totalCurSales=0, totalMaxCap=0;
-    const uniqueRooms = new Set();
-
-    rows.forEach(r => {
-      uniqueRooms.add((r.bldgKey||'')+'::'+(r.room||''));
-      const ck = r.classKey || `${r.room}_${r.className}`;
-      if (seenClass.has(ck)) return;
-      seenClass.add(ck);
-      const st = calcEffStats(r);
-      totalStudents += st.totalStudents;
-      totalMaxSales += st.totalMaxSales;
-      totalCurSales += st.totalCurSales;
-      totalMaxCap   += (r.maxCapacity||0);
-    });
-
-    const capRate   = totalMaxCap   ? (totalStudents/totalMaxCap*100).toFixed(1)   : 0;
-    const salesRate = totalMaxSales ? (totalCurSales/totalMaxSales*100).toFixed(1) : 0;
-    const grade = capRate>=80?'#2f9e44':capRate>=60?'#e67700':'#e03131';
+    const s = calcDeptStats(rows);
+    const grade = s.capRate>=80?'#2f9e44':s.capRate>=60?'#e67700':'#e03131';
     const color = deptColors[dept] || '#888';
 
     return `
-    <div class="kpi-card" style="border-top:4px solid ${color};border-left:none">
+    <div class="kpi-card" style="border-top:4px solid ${color}">
       <div style="font-size:13px;font-weight:800;color:${color};margin-bottom:8px">${dept}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
         <div>
           <div style="font-size:10px;color:var(--text-sub)">수용효율</div>
-          <div style="font-size:20px;font-weight:800;color:${grade};font-family:'JetBrains Mono',monospace">${capRate}%</div>
+          <div style="font-size:20px;font-weight:800;color:${grade};font-family:'JetBrains Mono',monospace">${s.capRate}%</div>
         </div>
         <div>
           <div style="font-size:10px;color:var(--text-sub)">매출효율</div>
-          <div style="font-size:20px;font-weight:800;color:${grade};font-family:'JetBrains Mono',monospace">${salesRate}%</div>
+          <div style="font-size:20px;font-weight:800;color:${grade};font-family:'JetBrains Mono',monospace">${s.salesRate}%</div>
         </div>
       </div>
       <div style="font-size:11px;color:var(--text-sub);border-top:1px solid var(--border);padding-top:8px">
-        호실 <strong>${uniqueRooms.size}개</strong> · 수업 <strong>${seenClass.size}개</strong><br>
-        현재 <strong>${totalStudents}명</strong> / 최대 <strong>${totalMaxCap}명</strong><br>
-        최대매출 ${Math.round(totalMaxSales/10000)}만원<br>
-        실매출 <strong style="color:#4263eb">${Math.round(totalCurSales/10000)}만원</strong>
+        호실 <strong>${s.roomCount}개</strong> · 수업 <strong>${s.classCount}개</strong><br>
+        현재 <strong>${s.totalStudents}명</strong> / 최대 <strong>${s.totalMaxCap}명</strong><br>
+        표준매출 ${Math.round(s.totalMaxSales/10000)}만원<br>
+        발생매출(추정) <strong style="color:#4263eb">${Math.round(s.totalCurSales/10000)}만원</strong>
       </div>
     </div>`;
   }).join('') || '<div style="color:var(--text-sub);padding:20px">데이터 없음</div>';
@@ -3376,8 +3393,8 @@ function renderEffKPI() {
   const data = getFilteredEff();
   const byCampus = {};
   data.forEach(r => {
-    if (!byCampus[r.campus]) byCampus[r.campus] = { rows:[], campus:r.campus };
-    byCampus[r.campus].rows.push(r);
+    if (!byCampus[r.campus]) byCampus[r.campus] = [];
+    byCampus[r.campus].push(r);
   });
 
   const kpiRow = document.getElementById('eff_kpi_row');
@@ -3385,49 +3402,23 @@ function renderEffKPI() {
 
   const campusColorMap = BUILDINGS.b7.campusColors || {};
 
-  kpiRow.innerHTML = Object.entries(byCampus).map(([camp, d]) => {
-    const rows = d.rows;
-    const campusColorMap2 = BUILDINGS.b7.campusColors || {};
-
-    // ── 물리적 호실 수 (room DISTINCT)
-    const uniqueRooms = [...new Set(rows.map(r => (r.bldgKey||'')+'::'+(r.room||'')))];
-    const roomCount = uniqueRooms.length;
-
-    // ── 수업 수 (classKey DISTINCT)
-    const uniqueClasses = [...new Set(rows.map(r => r.classKey || `${r.room}_${r.className}`))];
-    const classCount = uniqueClasses.length;
-
-    // ── 매출/수용효율: classKey DISTINCT 기준 1회만
-    let totalStudents = 0, totalMaxSales = 0, totalCurSales = 0, totalMaxCap = 0;
-    const seenClass = new Set();
-    rows.forEach(r => {
-      const ck = r.classKey || `${r.room}_${r.className}`;
-      if (seenClass.has(ck)) return; // 이미 집계한 수업 스킵
-      seenClass.add(ck);
-      const st = calcEffStats(r);
-      totalStudents += st.totalStudents;
-      totalMaxSales += st.totalMaxSales;
-      totalCurSales += st.totalCurSales;
-      totalMaxCap   += (r.maxCapacity || 0);
-    });
-
-    const capRate  = (classCount && totalMaxCap) ? (totalStudents / totalMaxCap * 100).toFixed(1) : 0;
-    const salesRate = totalMaxSales ? (totalCurSales / totalMaxSales * 100).toFixed(1) : 0;
-    const grade = capRate >= 80 ? '#2f9e44' : capRate >= 60 ? '#e67700' : '#e03131';
-    const badgeCls = campusColorMap2[camp] || '';
+  kpiRow.innerHTML = Object.entries(byCampus).map(([camp, rows]) => {
+    const s = calcDeptStats(rows);  // 헬퍼로 통일 (classKey DISTINCT + 요일 중복 제거)
+    const grade    = s.capRate>=80?'#2f9e44':s.capRate>=60?'#e67700':'#e03131';
+    const badgeCls = campusColorMap[camp] || '';
 
     return `
     <div class="kpi-card" style="border-top:3px solid ${grade}">
       <div class="kpi-label"><span class="badge ${badgeCls}">${camp}</span></div>
       <div style="font-size:11px;color:var(--text-sub);margin:6px 0 2px">수용효율</div>
-      <div style="font-size:22px;font-weight:800;color:${grade};font-family:'JetBrains Mono',monospace">${capRate}%</div>
+      <div style="font-size:22px;font-weight:800;color:${grade};font-family:'JetBrains Mono',monospace">${s.capRate}%</div>
       <div style="font-size:11px;color:var(--text-sub);margin-top:8px">매출효율</div>
-      <div style="font-size:18px;font-weight:800;color:${grade};font-family:'JetBrains Mono',monospace">${salesRate}%</div>
+      <div style="font-size:18px;font-weight:800;color:${grade};font-family:'JetBrains Mono',monospace">${s.salesRate}%</div>
       <div style="font-size:11px;color:var(--text-sub);margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
-        호실 <strong>${roomCount}개</strong> · 수업 <strong>${classCount}개</strong><br>
-        현재 <strong>${totalStudents}명</strong> / 최대 <strong>${totalMaxCap}명</strong><br>
-        최대매출 ${Math.round(totalMaxSales/10000)}만원<br>
-        실매출 <strong style="color:#4263eb">${Math.round(totalCurSales/10000)}만원</strong>
+        호실 <strong>${s.roomCount}개</strong> · 수업 <strong>${s.classCount}개</strong><br>
+        현재 <strong>${s.totalStudents}명</strong> / 최대 <strong>${s.totalMaxCap}명</strong><br>
+        표준매출 ${Math.round(s.totalMaxSales/10000)}만원<br>
+        발생매출(추정) <strong style="color:#4263eb">${Math.round(s.totalCurSales/10000)}만원</strong>
       </div>
       <button onclick="openEffAnalysis('${camp}')"
         style="width:100%;margin-top:10px;padding:7px;border:none;border-radius:7px;
@@ -3819,23 +3810,30 @@ function renderEffTable() {
       </th>`;
     }).join('') + `</tr>`;
 
-  // 데이터 정렬 - classKey DISTINCT 기준으로 수강생/매출 계산
-  const seenClassKeys = new Set();
-  let data = getFilteredEff().map(r => {
+  // ── classKey 기준으로 1행만 표시 (요일 합산)
+  const classMap = new Map();
+  getFilteredEff().forEach(r => {
+    const ck = r.classKey || `${r.bldgKey||''}_${r.room}_${r.campus}_${r.className}`;
+    if (!classMap.has(ck)) {
+      classMap.set(ck, { ...r, _days: [], _classKey: ck });
+    }
+    const entry = classMap.get(ck);
+    if (r.day && !entry._days.includes(r.day)) entry._days.push(r.day);
+  });
+
+  // 요일 정렬 순서
+  const DAY_ORDER = ['월','화','수','목','금','토','일'];
+  let data = [...classMap.values()].map(r => {
     const st = calcEffStats(r);
-    const ck = r.classKey || `${r.room}_${r.className}`;
-    const isDup = seenClassKeys.has(ck); // 같은 classKey 두번째 이후 행
-    if (!isDup) seenClassKeys.add(ck);
+    r._days.sort((a,b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
     return {
       ...r,
-      capRate:        isDup ? null : +st.capRate.toFixed(1),
-      stdSales:       isDup ? null : st.totalMaxSales,
-      curSales:       isDup ? null : st.totalCurSales,
-      salesRate:      isDup ? null : +st.salesRate.toFixed(1),
-      _periodCount:   st.periodCount,
-      _totalStudents: isDup ? null : st.totalStudents,
-      _isDup:         isDup, // 중복 행 표시용
-      _classKey:      ck,
+      capRate:        +st.capRate.toFixed(1),
+      stdSales:       st.totalMaxSales,
+      curSales:       st.totalCurSales,
+      salesRate:      +st.salesRate.toFixed(1),
+      _totalStudents: st.totalStudents,
+      _daysLabel:     r._days.join('/') || (r.day || '-'),
     };
   });
 
@@ -3851,35 +3849,36 @@ function renderEffTable() {
   const campusColorMap = BUILDINGS.b7.campusColors || {};
 
   tbody.innerHTML = data.map(r => {
-    const isDup   = r._isDup;
-    const gr = !isDup && r.capRate != null
-      ? (r.capRate >= 80 ? {e:'🟢',c:'#2f9e44',bg:'#f0faf4'}
-       : r.capRate >= 60 ? {e:'🟡',c:'#e67700',bg:'#fff9f0'}
-       :                   {e:'🔴',c:'#e03131',bg:'#fff5f5'})
-      : {e:'—', c:'#ccc', bg:'transparent'};
-    const fmtNum  = n => Math.round(n||0).toLocaleString('ko-KR');
+    const gr = r.capRate >= 80 ? {e:'🟢',c:'#2f9e44',bg:'#f0faf4'}
+             : r.capRate >= 60 ? {e:'🟡',c:'#e67700',bg:'#fff9f0'}
+             :                   {e:'🔴',c:'#e03131',bg:'#fff5f5'};
+    const fmtNum   = n => Math.round(n||0).toLocaleString('ko-KR');
     const badgeCls = campusColorMap[r.campus] || '';
     const classLabel = (r.periods&&r.periods.length)
       ? (r.periods||[]).map((p,i) => `${i+1}교시: ${p.className||'-'}`).join(' / ')
       : (r.className || '-');
-    const dupAlpha  = isDup ? 'opacity:0.4' : '';
-    const dash      = `<span style="color:#ccc">—</span>`;
-    const dayBadge  = r.day
-      ? `<span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:800;
-           background:${isDup?'#f5f5f5':'#eef2ff'};color:${isDup?'#ccc':'#4263eb'}">${r.day}</span>`
-      : '-';
 
-    return `<tr id="eff_row_${r.id}" style="border-bottom:1px solid var(--border);${dupAlpha}"
+    // 요일 뱃지 (합산된 요일 표시)
+    const daysLabel = r._daysLabel || r.day || '-';
+    const dayBadge = `<span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:800;
+      background:#eef2ff;color:#4263eb;white-space:nowrap">${daysLabel}</span>`;
+
+    // 수업구분 (classType)
+    const typeTag = r.classType
+      ? `<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:#f5f3ff;color:#7048e8;font-weight:700;margin-left:4px">${r.classType}</span>`
+      : '';
+
+    return `<tr id="eff_row_${r.id}" style="border-bottom:1px solid var(--border)"
       onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
       <td style="padding:8px 10px;text-align:center;width:36px">
         <input type="checkbox" class="eff_row_chk" data-id="${r.id}"
           style="cursor:pointer;width:14px;height:14px">
       </td>
-      <td style="padding:8px 10px;font-size:12px">${r.region}</td>
-      <td style="padding:8px 10px;font-size:12px">${r.dept}</td>
+      <td style="padding:8px 10px;font-size:12px">${r.region||'-'}</td>
+      <td style="padding:8px 10px;font-size:12px">${r.dept||'-'}</td>
       <td style="padding:8px 10px"><span class="badge ${badgeCls}">${r.campus}</span></td>
-      <td style="padding:8px 10px;font-size:12px">${r.building}</td>
-      <td style="padding:8px 10px;font-size:12px">${r.floor}</td>
+      <td style="padding:8px 10px;font-size:12px">${r.building||'-'}</td>
+      <td style="padding:8px 10px;font-size:12px">${r.floor||'-'}</td>
       <td style="padding:8px 10px;text-align:center">
         <span style="padding:2px 7px;border-radius:4px;font-size:11px;font-weight:800;
           background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">임차${r.spaceType}</span>
@@ -3888,27 +3887,18 @@ function renderEffTable() {
       <td style="padding:8px 10px;text-align:center">${dayBadge}</td>
       <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${r.area||'-'}평</td>
       <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${r.maxCapacity}명</td>
-      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
-        ${isDup ? dash : (r._totalStudents+'명')}
-        ${isDup ? '<div style="font-size:9px;color:#ccc">↑동일수업</div>' : ''}
-      </td>
-      <td style="padding:8px 10px;font-size:11px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${classLabel}">
-        ${classLabel}
+      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">${r._totalStudents}명</td>
+      <td style="padding:8px 10px;font-size:11px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${classLabel}">
+        ${classLabel}${typeTag}
       </td>
       <td style="padding:8px 10px;text-align:right;background:${gr.bg}">
-        ${isDup ? dash : `<span style="font-weight:800;color:${gr.c};font-family:'JetBrains Mono',monospace">${r.capRate}%</span>`}
+        <span style="font-weight:800;color:${gr.c};font-family:'JetBrains Mono',monospace">${r.capRate}%</span>
       </td>
-      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">
-        ${isDup ? dash : fmtNum(r.stdFee)+'원'}
-      </td>
-      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">
-        ${isDup ? dash : fmtNum(r.stdSales)+'원'}
-      </td>
-      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#4263eb">
-        ${isDup ? dash : fmtNum(r.curSales)+'원'}
-      </td>
+      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${fmtNum(r.stdFee)}원</td>
+      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${fmtNum(r.stdSales)}원</td>
+      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#4263eb">${fmtNum(r.curSales)}원</td>
       <td style="padding:8px 10px;text-align:right;background:${gr.bg}">
-        ${isDup ? dash : `<span style="font-weight:800;color:${gr.c};font-family:'JetBrains Mono',monospace">${r.salesRate}%</span>`}
+        <span style="font-weight:800;color:${gr.c};font-family:'JetBrains Mono',monospace">${r.salesRate}%</span>
       </td>
       <td style="padding:8px 10px;text-align:center;font-size:16px">${gr.e}</td>
       <td style="padding:8px 10px;text-align:center">
@@ -4115,7 +4105,7 @@ function updatePeriodSummary() {
       <span>📚 <strong>${periods.length}교시</strong></span>
       <span>👥 평균수용효율 <strong style="color:${avgCap>=80?'#2f9e44':avgCap>=60?'#e67700':'#e03131'}">${avgCap}%</strong></span>
       <span>💰 총 최대매출 <strong>${Math.round(totalMaxSales/10000)}만원</strong></span>
-      <span>💵 총 실매출 <strong style="color:#4263eb">${Math.round(totalCurSales/10000)}만원</strong></span>
+      <span>💵 총 발생매출(추정) <strong style="color:#4263eb">${Math.round(totalCurSales/10000)}만원</strong></span>
     </div>`;
 }
 
@@ -4318,8 +4308,8 @@ function _doDownloadTemplate() {
     ['수강생 수','class_key 기준 1회','class_key DISTINCT → students 합산','동일','월수금 3행이어도 같은 반이면 1번만'],
     ['월 수강료','class_key 기준 1회','class_key DISTINCT → fee 합산','동일','월 1회 납부 / 요일 횟수 무관'],
     ['표준매출','class_key 기준','Σ(max_capacity × fee)','동일','수업별 최대수용 기준'],
-    ['실매출','class_key 기준','Σ(students × fee)','동일','수업별 실수강생 기준'],
-    ['매출효율','class_key 기준','실매출 / 표준매출 × 100%','동일',''],
+    ['발생매출(추정)','class_key 기준','Σ(students × fee)','동일','수업별 실수강생 기준'],
+    ['매출효율','class_key 기준','발생매출(추정) / 표준매출 × 100%','동일',''],
     ['수용효율','class_key 기준','Σ수강생 / (수업수 × 최대수용)','동일','호실 내 수업 평균'],
     ['','','','',''],
     ['주간 가동률','행(요일) 단위','수업있는 요일수 / 7일','실수업 분수 / 3,960분\n(평일5×480+주말2×780)','공간타입으로 자동분기'],
