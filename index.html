@@ -2645,7 +2645,7 @@ function renderAdmin() {
   return `
   <!-- 관리자 서브탭 -->
   <div style="display:flex;gap:2px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:0">
-    ${['강의실 운영 효율 분석','월별 데이터 등록','접속 로그'].map((t,i) => `
+    ${['강의실 운영 효율 분석','📊 가동률 분석','월별 데이터 등록','접속 로그'].map((t,i) => `
       <button id="admtab_${i}" onclick="switchAdmTab(${i})"
         style="padding:8px 18px;border:none;background:${i===0?'var(--accent)':'transparent'};
                color:${i===0?'#fff':'var(--text-sub)'};font-size:13px;font-weight:700;cursor:pointer;
@@ -2682,6 +2682,13 @@ function renderAdmin() {
       </div>
     </div>
 
+    <!-- 사업부별 KPI 요약 -->
+    <div style="margin-bottom:8px;font-size:12px;font-weight:800;color:var(--text-sub)">🏢 사업부별 효율</div>
+    <div id="eff_dept_kpi_row" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px"></div>
+
+    <!-- 구분선 -->
+    <div style="font-size:12px;font-weight:800;color:var(--text-sub);margin-bottom:8px">🏷 관코드별 효율</div>
+
     <!-- 관코드별 KPI 요약 -->
     <div id="eff_kpi_row" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:12px"></div>
 
@@ -2704,8 +2711,60 @@ function renderAdmin() {
     </div>
   </div>
 
-  <!-- 서브탭 1: 월별 데이터 등록 -->
+  <!-- 서브탭 1: 가동률 분석 -->
   <div id="admtab_panel_1" style="display:none">
+
+    <!-- 필터 -->
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        ${[['occ_f_dept','사업부'],['occ_f_campus','관코드'],['occ_f_room','호실']].map(([fid,label]) => `
+        <div>
+          <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;font-weight:700">${label}</div>
+          <select id="${fid}" onchange="renderOccupancy()"
+            style="padding:6px 10px;background:var(--surface2);border:1px solid var(--border);
+                   border-radius:6px;color:var(--text);font-size:12px;outline:none;
+                   font-family:'Nanum Gothic',sans-serif;min-width:100px">
+            <option value="">전체</option>
+          </select>
+        </div>`).join('')}
+        <button class="btn btn-secondary" style="font-size:12px" onclick="resetOccFilter()">초기화</button>
+      </div>
+    </div>
+
+    <!-- KPI 요약 -->
+    <div id="occ_kpi" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <!-- 요일별 가동률 -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="card-title" style="margin-bottom:0">📅 요일별 가동률</div>
+          <div id="occ_day_dept_tabs" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+        </div>
+        <div id="occ_day_chart"></div>
+      </div>
+      <!-- 시간대별 가동률 -->
+      <div class="card">
+        <div class="card-title">🕐 시간대별 가동률</div>
+        <div id="occ_time_chart"></div>
+      </div>
+    </div>
+
+    <!-- 사업부별 가동률 -->
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">🏢 사업부별 가동률</div>
+      <div id="occ_dept_chart"></div>
+    </div>
+
+    <!-- 호실별 가동률 히트맵 -->
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">🏫 호실 × 요일 가동률 히트맵</div>
+      <div id="occ_heatmap" style="overflow-x:auto"></div>
+    </div>
+  </div>
+
+  <!-- 서브탭 2: 월별 데이터 등록 -->
+  <div id="admtab_panel_2" style="display:none">
     <div class="card">
       <div class="card-title">월별 데이터 등록</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
@@ -2729,8 +2788,8 @@ function renderAdmin() {
     </div>
   </div>
 
-  <!-- 서브탭 2: 접속 로그 -->
-  <div id="admtab_panel_2" style="display:none">
+  <!-- 서브탭 3: 접속 로그 -->
+  <div id="admtab_panel_3" style="display:none">
     <div class="card">
       <div class="card-title">접속 로그</div>
       <table class="log-table">
@@ -2856,9 +2915,9 @@ function buildEffModalFields() {
   }).join('');
 }
 
-// ── 관리자 서브탭 전환
+// ── 관리자 서브탭 전환 (4개)
 function switchAdmTab(n) {
-  [0,1,2].forEach(i => {
+  [0,1,2,3].forEach(i => {
     const panel = document.getElementById('admtab_panel_' + i);
     const btn   = document.getElementById('admtab_' + i);
     if (!panel || !btn) return;
@@ -2867,13 +2926,338 @@ function switchAdmTab(n) {
     btn.style.color      = i === n ? '#fff' : 'var(--text-sub)';
   });
   if (n === 0) initEffAnalysis();
+  if (n === 1) initOccupancy();
 }
 
 // ── 효율 분석 초기화
 function initEffAnalysis() {
   initEffFilters();
+  renderDeptKPI();
   renderEffKPI();
   renderEffTable();
+}
+
+// ── 사업부별 KPI 카드
+function renderDeptKPI() {
+  const el = document.getElementById('eff_dept_kpi_row');
+  if (!el) return;
+
+  const data = getFilteredEff();
+  const byDept = {};
+  data.forEach(r => {
+    const dept = r.dept || '미분류';
+    if (!byDept[dept]) byDept[dept] = [];
+    byDept[dept].push(r);
+  });
+
+  const deptColors = {
+    '중등사업부': '#4263eb', '초등사업부': '#2d6a4f',
+    '고등사업부': '#c05621', '테디사업부': '#7048e8', '미분류': '#888'
+  };
+
+  el.innerHTML = Object.entries(byDept).map(([dept, rows]) => {
+    const seenClass = new Set();
+    let totalStudents=0, totalMaxSales=0, totalCurSales=0, totalMaxCap=0;
+    const uniqueRooms = new Set();
+
+    rows.forEach(r => {
+      uniqueRooms.add((r.bldgKey||'')+'::'+(r.room||''));
+      const ck = r.classKey || `${r.room}_${r.className}`;
+      if (seenClass.has(ck)) return;
+      seenClass.add(ck);
+      const st = calcEffStats(r);
+      totalStudents += st.totalStudents;
+      totalMaxSales += st.totalMaxSales;
+      totalCurSales += st.totalCurSales;
+      totalMaxCap   += (r.maxCapacity||0);
+    });
+
+    const capRate   = totalMaxCap   ? (totalStudents/totalMaxCap*100).toFixed(1)   : 0;
+    const salesRate = totalMaxSales ? (totalCurSales/totalMaxSales*100).toFixed(1) : 0;
+    const grade = capRate>=80?'#2f9e44':capRate>=60?'#e67700':'#e03131';
+    const color = deptColors[dept] || '#888';
+
+    return `
+    <div class="kpi-card" style="border-top:4px solid ${color};border-left:none">
+      <div style="font-size:13px;font-weight:800;color:${color};margin-bottom:8px">${dept}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:10px;color:var(--text-sub)">수용효율</div>
+          <div style="font-size:20px;font-weight:800;color:${grade};font-family:'JetBrains Mono',monospace">${capRate}%</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text-sub)">매출효율</div>
+          <div style="font-size:20px;font-weight:800;color:${grade};font-family:'JetBrains Mono',monospace">${salesRate}%</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-sub);border-top:1px solid var(--border);padding-top:8px">
+        호실 <strong>${uniqueRooms.size}개</strong> · 수업 <strong>${seenClass.size}개</strong><br>
+        현재 <strong>${totalStudents}명</strong> / 최대 <strong>${totalMaxCap}명</strong><br>
+        최대매출 ${Math.round(totalMaxSales/10000)}만원<br>
+        실매출 <strong style="color:#4263eb">${Math.round(totalCurSales/10000)}만원</strong>
+      </div>
+    </div>`;
+  }).join('') || '<div style="color:var(--text-sub);padding:20px">데이터 없음</div>';
+}
+
+// ── 가동률 분석 초기화
+function initOccupancy() {
+  // 필터 옵션 세팅
+  const data = EFF_DATA;
+  const setOpts = (id, vals) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '<option value="">전체</option>' +
+      [...new Set(vals)].filter(Boolean).sort().map(v => `<option value="${v}">${v}</option>`).join('');
+  };
+  setOpts('occ_f_dept',   data.map(r => r.dept));
+  setOpts('occ_f_campus', data.map(r => r.campus));
+  setOpts('occ_f_room',   data.map(r => r.room));
+  renderOccupancy();
+}
+
+function resetOccFilter() {
+  ['occ_f_dept','occ_f_campus','occ_f_room'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  renderOccupancy();
+}
+
+function getOccData() {
+  const dept   = document.getElementById('occ_f_dept')?.value   || '';
+  const campus = document.getElementById('occ_f_campus')?.value || '';
+  const room   = document.getElementById('occ_f_room')?.value   || '';
+  return EFF_DATA.filter(r =>
+    (!dept   || r.dept   === dept) &&
+    (!campus || r.campus === campus) &&
+    (!room   || r.room   === room)
+  );
+}
+
+function renderOccupancy() {
+  const data = getOccData();
+  if (!data.length) {
+    ['occ_kpi','occ_day_chart','occ_time_chart','occ_dept_chart','occ_heatmap'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<div style="padding:20px;color:var(--text-sub);text-align:center">데이터 없음</div>';
+    });
+    return;
+  }
+
+  // 운영시간 기준
+  const OPS = { weekday: { start:14, end:22 }, weekend: { start:9, end:22 } };
+  const DAYS_KR = ['월','화','수','목','금','토','일'];
+  const DAYS_EN = ['월','화','수','목','금','토','일'];
+  const isWeekend = d => d === '토' || d === '일';
+
+  // 고유 호실 수
+  const uniqueRooms = [...new Set(data.map(r => (r.bldgKey||'')+'::'+(r.room||'')))];
+  const totalRooms  = uniqueRooms.length;
+
+  // ── 공통 toMin 헬퍼
+  const toMin = t => {
+    const s = String(t||'').replace(/[시:]/g,':').replace(/오전|오후|분/g,'').trim();
+    const p = s.split(':'); return (+p[0]||0)*60+(+p[1]||0);
+  };
+
+  // ── classType 분리: 초등/중등(교시있음) vs 고등(빈칸→시간기준)
+  const withType    = data.filter(r => r.classType && String(r.classType).trim());
+  const withoutType = data.filter(r => !r.classType || !String(r.classType).trim());
+
+  // ── 교시별 집계 (초등/중등)
+  const typeStats = {};
+  withType.forEach(r => {
+    const t = String(r.classType).trim();
+    if (!typeStats[t]) typeStats[t] = { rooms: new Set(), count:0 };
+    typeStats[t].rooms.add((r.bldgKey||'')+'::'+(r.room||''));
+    typeStats[t].count++;
+  });
+
+  // ── 요일별 가동률 (전체)
+  const dayStats = {};
+  DAYS_KR.forEach(d => {
+    const rows = data.filter(r => r.day === d);
+    const oRooms = [...new Set(rows.map(r=>(r.bldgKey||'')+'::'+(r.room||'')))];
+    dayStats[d] = { rate: totalRooms?(oRooms.length/totalRooms*100).toFixed(1):0, count:rows.length, rooms:oRooms.length };
+  });
+
+  // ── 시간대별 집계 (고등: classType 없는 것)
+  const timeSlots = {};
+  for (let h=9;h<22;h++) timeSlots[`${String(h).padStart(2,'0')}:00`] = { count:0 };
+  withoutType.forEach(r => {
+    const st=toMin(r.timeStart), en=toMin(r.timeEnd);
+    if (!st||!en||en<=st) return;
+    Object.keys(timeSlots).forEach(slot => {
+      const sh=parseInt(slot)*60;
+      if (sh>=st && sh<en) timeSlots[slot].count++;
+    });
+  });
+  const maxTimeCount = Math.max(...Object.values(timeSlots).map(v=>v.count),1);
+
+  // ── 사업부별 가동률
+  const deptStats = {};
+  data.forEach(r => {
+    const dept = r.dept||'미분류';
+    if (!deptStats[dept]) deptStats[dept] = { rooms:new Set(), classKeys:new Set(), days:new Set() };
+    deptStats[dept].rooms.add((r.bldgKey||'')+'::'+(r.room||''));
+    deptStats[dept].classKeys.add(r.classKey||`${r.room}_${r.className}`);
+    if (r.day) deptStats[dept].days.add(r.room+'_'+r.day);
+  });
+
+  // ── KPI
+  const avgDayRate = (Object.values(dayStats).reduce((s,d)=>s+parseFloat(d.rate),0)/7).toFixed(1);
+  const peakDay  = Object.entries(dayStats).sort((a,b)=>parseFloat(b[1].rate)-parseFloat(a[1].rate))[0];
+  const peakType = Object.entries(typeStats).sort((a,b)=>b[1].count-a[1].count)[0];
+  const peakTime = Object.entries(timeSlots).filter(([,v])=>v.count>0).sort((a,b)=>b[1].count-a[1].count)[0];
+
+  const kpiEl = document.getElementById('occ_kpi');
+  if (kpiEl) kpiEl.innerHTML = [
+    ['평균 주간 가동률', avgDayRate+'%', '전 요일 평균'],
+    ['분석 호실', totalRooms+'개', '고유 강의실'],
+    ['최고 가동 요일', peakDay?peakDay[0]+'요일 '+peakDay[1].rate+'%':'-', ''],
+    ['피크', peakType?peakType[0]: (peakTime?peakTime[0]:'-'), peakType?'교시':'시간대'],
+  ].map(([label,val,sub]) => `
+    <div class="kpi-card c-total">
+      <div class="kpi-label">${label}</div>
+      <div class="kpi-value" style="font-size:20px">${val}</div>
+      <div class="kpi-sub">${sub}</div>
+    </div>`).join('');
+
+  const barRow = (label, pct, sub, color) => {
+    const p = Math.min(100, parseFloat(pct)||0);
+    const cl = color||(p>=80?'#2f9e44':p>=60?'#4263eb':p>=30?'#e67700':'#d0d0d0');
+    return `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
+      <div style="width:76px;font-size:12px;font-weight:700;text-align:right;flex-shrink:0">${label}</div>
+      <div style="flex:1;height:22px;background:#f0f0f0;border-radius:4px;overflow:hidden">
+        <div style="width:${p}%;height:100%;background:${cl};border-radius:4px;
+          display:flex;align-items:center;padding-left:8px;transition:width .5s">
+          ${p>15?`<span style="font-size:11px;font-weight:800;color:#fff">${p.toFixed(1)}%</span>`:''}
+        </div>
+      </div>
+      ${p<=15?`<span style="font-size:11px;font-weight:700;color:${cl};width:36px">${p.toFixed(1)}%</span>`:''}
+      <span style="font-size:10px;color:var(--text-sub);width:52px;text-align:right;flex-shrink:0">${sub||''}</span>
+    </div>`;
+  };
+
+  // ── 요일별 차트 사업부 탭 생성
+  let _occDayDept = '전체';
+  const depts = ['전체', ...new Set(data.map(r=>r.dept).filter(Boolean))].sort((a,b) => a==='전체'?-1:b==='전체'?1:a.localeCompare(b));
+  const tabsEl = document.getElementById('occ_day_dept_tabs');
+  if (tabsEl) {
+    tabsEl.innerHTML = depts.map(d => `
+      <button id="occ_day_tab_${d}" onclick="selectOccDayDept('${d}')"
+        style="padding:3px 10px;border-radius:12px;border:1px solid ${d==='전체'?'#4263eb':'var(--border)'};
+               background:${d==='전체'?'#4263eb':'transparent'};
+               color:${d==='전체'?'#fff':'var(--text-sub)'};
+               font-size:11px;font-weight:700;cursor:pointer;
+               font-family:'Nanum Gothic',sans-serif;transition:all .15s">
+        ${d}
+      </button>`).join('');
+  }
+
+  // 요일별 차트 렌더 함수 (사업부 필터 적용)
+  window._occAllData = data;
+  window.renderOccDayChart = function(dept) {
+    const filtered = dept === '전체' ? data : data.filter(r => r.dept === dept);
+    const rooms = [...new Set(filtered.map(r=>(r.bldgKey||'')+'::'+(r.room||'')))];
+    const total = rooms.length || 1;
+    const dayEl = document.getElementById('occ_day_chart');
+    if (!dayEl) return;
+    dayEl.innerHTML = DAYS_KR.map(d => {
+      const rows = filtered.filter(r => r.day === d);
+      const oRooms = [...new Set(rows.map(r=>(r.bldgKey||'')+'::'+(r.room||'')))];
+      const rate = (oRooms.length/total*100).toFixed(1);
+      return barRow(d+'요일', rate, oRooms.length+'호실/'+rows.length+'건');
+    }).join('');
+  };
+  window.selectOccDayDept = function(dept) {
+    _occDayDept = dept;
+    depts.forEach(d => {
+      const btn = document.getElementById('occ_day_tab_'+d);
+      if (!btn) return;
+      const sel = d === dept;
+      btn.style.background  = sel ? '#4263eb' : 'transparent';
+      btn.style.color       = sel ? '#fff' : 'var(--text-sub)';
+      btn.style.borderColor = sel ? '#4263eb' : 'var(--border)';
+    });
+    window.renderOccDayChart(dept);
+  };
+
+  // 요일별 차트 (기본: 전체)
+  window.renderOccDayChart('전체');
+
+  // 교시별(초등/중등) + 시간대별(고등) 차트
+  const timeEl = document.getElementById('occ_time_chart');
+  if (timeEl) {
+    let html2 = '';
+    if (Object.keys(typeStats).length > 0) {
+      // 교시 있는 사업부
+      const ORDER = ['1교시','2교시','3교시','특목','성대경시'];
+      const sorted = Object.entries(typeStats).sort((a,b) => {
+        const ai=ORDER.indexOf(a[0]), bi=ORDER.indexOf(b[0]);
+        return (ai<0?99:ai)-(bi<0?99:bi);
+      });
+      html2 += '<div style="font-size:11px;font-weight:800;color:#2d6a4f;margin-bottom:8px">📚 교시별 (초등·중등)</div>';
+      html2 += sorted.map(([type,v]) => {
+        const pct = totalRooms ? (v.rooms.size/totalRooms*100).toFixed(1) : 0;
+        return barRow(type, pct, v.rooms.size+'호실/'+v.count+'건', '#7048e8');
+      }).join('');
+    }
+    if (withoutType.length > 0) {
+      // 시간 기준 (고등)
+      html2 += '<div style="font-size:11px;font-weight:800;color:#c05621;margin:'+(Object.keys(typeStats).length>0?'14px':'0')+'px 0 8px">🕐 시간대별 (고등)</div>';
+      html2 += Object.entries(timeSlots)
+        .filter(([,v])=>v.count>0)
+        .map(([slot,v]) => barRow(slot, (v.count/maxTimeCount*100).toFixed(1), v.count+'건', '#c05621'))
+        .join('');
+    }
+    if (!html2) html2 = '<div style="color:var(--text-sub);padding:20px;text-align:center">데이터 없음</div>';
+    timeEl.innerHTML = html2;
+  }
+
+  // 사업부별 차트
+  const deptEl = document.getElementById('occ_dept_chart');
+  if (deptEl) {
+    const deptItems = Object.entries(deptStats).map(([dept,v]) => {
+      const rate = v.rooms.size ? (v.days.size/v.rooms.size/7*100).toFixed(1) : 0;
+      return [dept, rate, v.rooms.size+'호실/'+v.classKeys.size+'수업'];
+    }).sort((a,b)=>parseFloat(b[1])-parseFloat(a[1]));
+    deptEl.innerHTML = deptItems.map(([label,rate,sub]) => barRow(label,rate,sub)).join('');
+  }
+
+  // 호실×요일 히트맵
+  const hmEl = document.getElementById('occ_heatmap');
+  if (hmEl) {
+    const roomSet = [...new Set(data.map(r=>r.room))].sort(); // 히트맵은 호실명만
+    const cellStyle = (hasSub) => hasSub
+      ? 'background:#4263eb;color:#fff;font-size:10px;font-weight:700;'
+      : 'background:#f5f5f5;color:#ccc;font-size:10px;';
+    hmEl.innerHTML = `
+    <table style="border-collapse:collapse;font-size:11px;width:100%">
+      <thead><tr>
+        <th style="padding:6px 10px;background:var(--surface2);border:1px solid var(--border);text-align:left">호실</th>
+        ${DAYS_KR.map(d=>`<th style="padding:6px 10px;background:var(--surface2);border:1px solid var(--border);text-align:center">${d}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${roomSet.map(room => {
+          const roomRows = data.filter(r=>r.room===room);
+          return `<tr>
+            <td style="padding:6px 10px;font-weight:700;border:1px solid var(--border)">${room}</td>
+            ${DAYS_KR.map(d => {
+              const hits = roomRows.filter(r=>r.day===d);
+              const label = hits.length ? hits.map(r=>r.campus).join('/') : '-';
+              const bg = hits.length ? '#4263eb' : '#f5f5f5';
+              const fc = hits.length ? '#fff' : '#ccc';
+              return `<td style="padding:5px 8px;border:1px solid var(--border);
+                text-align:center;background:${bg};color:${fc};font-size:10px;font-weight:700">${label}</td>`;
+            }).join('')}
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  }
 }
 
 // 필터 임시값 (조회 버튼 누르기 전까지 적용 안됨)
@@ -2922,9 +3306,9 @@ function updateEffCampusOptions() {
 
 function applyEffFilter() {
   effFilter = { ...effFilterPending };
+  renderDeptKPI();
   renderEffKPI();
   renderEffTable();
-  // 결과 스크롤
   const kpi = document.getElementById('eff_kpi_row');
   if (kpi) kpi.scrollIntoView({ behavior:'smooth', block:'start' });
 }
@@ -2972,6 +3356,7 @@ function resetEffFilter() {
   effFilter = { region:'', building:'', dept:'', campus:'', spaceType:'' };
   effFilterPending = { region:'', building:'', dept:'', campus:'', spaceType:'' };
   initEffFilters();
+  renderDeptKPI();
   renderEffKPI();
   renderEffTable();
 }
@@ -2992,29 +3377,45 @@ function renderEffKPI() {
 
   kpiRow.innerHTML = Object.entries(byCampus).map(([camp, d]) => {
     const rows = d.rows;
-    // periods 지원: 각 행의 통계를 calcEffStats로 집계
-    const stats = rows.map(r => calcEffStats(r));
-    const totalStudents = stats.reduce((s,st) => s+st.totalStudents, 0);
-    const totalMax      = rows.reduce((s,r) => s+r.maxCapacity, 0);
-    const totalMaxSales = stats.reduce((s,st) => s+st.totalMaxSales, 0);
-    const totalCurSales = stats.reduce((s,st) => s+st.totalCurSales, 0);
-    const totalPeriods = stats.reduce((s,st)=>s+(st.periodCount||1),0);
-    const avgMax = rows.length ? totalMax/rows.length : 0;
-    const capRate = (totalPeriods && avgMax) ? (totalStudents / (totalPeriods * avgMax) * 100).toFixed(1) : 0;
-    const salesRate= totalMaxSales ? (totalCurSales/totalMaxSales*100).toFixed(1) : 0;
+    const campusColorMap2 = BUILDINGS.b7.campusColors || {};
+
+    // ── 물리적 호실 수 (room DISTINCT)
+    const uniqueRooms = [...new Set(rows.map(r => (r.bldgKey||'')+'::'+(r.room||'')))];
+    const roomCount = uniqueRooms.length;
+
+    // ── 수업 수 (classKey DISTINCT)
+    const uniqueClasses = [...new Set(rows.map(r => r.classKey || `${r.room}_${r.className}`))];
+    const classCount = uniqueClasses.length;
+
+    // ── 매출/수용효율: classKey DISTINCT 기준 1회만
+    let totalStudents = 0, totalMaxSales = 0, totalCurSales = 0, totalMaxCap = 0;
+    const seenClass = new Set();
+    rows.forEach(r => {
+      const ck = r.classKey || `${r.room}_${r.className}`;
+      if (seenClass.has(ck)) return; // 이미 집계한 수업 스킵
+      seenClass.add(ck);
+      const st = calcEffStats(r);
+      totalStudents += st.totalStudents;
+      totalMaxSales += st.totalMaxSales;
+      totalCurSales += st.totalCurSales;
+      totalMaxCap   += (r.maxCapacity || 0);
+    });
+
+    const capRate  = (classCount && totalMaxCap) ? (totalStudents / totalMaxCap * 100).toFixed(1) : 0;
+    const salesRate = totalMaxSales ? (totalCurSales / totalMaxSales * 100).toFixed(1) : 0;
     const grade = capRate >= 80 ? '#2f9e44' : capRate >= 60 ? '#e67700' : '#e03131';
-    const badgeCls = campusColorMap[camp] || '';
-    const hasPeriods = rows.some(r => r.periods && r.periods.length);
+    const badgeCls = campusColorMap2[camp] || '';
 
     return `
     <div class="kpi-card" style="border-top:3px solid ${grade}">
       <div class="kpi-label"><span class="badge ${badgeCls}">${camp}</span></div>
-      <div style="font-size:11px;color:var(--text-sub);margin:6px 0 2px">수용효율${hasPeriods?' (교시 기준)':''}</div>
+      <div style="font-size:11px;color:var(--text-sub);margin:6px 0 2px">수용효율</div>
       <div style="font-size:22px;font-weight:800;color:${grade};font-family:'JetBrains Mono',monospace">${capRate}%</div>
       <div style="font-size:11px;color:var(--text-sub);margin-top:8px">매출효율</div>
       <div style="font-size:18px;font-weight:800;color:${grade};font-family:'JetBrains Mono',monospace">${salesRate}%</div>
       <div style="font-size:11px;color:var(--text-sub);margin-top:8px;border-top:1px solid var(--border);padding-top:6px">
-        호실 ${rows.length}개 · ${totalStudents}명<br>
+        호실 <strong>${roomCount}개</strong> · 수업 <strong>${classCount}개</strong><br>
+        현재 <strong>${totalStudents}명</strong> / 최대 <strong>${totalMaxCap}명</strong><br>
         최대매출 ${Math.round(totalMaxSales/10000)}만원<br>
         실매출 <strong style="color:#4263eb">${Math.round(totalCurSales/10000)}만원</strong>
       </div>
@@ -3372,6 +3773,7 @@ const EFF_COLS = [
   { key:'floor',       label:'층수' },
   { key:'spaceType',   label:'공간타입' },
   { key:'room',        label:'호실' },
+  { key:'day',         label:'요일' },
   { key:'area',        label:'평수' },
   { key:'maxCapacity', label:'최대수용' },
   { key:'curStudents', label:'현재인원' },
@@ -3399,17 +3801,23 @@ function renderEffTable() {
       ${c.label}${effSortCol===c.key ? (effSortAsc?'▲':'▼') : ''}
     </th>`).join('') + `</tr>`;
 
-  // 데이터 정렬 - calcEffStats로 periods 우선 집계
+  // 데이터 정렬 - classKey DISTINCT 기준으로 수강생/매출 계산
+  const seenClassKeys = new Set();
   let data = getFilteredEff().map(r => {
     const st = calcEffStats(r);
+    const ck = r.classKey || `${r.room}_${r.className}`;
+    const isDup = seenClassKeys.has(ck); // 같은 classKey 두번째 이후 행
+    if (!isDup) seenClassKeys.add(ck);
     return {
       ...r,
-      capRate:   +st.capRate.toFixed(1),
-      stdSales:  st.totalMaxSales,
-      curSales:  st.totalCurSales,
-      salesRate: +st.salesRate.toFixed(1),
-      _periodCount: st.periodCount,
-      _totalStudents: st.totalStudents,
+      capRate:        isDup ? null : +st.capRate.toFixed(1),
+      stdSales:       isDup ? null : st.totalMaxSales,
+      curSales:       isDup ? null : st.totalCurSales,
+      salesRate:      isDup ? null : +st.salesRate.toFixed(1),
+      _periodCount:   st.periodCount,
+      _totalStudents: isDup ? null : st.totalStudents,
+      _isDup:         isDup, // 중복 행 표시용
+      _classKey:      ck,
     };
   });
 
@@ -3425,18 +3833,26 @@ function renderEffTable() {
   const campusColorMap = BUILDINGS.b7.campusColors || {};
 
   tbody.innerHTML = data.map(r => {
-    const gr = r.capRate >= 80 ? {e:'🟢',c:'#2f9e44',bg:'#f0faf4'}
-             : r.capRate >= 60 ? {e:'🟡',c:'#e67700',bg:'#fff9f0'}
-             : {e:'🔴',c:'#e03131',bg:'#fff5f5'};
-    const fmtNum = n => Math.round(n).toLocaleString('ko-KR');
+    const isDup   = r._isDup;
+    const gr = !isDup && r.capRate != null
+      ? (r.capRate >= 80 ? {e:'🟢',c:'#2f9e44',bg:'#f0faf4'}
+       : r.capRate >= 60 ? {e:'🟡',c:'#e67700',bg:'#fff9f0'}
+       :                   {e:'🔴',c:'#e03131',bg:'#fff5f5'})
+      : {e:'—', c:'#ccc', bg:'transparent'};
+    const fmtNum  = n => Math.round(n||0).toLocaleString('ko-KR');
     const badgeCls = campusColorMap[r.campus] || '';
-    const hasPeriods = r.periods && r.periods.length > 0;
-    // 교시별 수업명 표시
-    const classLabel = hasPeriods
+    const classLabel = (r.periods&&r.periods.length)
       ? (r.periods||[]).map((p,i) => `${i+1}교시: ${p.className||'-'}`).join(' / ')
       : (r.className || '-');
+    const dupAlpha  = isDup ? 'opacity:0.4' : '';
+    const dash      = `<span style="color:#ccc">—</span>`;
+    const dayBadge  = r.day
+      ? `<span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:800;
+           background:${isDup?'#f5f5f5':'#eef2ff'};color:${isDup?'#ccc':'#4263eb'}">${r.day}</span>`
+      : '-';
 
-    return `<tr style="border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+    return `<tr style="border-bottom:1px solid var(--border);${dupAlpha}"
+      onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
       <td style="padding:8px 10px;font-size:12px">${r.region}</td>
       <td style="padding:8px 10px;font-size:12px">${r.dept}</td>
       <td style="padding:8px 10px"><span class="badge ${badgeCls}">${r.campus}</span></td>
@@ -3444,28 +3860,33 @@ function renderEffTable() {
       <td style="padding:8px 10px;font-size:12px">${r.floor}</td>
       <td style="padding:8px 10px;text-align:center">
         <span style="padding:2px 7px;border-radius:4px;font-size:11px;font-weight:800;
-                     background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">임차${r.spaceType}</span>
+          background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd">임차${r.spaceType}</span>
       </td>
       <td style="padding:8px 10px;font-weight:700">${r.room}</td>
-      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${r.area||"-"}평</td>
+      <td style="padding:8px 10px;text-align:center">${dayBadge}</td>
+      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${r.area||'-'}평</td>
       <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${r.maxCapacity}명</td>
       <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">
-        ${r._totalStudents}명
-        ${hasPeriods ? '<div style="font-size:10px;color:var(--text-sub)">'+r._periodCount+'교시 합산</div>' : ''}
+        ${isDup ? dash : (r._totalStudents+'명')}
+        ${isDup ? '<div style="font-size:9px;color:#ccc">↑동일수업</div>' : ''}
       </td>
       <td style="padding:8px 10px;font-size:11px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${classLabel}">
         ${classLabel}
-        ${hasPeriods ? '<div style="font-size:10px;color:#4263eb;font-weight:700">'+r._periodCount+'교시</div>' : ''}
       </td>
       <td style="padding:8px 10px;text-align:right;background:${gr.bg}">
-        <span style="font-weight:800;color:${gr.c};font-family:'JetBrains Mono',monospace">${r.capRate}%</span>
-        <div style="font-size:10px;color:var(--text-sub)">${hasPeriods?'교시평균':'단일교시'}</div>
+        ${isDup ? dash : `<span style="font-weight:800;color:${gr.c};font-family:'JetBrains Mono',monospace">${r.capRate}%</span>`}
       </td>
-      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${hasPeriods?'-':fmtNum(r.stdFee)+'원'}</td>
-      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">${fmtNum(r.stdSales)}원</td>
-      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#4263eb">${fmtNum(r.curSales)}원</td>
+      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">
+        ${isDup ? dash : fmtNum(r.stdFee)+'원'}
+      </td>
+      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace">
+        ${isDup ? dash : fmtNum(r.stdSales)+'원'}
+      </td>
+      <td style="padding:8px 10px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#4263eb">
+        ${isDup ? dash : fmtNum(r.curSales)+'원'}
+      </td>
       <td style="padding:8px 10px;text-align:right;background:${gr.bg}">
-        <span style="font-weight:800;color:${gr.c};font-family:'JetBrains Mono',monospace">${r.salesRate}%</span>
+        ${isDup ? dash : `<span style="font-weight:800;color:${gr.c};font-family:'JetBrains Mono',monospace">${r.salesRate}%</span>`}
       </td>
       <td style="padding:8px 10px;text-align:center;font-size:16px">${gr.e}</td>
       <td style="padding:8px 10px;text-align:center">
@@ -3811,7 +4232,7 @@ function _doDownloadTemplate() {
     // 그룹 헤더
     ['[강의실 정보]','','','','','','','','','','[수업 정보]','','','','[운영 정보]','','','[수강·매출]','','[기준]',''],
     // 컬럼 헤더
-    ['region\n지역','building\n건물명','floor\n층수','dept\n사업부','campus\n관코드','room\n호실','space_type\n공간타입','max_capacity\n최대수용(명)','area\n평수','class_key\n수업키(고유)','class_name\n수업명/반명','grade\n학년','teacher\n강사명','day\n수업요일(단일)','time_start\n시작시간','time_end\n종료시간','students\n수강생(명)','fee_monthly\n월수강료(원)','ym\n기준월','memo\n메모'],
+    ['region\n지역','building\n건물명','floor\n층수','dept\n사업부','campus\n관코드','room\n호실','space_type\n공간타입','max_capacity\n최대수용(명)','area\n평수','bldgKey\n건물키(자동)','class_key\n수업키(고유)','class_name\n수업명/반명','grade\n학년','teacher\n강사명','class_type\n수업구분','day\n수업요일(단일)','time_start\n시작시간','time_end\n종료시간','duration\n수업길이(분)','students\n수강생(명)','fee_monthly\n월수강료(원)','ym\n기준월'],
     // 입력 안내
     ['수지/수내\n광교/영통\n이매/정자','다운타운\n비즈마루\n수내동빌딩 등','6층/9층\n2층/3_4층 등','중등사업부\n초등사업부\n고등사업부\n테디사업부','영재/중사/테디\n103/203\n307/308/309\n초등수아/고N','605/606\n테디1/201 등','A:전용(일기준)\nB:공유(시간기준)\nC:자습(일기준)','숫자만\n예: 12','숫자만\n예: 5.0\n(공란 허용)','bldgKey_room_campus\n_수업명 조합\n예:b7_605_영재\n_수학심화A\n※같은반=같은값','수업명그대로\n비즈메카 복붙OK','숫자만\n예:2\n또는 무학년','강사명','단일 요일만\n월/화/수/목/금/토/일\n(파싱후 결과)','시작시간\n15:00/15시\n1500/오후3시\n모두 허용','종료시간\n17:00/17시\n1700/오후5시\n모두 허용','⚠class_key기준\n1회만 카운트\n같은반=\n같은수강생\n월1회','⚠class_key기준\n1회만 카운트\n월1회납부\n요일횟수무관','2026-04\n형식','MIX여부\n특이사항'],
     // 샘플 데이터
@@ -3841,7 +4262,7 @@ function _doDownloadTemplate() {
     ['수지','영일빌딩','5층','고등사업부','고N','501','A',10,4.9,'b_youngil_501_고N_수학','고N수학',3,'이준혁','토','17:00','19:30',8,320000,'2026-04','⚠수강생/매출 중복집계 주의'],
   ];
   const ws1 = XLSX.utils.aoa_to_sheet(sheet1);
-  ws1['!cols'] = [9,12,8,13,10,8,9,11,8,22,20,7,11,10,10,10,11,13,9,16].map(w=>({wch:w}));
+  ws1['!cols'] = [9,12,8,13,10,8,9,11,8,12,22,20,7,11,14,10,10,10,10,11,13,9].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb, ws1, '입력_데이터');
 
   // ── 시트2: 계산기준_참조
@@ -3888,7 +4309,7 @@ function _doDownloadTemplate() {
   ws3['!cols'] = [18,22,8,30,14].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb, ws3, '건물키_참조');
 
-  XLSX.writeFile(wb, '강의실_운영효율_분석템플릿_v4.xlsx');
+  XLSX.writeFile(wb, '강의실_운영효율_분석템플릿_v5.xlsx');
   showToast('✅ 템플릿 v4 다운로드 완료');
 }
 
@@ -4009,17 +4430,24 @@ function uploadEffExcel(input) {
           const spaceType  = String(row[6]||'A').trim();
           const maxCap     = parseInt(row[7])||0;
           const area       = parseFloat(row[8])||0;
-          const classKey   = String(row[9]||'').trim();
-          const className  = String(row[10]||'').trim();
-          const grade      = String(row[11]||'').trim();
-          const teacher    = String(row[12]||'').trim();
-          const day        = String(row[13]||'').trim();
-          const timeStart  = String(row[14]||'').trim();
-          const timeEnd    = String(row[15]||'').trim();
-          const students   = parseInt(row[16])||0;
-          const stdFee     = parseInt(row[17])||0;
-          const ym         = String(row[18]||'').trim();
-          const memo       = String(row[19]||'').trim();
+          // v5: bldgKey(9), classKey(10), className(11), grade(12), teacher(13)
+          //     classType(14), day(15), timeStart(16), timeEnd(17), duration(18)
+          //     students(19), stdFee(20), ym(21)
+          // v4: classKey(9), className(10), grade(11), teacher(12)
+          //     day(13), timeStart(14), timeEnd(15), students(16), stdFee(17), ym(18)
+          const isV5 = row.length >= 20 && String(row[14]||'').match(/^[0-9교시특목성대경시]*$/);
+          const classKey   = String(row[isV5?10:9]||'').trim();
+          const className  = String(row[isV5?11:10]||'').trim();
+          const grade      = String(row[isV5?12:11]||'').trim();
+          const teacher    = String(row[isV5?13:12]||'').trim();
+          const classType  = isV5 ? String(row[14]||'').trim() : '';
+          const day        = String(row[isV5?15:13]||'').trim();
+          const timeStart  = String(row[isV5?16:14]||'').trim();
+          const timeEnd    = String(row[isV5?17:15]||'').trim();
+          const students   = parseInt(row[isV5?19:16])||0;
+          const stdFee     = parseInt(row[isV5?20:17])||0;
+          const ym         = String(row[isV5?21:18]||'').trim();
+          const memo       = '';
           // bldgKey 자동 매핑 (건물명+층수 기반)
           const bldgKey    = resolveBldgKey(building, floor) || 'unknown';
 
@@ -4037,8 +4465,8 @@ function uploadEffExcel(input) {
             dept, campus, spaceType, room,
             area, maxCapacity: maxCap,
             curStudents: students, className, stdFee,
-            // v4 추가 필드
             classKey: classKey || `${bldgKey}_${room}_${campus}_${className}`,
+            classType,  // v5: 수업구분 (1교시/2교시/특목 등, 고등은 빈칸)
             day, timeStart, timeEnd, grade, teacher, ym, memo,
           });
           addCount++;
