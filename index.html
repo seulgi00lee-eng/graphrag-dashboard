@@ -3224,18 +3224,22 @@ function renderAdmin() {
 
   <!-- 매출·호실·학생수 차트 모달 -->
   <div class="modal-bg" id="metricChartModal">
-    <div class="modal" style="width:90%;max-width:900px;max-height:90vh;overflow-y:auto">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <h3 style="margin:0">📊 매출·호실·학생수 차트</h3>
-        <button onclick="document.getElementById('metricChartModal').classList.remove('open')"
+    <div class="modal" id="metricChartBox" style="width:90%;max-width:900px;max-height:90vh;overflow-y:auto;position:relative">
+      <div id="metricChartHeader" onmousedown="startDragModal(event)"
+        style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;cursor:move;user-select:none">
+        <h3 style="margin:0">📊 매출·호실·학생수 차트 <span style="font-size:11px;font-weight:400;color:var(--text-sub)">(머리글을 끌어 이동)</span></h3>
+        <button onclick="closeMetricChart()"
           style="border:none;background:none;font-size:22px;cursor:pointer;color:var(--text-sub)">✕</button>
       </div>
       <div id="metric_chart_summary" style="font-size:12px;color:var(--text-sub);margin-bottom:16px"></div>
 
       <!-- 지표 선택 -->
-      <div style="display:flex;gap:4px;margin-bottom:16px">
+      <div style="display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap">
+        <button id="mc_metric_all" onclick="setMetricChartType('all')"
+          style="padding:6px 16px;border-radius:14px;border:1px solid #7048e8;background:#7048e8;color:#fff;
+                 font-size:12px;font-weight:700;cursor:pointer;font-family:'Nanum Gothic',sans-serif">📋 전체 보기</button>
         <button id="mc_metric_sales" onclick="setMetricChartType('sales')"
-          style="padding:6px 16px;border-radius:14px;border:1px solid #c05621;background:#c05621;color:#fff;
+          style="padding:6px 16px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text-sub);
                  font-size:12px;font-weight:700;cursor:pointer;font-family:'Nanum Gothic',sans-serif">💰 발생매출</button>
         <button id="mc_metric_rooms" onclick="setMetricChartType('rooms')"
           style="padding:6px 16px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text-sub);
@@ -3243,18 +3247,56 @@ function renderAdmin() {
         <button id="mc_metric_students" onclick="setMetricChartType('students')"
           style="padding:6px 16px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text-sub);
                  font-size:12px;font-weight:700;cursor:pointer;font-family:'Nanum Gothic',sans-serif">👥 수강생</button>
+        <button onclick="toggleSimPanel()" id="mc_sim_btn"
+          style="padding:6px 16px;border-radius:14px;border:1px solid #2f9e44;background:transparent;color:#2f9e44;
+                 font-size:12px;font-weight:700;cursor:pointer;font-family:'Nanum Gothic',sans-serif;margin-left:auto">🔮 예상 시뮬레이션</button>
       </div>
 
-      <!-- 요일별 추이 -->
-      <div class="card" style="margin-bottom:14px">
-        <div class="card-title" style="font-size:13px">📈 요일별 추이</div>
-        <div id="metric_chart_trend"></div>
+      <!-- 시뮬레이션 패널 -->
+      <div id="metric_sim_panel" style="display:none;background:#f0faf4;border:1px solid #2f9e44;
+        border-radius:10px;padding:16px;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:800;color:#2d6a4f;margin-bottom:10px">🔮 예상 시뮬레이션</div>
+        <div style="font-size:11px;color:var(--text-sub);margin-bottom:12px;line-height:1.6">
+          ※ 현재 조회된 강의실에 다른 조건을 적용하면 매출·수강생·효율이 어떻게 바뀌는지 추정합니다.<br>
+          ※ <strong>수요 예측(학생이 실제로 올지)은 데이터가 없어 계산에서 제외</strong>되며, 정원·수강료 기준 가정치입니다.
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px">
+          <div>
+            <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;font-weight:700">적용할 사업부 기준</div>
+            <select id="sim_dept" onchange="onSimDeptChange()"
+              style="padding:7px 10px;border:1px solid #2f9e44;border-radius:6px;font-size:12px;font-family:'Nanum Gothic',sans-serif;min-width:130px">
+              <option value="">— 사업부 선택 —</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;font-weight:700">수강료 조정 (원)</div>
+            <input type="number" id="sim_fee" placeholder="평균 자동"
+              style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:120px;font-family:'Nanum Gothic',sans-serif">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;font-weight:700">정원 조정 (명)</div>
+            <input type="number" id="sim_cap" placeholder="현재 유지"
+              style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:100px;font-family:'Nanum Gothic',sans-serif">
+          </div>
+          <button onclick="runSimulation()" class="btn btn-primary"
+            style="font-size:12px;padding:7px 18px;font-weight:800;background:#2f9e44">시뮬레이션 실행</button>
+        </div>
+        <div id="sim_result"></div>
       </div>
 
-      <!-- 사업부별 비교 -->
-      <div class="card">
-        <div class="card-title" style="font-size:13px">📊 사업부별 비교</div>
-        <div id="metric_chart_compare"></div>
+      <!-- 차트 영역 -->
+      <div id="metric_chart_area">
+        <!-- 요일별 추이 -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-title" style="font-size:13px">📈 요일별 추이</div>
+          <div id="metric_chart_trend"></div>
+        </div>
+
+        <!-- 사업부별 비교 -->
+        <div class="card">
+          <div class="card-title" style="font-size:13px">📊 사업부별 비교</div>
+          <div id="metric_chart_compare"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -4300,19 +4342,71 @@ function applyMetricFilter() {
 // ══════════════════════════════════════════════
 let _metricChartType = 'sales'; // sales | rooms | students
 
+// ── 모달 드래그 이동
+let _dragModal = { el:null, offsetX:0, offsetY:0 };
+function startDragModal(e) {
+  const box = document.getElementById('metricChartBox');
+  if (!box) return;
+  // 현재 위치 계산 (transform 기준)
+  const rect = box.getBoundingClientRect();
+  _dragModal.el = box;
+  _dragModal.offsetX = e.clientX - rect.left;
+  _dragModal.offsetY = e.clientY - rect.top;
+  box.style.position = 'fixed';
+  box.style.margin = '0';
+  box.style.left = rect.left + 'px';
+  box.style.top  = rect.top + 'px';
+  document.addEventListener('mousemove', onDragModal);
+  document.addEventListener('mouseup', stopDragModal);
+  e.preventDefault();
+}
+function onDragModal(e) {
+  if (!_dragModal.el) return;
+  let x = e.clientX - _dragModal.offsetX;
+  let y = e.clientY - _dragModal.offsetY;
+  // 화면 밖으로 너무 나가지 않게 제한
+  const maxX = window.innerWidth - 100;
+  const maxY = window.innerHeight - 60;
+  x = Math.max(-_dragModal.el.offsetWidth + 200, Math.min(x, maxX));
+  y = Math.max(0, Math.min(y, maxY));
+  _dragModal.el.style.left = x + 'px';
+  _dragModal.el.style.top  = y + 'px';
+}
+function stopDragModal() {
+  _dragModal.el = null;
+  document.removeEventListener('mousemove', onDragModal);
+  document.removeEventListener('mouseup', stopDragModal);
+}
+
+// 차트 모달 닫기 (위치 초기화)
+function closeMetricChart() {
+  const modal = document.getElementById('metricChartModal');
+  const box = document.getElementById('metricChartBox');
+  modal.classList.remove('open');
+  // 위치 리셋 (다음에 열 때 중앙)
+  if (box) {
+    box.style.position = 'relative';
+    box.style.left = '';
+    box.style.top = '';
+    box.style.margin = '';
+  }
+}
+
 function openMetricChart() {
+  const box = document.getElementById('metricChartBox');
+  if (box) { box.style.position='relative'; box.style.left=''; box.style.top=''; box.style.margin=''; }
   document.getElementById('metricChartModal').classList.add('open');
-  _metricChartType = 'sales';
-  setMetricChartType('sales');
+  _metricChartType = 'all';
+  setMetricChartType('all');
 }
 
 function setMetricChartType(type) {
   _metricChartType = type;
-  ['sales','rooms','students'].forEach(t => {
+  ['all','sales','rooms','students'].forEach(t => {
     const btn = document.getElementById('mc_metric_'+t);
     if (!btn) return;
     const sel = t === type;
-    const color = t==='sales'?'#c05621':t==='rooms'?'#4263eb':'#2f9e44';
+    const color = t==='all'?'#7048e8':t==='sales'?'#c05621':t==='rooms'?'#4263eb':'#2f9e44';
     btn.style.background  = sel ? color : 'transparent';
     btn.style.color       = sel ? '#fff' : 'var(--text-sub)';
     btn.style.borderColor = sel ? color : 'var(--border)';
@@ -4353,8 +4447,6 @@ function renderMetricCharts() {
   const DEPT_ORDER = ['초등사업부','중등사업부','고등사업부','테디사업부'];
   const DAYS = ['월','화','수','목','금','토','일'];
   const type = _metricChartType;
-  const color = metricColor(type);
-  const unit = metricUnit(type);
   const fmt = n => Math.round(n||0).toLocaleString('ko-KR');
 
   // 필터 적용된 데이터
@@ -4367,24 +4459,183 @@ function renderMetricCharts() {
   const deptLabel = useDepts ? useDepts.map(d=>d.replace('사업부','')).join('+') : '전체 사업부';
   const dayLabel  = useDays  ? useDays.join('·')+'요일' : '전체 요일';
   document.getElementById('metric_chart_summary').textContent =
-    `▸ ${deptLabel} / ${dayLabel} · 지표: ${metricLabel(type)}`;
+    `▸ ${deptLabel} / ${dayLabel} · 지표: ${type==='all'?'전체(매출·호실·수강생)':metricLabel(type)}`;
 
-  // ── 요일별 추이 (선택 요일만, 없으면 전체)
   const trendDays = useDays || DAYS;
-  const trendData = trendDays.map(d => {
-    const rows = filtered.filter(r => r.day === d);
-    return { label: d, value: metricValue(aggOccMetric(rows), type) };
-  });
-  document.getElementById('metric_chart_trend').innerHTML = svgLineChart(trendData, color, unit, fmt);
-
-  // ── 사업부별 비교 (선택 사업부만, 없으면 전체)
   const cmpDepts = useDepts || [...new Set(data.map(r=>r.dept).filter(Boolean))]
     .sort((a,b)=>(DEPT_ORDER.indexOf(a)<0?99:DEPT_ORDER.indexOf(a))-(DEPT_ORDER.indexOf(b)<0?99:DEPT_ORDER.indexOf(b)));
-  const cmpData = cmpDepts.map(dp => {
-    const rows = filtered.filter(r => r.dept === dp);
-    return { label: dp.replace('사업부',''), value: metricValue(aggOccMetric(rows), type) };
+
+  const trendEl = document.getElementById('metric_chart_trend');
+  const cmpEl   = document.getElementById('metric_chart_compare');
+
+  // 지표별 차트 빌더
+  const buildTrend = (t) => {
+    const rows2val = trendDays.map(d => ({ label:d, value: metricValue(aggOccMetric(filtered.filter(r=>r.day===d)), t) }));
+    return svgLineChart(rows2val, metricColor(t), metricUnit(t), fmt);
+  };
+  const buildCompare = (t) => {
+    const arr = cmpDepts.map(dp => ({ label: dp.replace('사업부',''), value: metricValue(aggOccMetric(filtered.filter(r=>r.dept===dp)), t) }));
+    return svgBarChart(arr, metricColor(t), metricUnit(t), fmt);
+  };
+
+  if (type === 'all') {
+    // 3개 지표 전체 표시
+    const types = ['sales','rooms','students'];
+    trendEl.innerHTML = types.map(t =>
+      `<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:800;color:${metricColor(t)};margin-bottom:4px">${metricLabel(t)}</div>${buildTrend(t)}</div>`
+    ).join('');
+    cmpEl.innerHTML = types.map(t =>
+      `<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:800;color:${metricColor(t)};margin-bottom:4px">${metricLabel(t)}</div>${buildCompare(t)}</div>`
+    ).join('');
+  } else {
+    trendEl.innerHTML = buildTrend(type);
+    cmpEl.innerHTML   = buildCompare(type);
+  }
+}
+
+// ══════════════════════════════════════════════
+// 예상 시뮬레이션
+// ══════════════════════════════════════════════
+function toggleSimPanel() {
+  const panel = document.getElementById('metric_sim_panel');
+  const btn = document.getElementById('mc_sim_btn');
+  if (!panel) return;
+  const open = panel.style.display === 'block';
+  panel.style.display = open ? 'none' : 'block';
+  btn.style.background = open ? 'transparent' : '#2f9e44';
+  btn.style.color = open ? '#2f9e44' : '#fff';
+  if (!open) {
+    // 사업부 옵션 채우기
+    const data = window._occMetricData || [];
+    const depts = [...new Set(data.map(r=>r.dept).filter(Boolean))];
+    const sel = document.getElementById('sim_dept');
+    if (sel && sel.options.length <= 1)
+      sel.innerHTML = '<option value="">— 사업부 선택 —</option>' + depts.map(d=>`<option value="${d}">${d}</option>`).join('');
+  }
+}
+
+// 사업부 선택 시 평균 수강료/정원 자동 표시
+function onSimDeptChange() {
+  const dept = document.getElementById('sim_dept').value;
+  if (!dept) return;
+  const data = window._occMetricData || [];
+  const deduped = getClassMapByDept(data.filter(r=>r.dept===dept));
+  if (!deduped.length) return;
+  const avgFee = Math.round(deduped.reduce((s,r)=>s+(r.stdFee||0),0)/deduped.length);
+  const avgCap = Math.round(deduped.reduce((s,r)=>s+(r.maxCapacity||0),0)/deduped.length);
+  document.getElementById('sim_fee').placeholder = `${dept.replace('사업부','')} 평균 ${avgFee.toLocaleString()}`;
+  document.getElementById('sim_cap').placeholder = `${dept.replace('사업부','')} 평균 ${avgCap}`;
+}
+
+// 시뮬레이션 실행
+function runSimulation() {
+  const { data, useDepts, useDays } = getMetricSelection();
+  const resultEl = document.getElementById('sim_result');
+  const fmt = n => Math.round(n||0).toLocaleString('ko-KR');
+
+  // 현재 조회된 강의실 (필터 적용)
+  const filtered = data.filter(r =>
+    (!useDepts || useDepts.includes(r.dept)) &&
+    (!useDays  || useDays.includes(r.day))
+  );
+  if (!filtered.length) {
+    resultEl.innerHTML = '<div style="color:#e03131;font-size:12px">조회된 강의실이 없습니다. 먼저 사업부/요일을 선택하고 조회하세요.</div>';
+    return;
+  }
+
+  // 적용할 기준
+  const simDept = document.getElementById('sim_dept').value;
+  let simFee = parseInt(document.getElementById('sim_fee').value) || 0;
+  let simCap = parseInt(document.getElementById('sim_cap').value) || 0;
+
+  // 사업부 선택 시 평균값 자동 적용 (직접입력이 우선)
+  if (simDept) {
+    const deduped = getClassMapByDept(data.filter(r=>r.dept===simDept));
+    if (deduped.length) {
+      if (!simFee) simFee = Math.round(deduped.reduce((s,r)=>s+(r.stdFee||0),0)/deduped.length);
+      if (!simCap) simCap = Math.round(deduped.reduce((s,r)=>s+(r.maxCapacity||0),0)/deduped.length);
+    }
+  }
+  if (!simDept && !simFee && !simCap) {
+    resultEl.innerHTML = '<div style="color:#e03131;font-size:12px">사업부를 선택하거나 수강료/정원을 입력하세요.</div>';
+    return;
+  }
+
+  // ── 현재값 (classKey 기준 1회)
+  const cur = aggOccMetric(filtered);
+
+  // 시뮬용 수강료/정원 결정
+  const fmtFee = simFee || null;  // null이면 기존 수강료 유지
+  // classKey 기준 1행화
+  const curClasses = getClassMapByDept(filtered);
+
+  // ── 교체 시: 현재 학생수 유지, 수강료만 교체
+  let swapSales = 0, swapStd = 0;
+  curClasses.forEach(r => {
+    const fee = fmtFee || r.stdFee || 0;
+    swapSales += (r.curStudents||0) * fee;       // 발생매출(추정)
+    swapStd   += (r.maxCapacity||0) * fee;       // 표준매출
   });
-  document.getElementById('metric_chart_compare').innerHTML = svgBarChart(cmpData, color, unit, fmt);
+
+  // ── 정원 최대: 정원까지 꽉, 수강료 교체
+  let maxSales = 0, maxStudents = 0;
+  curClasses.forEach(r => {
+    const fee = fmtFee || r.stdFee || 0;
+    const cap = simCap || r.maxCapacity || 0;
+    maxSales    += cap * fee;
+    maxStudents += cap;
+  });
+
+  const rooms = cur.rooms; // 물리적 호실은 변동 없음
+  const diff = (a, b) => {
+    const d = a - b;
+    const sign = d > 0 ? '+' : '';
+    const color = d > 0 ? '#2f9e44' : d < 0 ? '#e03131' : '#868e96';
+    return `<span style="color:${color};font-weight:700">${sign}${fmt(d)}</span>`;
+  };
+
+  const baseLabel = simDept ? `${simDept.replace('사업부','')} 기준` : '입력 조건';
+  resultEl.innerHTML = `
+  <div style="background:#fff;border-radius:8px;padding:14px;margin-top:8px">
+    <div style="font-size:12px;font-weight:800;margin-bottom:10px;color:#2d6a4f">
+      📊 시뮬레이션 결과 (${baseLabel}${simFee?` · 수강료 ${fmt(simFee)}원`:''}${simCap?` · 정원 ${simCap}명`:''})
+    </div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:520px">
+      <thead><tr style="background:var(--surface2)">
+        <th style="padding:8px;text-align:left;border:1px solid var(--border)">구분</th>
+        <th style="padding:8px;text-align:right;border:1px solid var(--border)">발생매출(추정)</th>
+        <th style="padding:8px;text-align:right;border:1px solid var(--border)">수강생</th>
+        <th style="padding:8px;text-align:right;border:1px solid var(--border)">가동호실</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td style="padding:8px;border:1px solid var(--border);font-weight:700">현재</td>
+          <td style="padding:8px;border:1px solid var(--border);text-align:right;font-family:monospace">${fmt(cur.curSales)}원</td>
+          <td style="padding:8px;border:1px solid var(--border);text-align:right;font-family:monospace">${cur.students}명</td>
+          <td style="padding:8px;border:1px solid var(--border);text-align:right;font-family:monospace">${rooms}개</td>
+        </tr>
+        <tr style="background:#fffbf0">
+          <td style="padding:8px;border:1px solid var(--border);font-weight:700">교체 시<br><span style="font-size:10px;color:var(--text-sub)">학생수 유지, 수강료 적용</span></td>
+          <td style="padding:8px;border:1px solid var(--border);text-align:right;font-family:monospace">${fmt(swapSales)}원<br>${diff(swapSales, cur.curSales)}</td>
+          <td style="padding:8px;border:1px solid var(--border);text-align:right;font-family:monospace">${cur.students}명<br><span style="color:#868e96">±0</span></td>
+          <td style="padding:8px;border:1px solid var(--border);text-align:right;font-family:monospace">${rooms}개</td>
+        </tr>
+        <tr style="background:#f0faf4">
+          <td style="padding:8px;border:1px solid var(--border);font-weight:700">정원 최대<br><span style="font-size:10px;color:var(--text-sub)">정원 꽉, 수강료 적용</span></td>
+          <td style="padding:8px;border:1px solid var(--border);text-align:right;font-family:monospace">${fmt(maxSales)}원<br>${diff(maxSales, cur.curSales)}</td>
+          <td style="padding:8px;border:1px solid var(--border);text-align:right;font-family:monospace">${maxStudents}명<br>${diff(maxStudents, cur.students)}</td>
+          <td style="padding:8px;border:1px solid var(--border);text-align:right;font-family:monospace">${rooms}개</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <div style="font-size:10px;color:var(--text-sub);margin-top:8px;line-height:1.5">
+      ※ <strong>가동호실은 물리적 강의실 수</strong>라 시나리오와 무관하게 동일합니다.<br>
+      ※ '교체 시'는 현재 학생이 그대로 유지된다는 가정, '정원 최대'는 모든 좌석이 찬다는 가정입니다.<br>
+      ※ 실제 학생 유입(수요)은 데이터로 예측할 수 없어 포함하지 않았습니다.
+    </div>
+  </div>`;
 }
 
 // ── SVG 선 그래프 (요일별 추이)
