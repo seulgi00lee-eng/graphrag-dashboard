@@ -3036,26 +3036,31 @@ function renderAdmin() {
 
     <!-- 매출·호실·학생수 분석 -->
     <div class="card" style="margin-top:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-        <div class="card-title" style="margin-bottom:0">💰 매출 · 호실 · 학생수 분석</div>
-        <div style="display:flex;gap:4px">
-          <button id="occ_metric_tab_dept" onclick="switchOccMetric('dept')"
-            style="padding:5px 14px;border-radius:14px;border:1px solid #4263eb;background:#4263eb;
-                   color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Nanum Gothic',sans-serif">
-            사업부별
-          </button>
-          <button id="occ_metric_tab_day" onclick="switchOccMetric('day')"
-            style="padding:5px 14px;border-radius:14px;border:1px solid var(--border);background:transparent;
-                   color:var(--text-sub);font-size:12px;font-weight:700;cursor:pointer;font-family:'Nanum Gothic',sans-serif">
-            요일별
-          </button>
+      <div class="card-title">💰 매출 · 호실 · 학생수 분석</div>
+
+      <!-- 필터: 사업부 다중 + 요일 다중 + 조회 -->
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:14px">
+        <!-- 사업부 선택 -->
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;font-weight:800;color:var(--text-sub);margin-bottom:6px">① 사업부 선택</div>
+          <div id="metric_dept_box" style="display:flex;flex-wrap:wrap;gap:6px"></div>
         </div>
+        <!-- 요일 선택 -->
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;font-weight:800;color:var(--text-sub);margin-bottom:6px">② 요일 선택</div>
+          <div id="metric_day_box" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
+        <!-- 조회 버튼 -->
+        <button onclick="applyMetricFilter()" class="btn btn-primary"
+          style="font-size:13px;padding:8px 24px;font-weight:800">🔍 조회</button>
+        <span id="metric_filter_summary" style="margin-left:12px;font-size:12px;color:var(--text-sub)"></span>
       </div>
+
       <div id="occ_metric_content"></div>
 
       <!-- 교차표 (사업부 × 요일) -->
       <div style="margin-top:16px">
-        <div class="card-title" style="font-size:13px">📋 사업부 × 요일 교차표</div>
+        <div class="card-title" style="font-size:13px">📋 사업부 × 요일 교차표 (전체 참고용)</div>
         <div id="occ_crosstab" style="overflow-x:auto"></div>
       </div>
     </div>
@@ -4122,7 +4127,7 @@ function renderOccupancy() {
 
   // 매출·호실·학생수 분석 렌더
   window._occMetricData = data;
-  renderOccMetric(window._occMetricMode || 'dept');
+  initMetricFilter();
   renderOccCrosstab(data);
 }
 
@@ -4144,62 +4149,108 @@ function aggOccMetric(rows) {
   return { rooms: uniqueRooms.size, classes: seenClass.size, students, maxSales, curSales };
 }
 
-function switchOccMetric(mode) {
-  window._occMetricMode = mode;
-  ['dept','day'].forEach(m => {
-    const btn = document.getElementById('occ_metric_tab_'+m);
-    if (!btn) return;
-    const sel = m === mode;
-    btn.style.background  = sel ? '#4263eb' : 'transparent';
-    btn.style.color       = sel ? '#fff' : 'var(--text-sub)';
-    btn.style.borderColor = sel ? '#4263eb' : 'var(--border)';
-  });
-  renderOccMetric(mode);
-}
-
-function renderOccMetric(mode) {
+// ── 필터 UI 초기화 (사업부 다중 + 요일 다중)
+function initMetricFilter() {
   const data = window._occMetricData || [];
-  const el = document.getElementById('occ_metric_content');
-  if (!el) return;
-
   const DEPT_ORDER = ['초등사업부','중등사업부','고등사업부','테디사업부'];
   const DAYS = ['월','화','수','목','금','토','일'];
 
-  let groups;
-  if (mode === 'dept') {
-    const byDept = {};
-    data.forEach(r => { const k=r.dept||'미분류'; if(!byDept[k]) byDept[k]=[]; byDept[k].push(r); });
-    groups = Object.entries(byDept).sort((a,b)=>(DEPT_ORDER.indexOf(a[0])<0?99:DEPT_ORDER.indexOf(a[0]))-(DEPT_ORDER.indexOf(b[0])<0?99:DEPT_ORDER.indexOf(b[0])));
-  } else {
-    // 요일별: 해당 요일에 수업 있는 행만
-    groups = DAYS.map(d => [d+'요일', data.filter(r => r.day === d)]);
+  // 사업부 체크박스 (전체 + 데이터에 있는 사업부)
+  const depts = [...new Set(data.map(r=>r.dept).filter(Boolean))]
+    .sort((a,b)=>(DEPT_ORDER.indexOf(a)<0?99:DEPT_ORDER.indexOf(a))-(DEPT_ORDER.indexOf(b)<0?99:DEPT_ORDER.indexOf(b)));
+
+  const deptBox = document.getElementById('metric_dept_box');
+  if (deptBox) {
+    deptBox.innerHTML =
+      chip('metric_dept_all', '전체', true, 'toggleMetricDeptAll(this.checked)', '#4263eb') +
+      depts.map(d => chip2('metric_dept_chk', d, d)).join('');
   }
 
-  const fmt = n => Math.round(n||0).toLocaleString('ko-KR');
-  const cards = groups.map(([label, rows]) => {
-    const a = aggOccMetric(rows);
-    return `
-    <div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface)">
-      <div style="font-size:13px;font-weight:800;color:#4263eb;margin-bottom:10px">${label}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">
-        <div style="padding:8px;background:#f0f4ff;border-radius:6px">
-          <div style="font-size:10px;color:var(--text-sub)">🏫 가동 호실</div>
-          <div style="font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace">${a.rooms}개</div>
-        </div>
-        <div style="padding:8px;background:#f0faf4;border-radius:6px">
-          <div style="font-size:10px;color:var(--text-sub)">👥 수강생</div>
-          <div style="font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace">${a.students}명</div>
-        </div>
-        <div style="padding:8px;background:#fff9f0;border-radius:6px;grid-column:span 2">
-          <div style="font-size:10px;color:var(--text-sub)">💰 발생매출(추정)</div>
-          <div style="font-size:16px;font-weight:800;color:#c05621;font-family:'JetBrains Mono',monospace">${fmt(a.curSales)}원</div>
-          <div style="font-size:10px;color:var(--text-sub);margin-top:2px">표준매출 ${fmt(a.maxSales)}원 · 수업 ${a.classes}개</div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+  const dayBox = document.getElementById('metric_day_box');
+  if (dayBox) {
+    dayBox.innerHTML =
+      chip('metric_day_all', '전체', true, 'toggleMetricDayAll(this.checked)', '#c05621') +
+      DAYS.map(d => chip2('metric_day_chk', d, d+'요일')).join('');
+  }
 
-  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">${cards}</div>`;
+  // 기본: 전체 조회
+  applyMetricFilter();
+}
+
+// 칩 헬퍼
+function chip(id, label, checked, onchange, color) {
+  return `<label style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;
+    background:#eef2ff;border:1px solid ${color};border-radius:14px;font-size:12px;cursor:pointer;font-weight:700">
+    <input type="checkbox" id="${id}" ${checked?'checked':''} onchange="${onchange}" style="cursor:pointer">${label}</label>`;
+}
+function chip2(cls, val, label) {
+  const allId = cls === 'metric_dept_chk' ? 'metric_dept_all' : 'metric_day_all';
+  return `<label style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;font-size:12px;cursor:pointer">
+    <input type="checkbox" class="${cls}" value="${val}" onchange="document.getElementById('${allId}').checked=false" style="cursor:pointer">${label}</label>`;
+}
+
+function toggleMetricDeptAll(checked) {
+  document.querySelectorAll('.metric_dept_chk').forEach(c => c.checked = false);
+}
+function toggleMetricDayAll(checked) {
+  document.querySelectorAll('.metric_day_chk').forEach(c => c.checked = false);
+}
+
+// ── 조회 버튼: 선택한 사업부 + 요일 합산 1개 결과
+function applyMetricFilter() {
+  const data = window._occMetricData || [];
+  const el = document.getElementById('occ_metric_content');
+  const summary = document.getElementById('metric_filter_summary');
+  if (!el) return;
+
+  const deptAll = document.getElementById('metric_dept_all')?.checked;
+  const dayAll  = document.getElementById('metric_day_all')?.checked;
+  const selDepts = [...document.querySelectorAll('.metric_dept_chk:checked')].map(c=>c.value);
+  const selDays  = [...document.querySelectorAll('.metric_day_chk:checked')].map(c=>c.value);
+
+  // 전체 체크 or 아무것도 선택 안 함 → 전체로 간주
+  const useDepts = (deptAll || selDepts.length === 0) ? null : selDepts;
+  const useDays  = (dayAll  || selDays.length === 0)  ? null : selDays;
+
+  const filtered = data.filter(r =>
+    (!useDepts || useDepts.includes(r.dept)) &&
+    (!useDays  || useDays.includes(r.day))
+  );
+
+  // 선택 요약 텍스트
+  const deptLabel = useDepts ? useDepts.map(d=>d.replace('사업부','')).join('+') : '전체 사업부';
+  const dayLabel  = useDays  ? useDays.join('·')+'요일' : '전체 요일';
+  if (summary) summary.textContent = `▸ ${deptLabel} / ${dayLabel}`;
+
+  const a = aggOccMetric(filtered);
+  const fmt = n => Math.round(n||0).toLocaleString('ko-KR');
+
+  el.innerHTML = `
+  <div style="border:2px solid #4263eb;border-radius:12px;padding:20px;background:linear-gradient(135deg,#f0f4ff,#fff)">
+    <div style="font-size:14px;font-weight:800;color:#4263eb;margin-bottom:14px">
+      📊 ${deptLabel} · ${dayLabel} 합산
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
+      <div style="padding:14px;background:#fff;border-radius:8px;border:1px solid #dbe4ff">
+        <div style="font-size:11px;color:var(--text-sub)">🏫 가동 호실</div>
+        <div style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;color:#4263eb">${a.rooms}<span style="font-size:14px">개</span></div>
+      </div>
+      <div style="padding:14px;background:#fff;border-radius:8px;border:1px solid #d3f9d8">
+        <div style="font-size:11px;color:var(--text-sub)">👥 수강생</div>
+        <div style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;color:#2f9e44">${a.students}<span style="font-size:14px">명</span></div>
+      </div>
+      <div style="padding:14px;background:#fff;border-radius:8px;border:1px solid #ffe8cc">
+        <div style="font-size:11px;color:var(--text-sub)">📚 수업</div>
+        <div style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;color:#e67700">${a.classes}<span style="font-size:14px">개</span></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:14px;background:#fff;border-radius:8px;border:1px solid #ffe8cc">
+      <div style="font-size:11px;color:var(--text-sub)">💰 발생매출(추정)</div>
+      <div style="font-size:26px;font-weight:800;color:#c05621;font-family:'JetBrains Mono',monospace">${fmt(a.curSales)}원</div>
+      <div style="font-size:11px;color:var(--text-sub);margin-top:4px">표준매출 ${fmt(a.maxSales)}원</div>
+    </div>
+  </div>`;
 }
 
 // 사업부 × 요일 교차표
