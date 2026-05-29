@@ -1066,6 +1066,7 @@ function doLogin() {
   }
   currentUser = { id, ...acc };
   loadBldgRegions(); // localStorage에서 지역 설정 복원
+  loadEffData();     // localStorage에서 강의실 효율 데이터 복원
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('headerUser').textContent = acc.name;
@@ -2689,7 +2690,13 @@ function renderAdmin() {
           📤 엑셀 업로드
           <input type="file" accept=".xlsx,.xls" style="display:none" onchange="uploadEffExcel(this)">
         </label>
+        <button onclick="saveEffData()"
+          style="padding:6px 16px;background:#2d6a4f;border:none;border-radius:6px;
+                 color:#fff;font-size:12px;font-weight:800;cursor:pointer;font-family:'Nanum Gothic',sans-serif">
+          💾 저장
+        </button>
       </div>
+      <div id="eff_save_status" style="margin-top:8px;font-size:11px;color:var(--text-sub)"></div>
     </div>
 
     <!-- 사업부별 KPI 요약 -->
@@ -2945,6 +2952,7 @@ function initEffAnalysis() {
   renderDeptKPI();
   renderEffKPI();
   renderEffTable();
+  updateEffSaveStatus();
 }
 
 // ── classKey DISTINCT 집계 헬퍼 (요일 중복 완전 제거)
@@ -4400,6 +4408,45 @@ function deleteAllEff() {
   showToast('✅ 전체 삭제 완료');
 }
 
+// ── EFF_DATA localStorage 저장/복원
+function saveEffData() {
+  try {
+    localStorage.setItem('effData', JSON.stringify(EFF_DATA));
+    localStorage.setItem('effDataSavedAt', new Date().toISOString());
+    showToast(`✅ ${EFF_DATA.length}개 데이터 저장 완료`);
+    updateEffSaveStatus();
+  } catch(e) {
+    showToast('❌ 저장 실패: ' + (e.name==='QuotaExceededError'?'용량 초과':e.message), true);
+  }
+}
+
+function loadEffData() {
+  try {
+    const saved = localStorage.getItem('effData');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length) {
+        EFF_DATA = parsed;
+        return true;
+      }
+    }
+  } catch(e) {}
+  return false;
+}
+
+function updateEffSaveStatus() {
+  const el = document.getElementById('eff_save_status');
+  if (!el) return;
+  const savedAt = localStorage.getItem('effDataSavedAt');
+  if (savedAt) {
+    const d = new Date(savedAt);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    el.innerHTML = `💾 마지막 저장: ${dateStr} · 현재 ${EFF_DATA.length}개 · <span style="color:#2d6a4f">접속 시 자동 복원됩니다</span>`;
+  } else {
+    el.innerHTML = `⚠ 아직 저장된 데이터가 없습니다. 엑셀 업로드 후 <strong>💾 저장</strong> 버튼을 눌러주세요.`;
+  }
+}
+
 function deleteEffRow(id) {
   if (!confirm('이 데이터를 삭제하시겠습니까?')) return;
   EFF_DATA = EFF_DATA.filter(r => r.id !== id);
@@ -4684,7 +4731,8 @@ function uploadEffExcel(input) {
         effFilterPending = { region:'', building:'', dept:'', campus:'', spaceType:'' };
         renderEffKPI();
         renderEffTable();
-        showToast(`✅ 업로드 완료: ${addCount}개 추가, ${skipCount}개 건너뜀 | 총 ${EFF_DATA.length}개`);
+        showToast(`✅ 업로드 완료: ${addCount}개 추가, ${skipCount}개 건너뜀 | 💾 저장 버튼을 눌러야 다음 접속 시 유지됩니다`);
+        updateEffSaveStatus();
       } catch(err) {
         showToast('❌ 파일 파싱 오류: ' + err.message, true);
         console.error(err);
