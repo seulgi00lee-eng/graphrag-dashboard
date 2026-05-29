@@ -471,10 +471,72 @@ select:focus, .inp-select:focus { border-color: var(--accent); }
   <div class="login-box">
     <h2>📊 Graph RAG Dashboard</h2>
     <p>임차료 배부 관리 시스템 · Flow Education</p>
-    <input type="text" id="loginId" placeholder="아이디" autocomplete="off">
-    <input type="password" id="loginPw" placeholder="비밀번호">
-    <button onclick="doLogin()">로그인</button>
-    <div class="login-err" id="loginErr">아이디 또는 비밀번호가 올바르지 않습니다.</div>
+
+    <!-- 로그인/권한요청 탭 -->
+    <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid #e9ecef">
+      <button id="loginTab_login" onclick="switchLoginTab('login')"
+        style="flex:1;padding:8px;border:none;background:none;font-size:13px;font-weight:800;
+               cursor:pointer;color:#4263eb;border-bottom:2px solid #4263eb;margin-bottom:-2px;
+               font-family:'Nanum Gothic',sans-serif">로그인</button>
+      <button id="loginTab_request" onclick="switchLoginTab('request')"
+        style="flex:1;padding:8px;border:none;background:none;font-size:13px;font-weight:800;
+               cursor:pointer;color:#adb5bd;border-bottom:2px solid transparent;margin-bottom:-2px;
+               font-family:'Nanum Gothic',sans-serif">권한요청</button>
+    </div>
+
+    <!-- 로그인 패널 -->
+    <div id="loginPanel_login">
+      <input type="text" id="loginId" placeholder="아이디" autocomplete="off">
+      <input type="password" id="loginPw" placeholder="비밀번호">
+      <button onclick="doLogin()">로그인</button>
+      <div class="login-err" id="loginErr">아이디 또는 비밀번호가 올바르지 않습니다.</div>
+    </div>
+
+    <!-- 권한요청 패널 -->
+    <div id="loginPanel_request" style="display:none">
+      <div style="font-size:11px;color:#868e96;margin-bottom:12px;line-height:1.5">
+        아래 정보를 선택해 권한을 요청하면 관리자(이슬기) 승인 후 계정이 발급됩니다.
+      </div>
+      <input type="text" id="req_name" placeholder="이름 (예: 홍길동)" autocomplete="off"
+        style="margin-bottom:10px">
+
+      <select id="req_dept" onchange="onReqDeptChange()" style="width:100%;padding:11px 14px;margin-bottom:10px;border:1px solid #dee2e6;
+        border-radius:8px;font-size:14px;background:#f8f9fa;color:#495057;font-family:'Nanum Gothic',sans-serif">
+        <option value="">소속 선택</option>
+      </select>
+
+      <!-- 본사 외 선택 시에만 표시되는 지역/관코드 영역 -->
+      <div id="req_scope_box">
+        <select id="req_region" style="width:100%;padding:11px 14px;margin-bottom:10px;border:1px solid #dee2e6;
+          border-radius:8px;font-size:14px;background:#f8f9fa;color:#495057;font-family:'Nanum Gothic',sans-serif">
+          <option value="">지역 선택</option>
+        </select>
+
+        <!-- 관코드 드롭다운 (펼침/접힘 + 다중선택) -->
+        <div style="margin-bottom:10px;position:relative">
+          <div onclick="toggleReqCampusDropdown()" id="req_campus_toggle"
+            style="width:100%;padding:11px 14px;border:1px solid #dee2e6;border-radius:8px;
+                   font-size:14px;background:#f8f9fa;color:#868e96;cursor:pointer;
+                   display:flex;justify-content:space-between;align-items:center;font-family:'Nanum Gothic',sans-serif">
+            <span id="req_campus_label">관코드 선택 (다중 가능)</span>
+            <span id="req_campus_arrow">▼</span>
+          </div>
+          <div id="req_campus_dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10;
+            margin-top:4px;max-height:200px;overflow-y:auto;border:1px solid #4263eb;border-radius:8px;
+            padding:8px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.12);display:none">
+            <div id="req_campus_box" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+          </div>
+        </div>
+      </div>
+
+      <select id="req_title" style="width:100%;padding:11px 14px;margin-bottom:14px;border:1px solid #dee2e6;
+        border-radius:8px;font-size:14px;background:#f8f9fa;color:#495057;font-family:'Nanum Gothic',sans-serif">
+        <option value="">직급 및 직책 선택</option>
+      </select>
+
+      <button onclick="submitPermissionRequest()">권한요청하기</button>
+      <div id="req_msg" style="margin-top:10px;font-size:12px;text-align:center"></div>
+    </div>
   </div>
 </div>
 
@@ -575,15 +637,192 @@ select:focus, .inp-select:focus { border-color: var(--accent); }
 // ══════════════════════════════════════════════
 // 1. 계정 정보
 // ══════════════════════════════════════════════
-const ACCOUNTS = {
-  lee:  { pw: 'flow2025!', name: '이슬기', role: 'hq' },
-  ahn:  { pw: 'flow2025!', name: '안희운', role: 'hq' },
-  kim:  { pw: 'flow2025!', name: '김영진', role: 'hq' },
-  park: { pw: 'flow2025!', name: '박윤규', role: 'hq' },
-  dir1: { pw: 'flow2025!', name: '다운타운원장', role: 'dir', campus: ['b7','b2','b5'] },
-  dir2: { pw: 'flow2025!', name: 'N타워원장',   role: 'dir', campus: ['b1','b6'] },
-  dir3: { pw: 'flow2025!', name: '수내/정자원장', role: 'dir', campus: ['b3','b4'] },
+// ══════════════════════════════════════════════
+// 1. 계정 + 권한 체계
+// ══════════════════════════════════════════════
+// 권한 레벨(rank): 이사/본부장 = 'exec' | 원장 = 'director'
+//                  부원장/CS = 'input' | 과장/대리/사원 = 'staff'
+//                  lee = 'admin' (최종관리자)
+// 관코드 전체 목록 (이미지 기준)
+const ALL_CAMPUS_CODES = [
+  '103','104','105','106','107','108','109','110','111','112','113','114','115','116','117',
+  '203','204','205','206','207','208','209','210','211','212','213','214','220',
+  '301','307','308','309','312','313','322','325','326','327','333','363'
+];
+
+const DEPT_OPTIONS   = ['본사','초등사업부','중등사업부','고등사업부','사스사업부'];
+const REGION_OPTIONS_AUTH = ['수내','이매','정자','수지','광교','영통'];
+const TITLE_OPTIONS  = ['이사','본부장','원장','과장','대리','사원','부원장','CS'];
+
+// 직급/직책 → 권한 레벨 매핑
+function titleToRank(title) {
+  if (['이사','본부장'].includes(title)) return 'exec';      // 전체 조회 + 관리자
+  if (title === '원장')                  return 'director';  // 소속만 조회
+  if (['부원장','CS'].includes(title))   return 'input';     // 소속 사용현황 입력만
+  if (['과장','대리','사원'].includes(title)) return 'staff'; // 전체 조회
+  return 'staff';
+}
+
+// 기본 계정 (코드 내장)
+const BASE_ACCOUNTS = {
+  lee:  { pw: 'flow2025!', name: '이슬기', rank: 'admin', title:'관리자', dept:'본사', region:'전체', campus: 'all' },
+  ahn:  { pw: 'flow2025!', name: '안희운', rank: 'exec',  title:'본부장', dept:'본사', region:'전체', campus: 'all' },
+  kim:  { pw: 'flow2025!', name: '김영진', rank: 'staff', title:'과장',   dept:'본사', region:'전체', campus: 'all' },
+  park: { pw: 'flow2025!', name: '박윤규', rank: 'staff', title:'대리',   dept:'본사', region:'전체', campus: 'all' },
 };
+
+// localStorage에서 추가 계정 병합
+function loadAccounts() {
+  let accounts = { ...BASE_ACCOUNTS };
+  try {
+    const saved = JSON.parse(localStorage.getItem('extraAccounts') || '{}');
+    accounts = { ...accounts, ...saved };
+  } catch(e) {}
+  return accounts;
+}
+
+let ACCOUNTS = loadAccounts();
+
+// ── 로그인 화면 탭 전환
+function switchLoginTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('loginPanel_login').style.display   = isLogin ? 'block' : 'none';
+  document.getElementById('loginPanel_request').style.display = isLogin ? 'none' : 'block';
+  const lt = document.getElementById('loginTab_login');
+  const rt = document.getElementById('loginTab_request');
+  lt.style.color = isLogin ? '#4263eb' : '#adb5bd';
+  lt.style.borderBottomColor = isLogin ? '#4263eb' : 'transparent';
+  rt.style.color = isLogin ? '#adb5bd' : '#4263eb';
+  rt.style.borderBottomColor = isLogin ? 'transparent' : '#4263eb';
+  if (!isLogin) initRequestForm();
+}
+
+// ── 권한요청 폼 초기화 (드롭다운 옵션 채우기)
+function initRequestForm() {
+  const deptSel = document.getElementById('req_dept');
+  if (deptSel && deptSel.options.length <= 1)
+    deptSel.innerHTML = '<option value="">소속 선택</option>' + DEPT_OPTIONS.map(d=>`<option value="${d}">${d}</option>`).join('');
+
+  const regSel = document.getElementById('req_region');
+  if (regSel && regSel.options.length <= 1)
+    regSel.innerHTML = '<option value="">지역 선택</option>' + REGION_OPTIONS_AUTH.map(r=>`<option value="${r}">${r}</option>`).join('');
+
+  const titleSel = document.getElementById('req_title');
+  if (titleSel && titleSel.options.length <= 1)
+    titleSel.innerHTML = '<option value="">직급 및 직책 선택</option>' + TITLE_OPTIONS.map(t=>`<option value="${t}">${t}</option>`).join('');
+
+  const campusBox = document.getElementById('req_campus_box');
+  if (campusBox && !campusBox.children.length)
+    campusBox.innerHTML = ALL_CAMPUS_CODES.map(c => `
+      <label style="display:inline-flex;align-items:center;gap:3px;padding:4px 9px;background:#f8f9fa;
+        border:1px solid #dee2e6;border-radius:6px;font-size:12px;cursor:pointer">
+        <input type="checkbox" class="req_campus_chk" value="${c}" onchange="updateReqCampusLabel()" style="cursor:pointer">${c}
+      </label>`).join('');
+}
+
+// ── 소속 변경: 본사면 지역/관코드 숨김
+function onReqDeptChange() {
+  const dept = document.getElementById('req_dept').value;
+  const scopeBox = document.getElementById('req_scope_box');
+  if (!scopeBox) return;
+  if (dept === '본사') {
+    scopeBox.style.display = 'none';
+    // 본사는 전체 권한이므로 선택값 초기화
+    document.getElementById('req_region').value = '';
+    document.querySelectorAll('.req_campus_chk:checked').forEach(c=>c.checked=false);
+    updateReqCampusLabel();
+  } else {
+    scopeBox.style.display = 'block';
+  }
+}
+
+// ── 관코드 드롭다운 펼침/접힘
+function toggleReqCampusDropdown() {
+  const dd = document.getElementById('req_campus_dropdown');
+  const arrow = document.getElementById('req_campus_arrow');
+  if (!dd) return;
+  const open = dd.style.display === 'block';
+  dd.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.textContent = open ? '▼' : '▲';
+}
+
+// ── 관코드 선택 라벨 업데이트
+function updateReqCampusLabel() {
+  const checked = [...document.querySelectorAll('.req_campus_chk:checked')].map(c=>c.value);
+  const label = document.getElementById('req_campus_label');
+  if (!label) return;
+  if (!checked.length) {
+    label.textContent = '관코드 선택 (다중 가능)';
+    label.style.color = '#868e96';
+  } else {
+    label.textContent = `${checked.length}개 선택: ${checked.join(', ')}`;
+    label.style.color = '#4263eb';
+  }
+}
+
+// ── 권한요청 제출 → localStorage 저장
+function submitPermissionRequest() {
+  const name   = document.getElementById('req_name').value.trim();
+  const dept   = document.getElementById('req_dept').value;
+  const region = document.getElementById('req_region').value;
+  const title  = document.getElementById('req_title').value;
+  const campus = [...document.querySelectorAll('.req_campus_chk:checked')].map(c=>c.value);
+  const msg    = document.getElementById('req_msg');
+  const isHQ   = dept === '본사';
+
+  if (!name)   { msg.style.color='#e03131'; msg.textContent='이름을 입력해주세요.'; return; }
+  if (!dept)   { msg.style.color='#e03131'; msg.textContent='소속을 선택해주세요.'; return; }
+  if (!title)  { msg.style.color='#e03131'; msg.textContent='직급/직책을 선택해주세요.'; return; }
+  // 본사가 아닐 때만 지역/관코드 필수
+  if (!isHQ && !region) { msg.style.color='#e03131'; msg.textContent='지역을 선택해주세요.'; return; }
+  if (!isHQ && !campus.length) { msg.style.color='#e03131'; msg.textContent='관코드를 1개 이상 선택해주세요.'; return; }
+
+  const requests = JSON.parse(localStorage.getItem('permRequests') || '[]');
+  requests.push({
+    id: 'req_' + Date.now(),
+    name, dept,
+    region: isHQ ? '전체' : region,
+    title,
+    campus: isHQ ? 'all' : campus,
+    rank: titleToRank(title),
+    status: '대기',
+    requestedAt: new Date().toISOString(),
+  });
+  localStorage.setItem('permRequests', JSON.stringify(requests));
+
+  // TODO: lee에게 실시간 알람 (추후 구현)
+  msg.style.color = '#2d6a4f';
+  msg.innerHTML = '✅ 권한요청이 접수되었습니다.<br>관리자 승인 후 계정이 발급됩니다.';
+  document.getElementById('req_name').value = '';
+  document.getElementById('req_dept').value = '';
+  document.getElementById('req_region').value = '';
+  document.getElementById('req_title').value = '';
+  document.querySelectorAll('.req_campus_chk:checked').forEach(c=>c.checked=false);
+  updateReqCampusLabel();
+  onReqDeptChange();
+}
+
+// ── 접속/액션 로그 기록
+function addAccessLog(action) {
+  if (!currentUser) return;
+  const logs = JSON.parse(localStorage.getItem('accessLogs') || '[]');
+  logs.unshift({
+    time: new Date().toISOString(),
+    user: currentUser.name + ' (' + currentUser.id + ')',
+    rank: rankLabel(currentUser.rank),
+    action: action,
+    ip: window._clientIP || '확인중',
+  });
+  // 최근 500건만 유지
+  localStorage.setItem('accessLogs', JSON.stringify(logs.slice(0, 500)));
+}
+
+// 클라이언트 IP 조회 (외부 API)
+(function fetchClientIP(){
+  fetch('https://api.ipify.org?format=json')
+    .then(r=>r.json()).then(d=>{ window._clientIP = d.ip; })
+    .catch(()=>{ window._clientIP = '확인불가'; });
+})();
 
 // ══════════════════════════════════════════════
 // 2. 건물 기본 정보 (BUILDING_BASE)
@@ -1060,22 +1299,29 @@ let inpData = {};
 function doLogin() {
   const id = document.getElementById('loginId').value.trim();
   const pw = document.getElementById('loginPw').value;
+  ACCOUNTS = loadAccounts(); // 최신 계정 반영
   const acc = ACCOUNTS[id];
   if (!acc || acc.pw !== pw) {
     document.getElementById('loginErr').style.display = 'block'; return;
   }
   currentUser = { id, ...acc };
-  loadBldgRegions(); // localStorage에서 지역 설정 복원
-  loadEffData();     // localStorage에서 강의실 효율 데이터 복원
+  loadBldgRegions();
+  loadEffData();
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('headerUser').textContent = acc.name;
-  document.getElementById('headerRole').textContent = acc.role === 'hq' ? '(본부장급)' : '(원장급)';
+  document.getElementById('headerRole').textContent = '(' + rankLabel(acc.rank) + ')';
+  addAccessLog('로그인');
   buildTabs();
+}
+
+function rankLabel(rank) {
+  return { admin:'최종관리자', exec:'이사·본부장', director:'원장', input:'부원장·CS', staff:'과장·대리·사원' }[rank] || rank;
 }
 document.getElementById('loginPw').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
 function doLogout() {
+  addAccessLog('로그아웃');
   currentUser = null;
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
@@ -1102,21 +1348,36 @@ const ALL_TABS = [
   { id:'b_youngil',    label:'영일빌딩',             role:'bldg' },
   { id:'b_mirae',      label:'미래빌딩',             role:'bldg' },
   // ── 기능 탭
-  { id:'input',        label:'📝 사용현황 입력',     role:'login' },
-  { id:'admin',        label:'⚙️ 관리자',            role:'hq' },
+  { id:'input',        label:'📝 사용현황 입력',     role:'input' },
+  { id:'admin',        label:'⚙️ 관리자',            role:'admin' },
 ];
 
 function canSeeTab(tab) {
-  // hq: 모든 탭
-  if (currentUser.role === 'hq') return true;
-  // 전체공개
+  const rank = currentUser.rank;
+
+  // 전체 공개 탭
   if (tab.role === 'all') return true;
-  // 로그인 후 공개 (사용현황 입력)
-  if (tab.role === 'login') return true;
-  // hq 전용 (관리자) → dir 불가
-  if (tab.role === 'hq') return false;
-  // 건물 탭 → dir는 자신의 캠퍼스 건물만
-  if (tab.role === 'bldg') return currentUser.campus ? currentUser.campus.includes(tab.id) : false;
+
+  // 관리자 탭: admin(lee) + exec(이사/본부장)만
+  if (tab.role === 'admin') return rank === 'admin' || rank === 'exec';
+
+  // 사용현황 입력 탭: 모든 로그인 사용자 (input 권한 포함)
+  if (tab.role === 'input') return true;
+
+  // 건물 탭
+  if (tab.role === 'bldg') {
+    // 전체 권한 (admin/exec/staff): 모든 건물
+    if (rank === 'admin' || rank === 'exec' || rank === 'staff') return true;
+    // 원장/부원장/CS: 소속 캠퍼스(관코드) 건물만
+    if (currentUser.campus === 'all') return true;
+    if (Array.isArray(currentUser.campus)) {
+      // 해당 건물에 소속 관코드가 있는지 확인
+      const b = BUILDINGS[tab.id];
+      if (!b) return false;
+      return (b.campuses || []).some(c => currentUser.campus.includes(c));
+    }
+    return false;
+  }
   return false;
 }
 
@@ -2646,7 +2907,7 @@ function renderAdmin() {
   return `
   <!-- 관리자 서브탭 -->
   <div style="display:flex;gap:2px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:0">
-    ${['강의실 운영 효율 분석','📊 가동률 분석','월별 데이터 등록','접속 로그'].map((t,i) => `
+    ${['강의실 운영 효율 분석','📊 가동률 분석','월별 데이터 등록','접속 로그','👥 사용자 관리'].map((t,i) => `
       <button id="admtab_${i}" onclick="switchAdmTab(${i})"
         style="padding:8px 18px;border:none;background:${i===0?'var(--accent)':'transparent'};
                color:${i===0?'#fff':'var(--text-sub)'};font-size:13px;font-weight:700;cursor:pointer;
@@ -2773,12 +3034,6 @@ function renderAdmin() {
       <div id="occ_dept_chart"></div>
     </div>
 
-    <!-- 호실별 가동률 히트맵 -->
-    <div class="card" style="margin-top:12px">
-      <div class="card-title">🏫 호실 × 요일 가동률 히트맵</div>
-      <div id="occ_heatmap" style="overflow-x:auto"></div>
-    </div>
-
     <!-- 매출·호실·학생수 분석 -->
     <div class="card" style="margin-top:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
@@ -2803,6 +3058,12 @@ function renderAdmin() {
         <div class="card-title" style="font-size:13px">📋 사업부 × 요일 교차표</div>
         <div id="occ_crosstab" style="overflow-x:auto"></div>
       </div>
+    </div>
+
+    <!-- 호실별 가동률 히트맵 -->
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">🏫 호실 × 요일 가동률 히트맵</div>
+      <div id="occ_heatmap" style="overflow-x:auto"></div>
     </div>
   </div>
 
@@ -2834,11 +3095,121 @@ function renderAdmin() {
   <!-- 서브탭 3: 접속 로그 -->
   <div id="admtab_panel_3" style="display:none">
     <div class="card">
-      <div class="card-title">접속 로그</div>
-      <table class="log-table">
-        <thead><tr><th>시각</th><th>사용자</th><th>권한</th><th>액션</th></tr></thead>
-        <tbody><tr><td colspan="4" style="color:var(--text-sub);text-align:center;padding:24px">로그 없음</td></tr></tbody>
-      </table>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="card-title" style="margin-bottom:0">📜 접속 로그</div>
+        <div>
+          <button onclick="renderAccessLogs()" style="padding:5px 12px;border:1px solid var(--border);
+            border-radius:6px;background:none;font-size:12px;cursor:pointer;color:var(--text-sub);
+            font-family:'Nanum Gothic',sans-serif">🔄 새로고침</button>
+          <button onclick="clearAccessLogs()" style="padding:5px 12px;border:1px solid #fca5a5;
+            border-radius:6px;background:none;font-size:12px;cursor:pointer;color:#e03131;margin-left:4px;
+            font-family:'Nanum Gothic',sans-serif">로그 비우기</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="log-table" style="min-width:760px">
+          <thead><tr>
+            <th>시각</th><th>사용자</th><th>권한</th><th>IP 주소</th><th>액션</th>
+          </tr></thead>
+          <tbody id="access_log_tbody">
+            <tr><td colspan="5" style="color:var(--text-sub);text-align:center;padding:24px">로그 없음</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 서브탭 4: 사용자 관리 -->
+  <div id="admtab_panel_4" style="display:none">
+    <!-- 권한요청 내역 -->
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="card-title" style="margin-bottom:0">🔔 권한요청 내역</div>
+        <button onclick="renderPermRequests()" style="padding:5px 12px;border:1px solid var(--border);
+          border-radius:6px;background:none;font-size:12px;cursor:pointer;color:var(--text-sub);
+          font-family:'Nanum Gothic',sans-serif">🔄 새로고침</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="log-table" style="min-width:860px">
+          <thead><tr>
+            <th>요청일</th><th>이름</th><th>소속</th><th>지역</th><th>관코드</th><th>직급/직책</th><th>상태</th><th>처리</th>
+          </tr></thead>
+          <tbody id="perm_req_tbody">
+            <tr><td colspan="8" style="color:var(--text-sub);text-align:center;padding:24px">요청 없음</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 계정 생성 -->
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-title">➕ 계정 생성</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:12px">
+        <div>
+          <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;font-weight:700">아이디</div>
+          <input type="text" id="newacc_id" placeholder="영문 아이디"
+            style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'Nanum Gothic',sans-serif">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;font-weight:700">비밀번호</div>
+          <input type="text" id="newacc_pw" placeholder="비밀번호"
+            style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'Nanum Gothic',sans-serif">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;font-weight:700">이름</div>
+          <input type="text" id="newacc_name" placeholder="이름"
+            style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'Nanum Gothic',sans-serif">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;font-weight:700">소속</div>
+          <select id="newacc_dept" onchange="onNewAccDeptChange()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'Nanum Gothic',sans-serif"></select>
+        </div>
+        <div id="newacc_region_wrap">
+          <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;font-weight:700">지역</div>
+          <select id="newacc_region" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'Nanum Gothic',sans-serif"></select>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;font-weight:700">직급/직책</div>
+          <select id="newacc_title" onchange="onNewAccTitleChange()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'Nanum Gothic',sans-serif"></select>
+        </div>
+      </div>
+      <div id="newacc_campus_wrap" style="margin-bottom:12px;position:relative;max-width:340px">
+        <div style="font-size:11px;color:var(--text-sub);margin-bottom:6px;font-weight:700">
+          관코드 <span id="newacc_campus_hint" style="font-weight:400;color:#868e96"></span>
+        </div>
+        <div onclick="toggleNewAccCampusDropdown()" id="newacc_campus_toggle"
+          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;
+                 font-size:13px;background:var(--surface2);color:var(--text-sub);cursor:pointer;
+                 display:flex;justify-content:space-between;align-items:center;font-family:'Nanum Gothic',sans-serif">
+          <span id="newacc_campus_label">관코드 선택 (다중 가능)</span>
+          <span id="newacc_campus_arrow">▼</span>
+        </div>
+        <div id="newacc_campus_dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10;
+          margin-top:4px;max-height:180px;overflow-y:auto;border:1px solid #4263eb;border-radius:8px;
+          padding:8px;background:var(--surface);box-shadow:0 4px 16px rgba(0,0,0,.12)">
+          <div id="newacc_campus_box" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+        </div>
+      </div>
+      <button onclick="createAccount()" class="btn btn-primary" style="font-size:13px;padding:8px 24px;font-weight:800">계정 생성</button>
+      <div id="newacc_msg" style="margin-top:8px;font-size:12px"></div>
+    </div>
+
+    <!-- 계정 목록 -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="card-title" style="margin-bottom:0">👥 계정 목록</div>
+        <button onclick="renderAccountList()" style="padding:5px 12px;border:1px solid var(--border);
+          border-radius:6px;background:none;font-size:12px;cursor:pointer;color:var(--text-sub);
+          font-family:'Nanum Gothic',sans-serif">🔄 새로고침</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="log-table" style="min-width:760px">
+          <thead><tr>
+            <th>아이디</th><th>이름</th><th>소속</th><th>지역</th><th>관코드</th><th>권한</th><th>관리</th>
+          </tr></thead>
+          <tbody id="account_list_tbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -2958,9 +3329,14 @@ function buildEffModalFields() {
   }).join('');
 }
 
-// ── 관리자 서브탭 전환 (4개)
+// ── 관리자 서브탭 전환 (5개)
 function switchAdmTab(n) {
-  [0,1,2,3].forEach(i => {
+  // 접속로그(3) + 사용자관리(4)는 admin(lee)만 접근
+  if ((n === 3 || n === 4) && currentUser.rank !== 'admin') {
+    showToast('접속 로그와 사용자 관리는 최종관리자만 접근 가능합니다.', true);
+    return;
+  }
+  [0,1,2,3,4].forEach(i => {
     const panel = document.getElementById('admtab_panel_' + i);
     const btn   = document.getElementById('admtab_' + i);
     if (!panel || !btn) return;
@@ -2970,6 +3346,265 @@ function switchAdmTab(n) {
   });
   if (n === 0) initEffAnalysis();
   if (n === 1) initOccupancy();
+  if (n === 3) renderAccessLogs();
+  if (n === 4) initUserMgmt();
+}
+
+// ══════════════════════════════════════════════
+// 사용자 관리 (서브탭 4)
+// ══════════════════════════════════════════════
+function initUserMgmt() {
+  // 드롭다운 옵션 채우기
+  const deptSel = document.getElementById('newacc_dept');
+  if (deptSel && deptSel.options.length === 0)
+    deptSel.innerHTML = DEPT_OPTIONS.map(d=>`<option value="${d}">${d}</option>`).join('');
+  const regSel = document.getElementById('newacc_region');
+  if (regSel && regSel.options.length === 0)
+    regSel.innerHTML = '<option value="전체">전체</option>' + REGION_OPTIONS_AUTH.map(r=>`<option value="${r}">${r}</option>`).join('');
+  const titleSel = document.getElementById('newacc_title');
+  if (titleSel && titleSel.options.length === 0)
+    titleSel.innerHTML = TITLE_OPTIONS.map(t=>`<option value="${t}">${t}</option>`).join('');
+  const campusBox = document.getElementById('newacc_campus_box');
+  if (campusBox && !campusBox.children.length)
+    campusBox.innerHTML = `<label style="display:inline-flex;align-items:center;gap:3px;padding:4px 9px;background:#eef2ff;border:1px solid #4263eb;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">
+        <input type="checkbox" id="newacc_campus_all" onchange="toggleNewAccAllCampus(this.checked)" style="cursor:pointer">전체
+      </label>` + ALL_CAMPUS_CODES.map(c => `
+      <label style="display:inline-flex;align-items:center;gap:3px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">
+        <input type="checkbox" class="newacc_campus_chk" value="${c}" onchange="updateNewAccCampusLabel()" style="cursor:pointer">${c}
+      </label>`).join('');
+
+  onNewAccDeptChange();
+  onNewAccTitleChange();
+  renderPermRequests();
+  renderAccountList();
+}
+
+// 소속 본사면 지역/관코드 숨김
+function onNewAccDeptChange() {
+  const dept = document.getElementById('newacc_dept')?.value || '';
+  const regWrap = document.getElementById('newacc_region_wrap');
+  const campWrap = document.getElementById('newacc_campus_wrap');
+  const isHQ = dept === '본사';
+  if (regWrap)  regWrap.style.display  = isHQ ? 'none' : 'block';
+  if (campWrap) campWrap.style.display = isHQ ? 'none' : 'block';
+}
+
+function toggleNewAccCampusDropdown() {
+  const dd = document.getElementById('newacc_campus_dropdown');
+  const arrow = document.getElementById('newacc_campus_arrow');
+  if (!dd) return;
+  const open = dd.style.display === 'block';
+  dd.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.textContent = open ? '▼' : '▲';
+}
+
+function updateNewAccCampusLabel() {
+  const checked = [...document.querySelectorAll('.newacc_campus_chk:checked')].map(c=>c.value);
+  const label = document.getElementById('newacc_campus_label');
+  if (!label) return;
+  const allChk = document.getElementById('newacc_campus_all');
+  if (allChk && allChk.checked) {
+    label.textContent = '전체 선택됨';
+    label.style.color = '#4263eb';
+  } else if (!checked.length) {
+    label.textContent = '관코드 선택 (다중 가능)';
+    label.style.color = 'var(--text-sub)';
+  } else {
+    label.textContent = `${checked.length}개: ${checked.join(', ')}`;
+    label.style.color = '#4263eb';
+  }
+}
+
+function toggleNewAccAllCampus(checked) {
+  document.querySelectorAll('.newacc_campus_chk').forEach(c => c.checked = checked);
+  updateNewAccCampusLabel();
+}
+
+// 직급 선택 시 권한 안내 + 관코드 박스 표시 여부
+function onNewAccTitleChange() {
+  const title = document.getElementById('newacc_title')?.value || '';
+  const rank = titleToRank(title);
+  const hint = document.getElementById('newacc_campus_hint');
+  if (!hint) return;
+  if (rank === 'exec' || rank === 'staff') {
+    hint.textContent = '(이 직급은 전체 데이터 권한 → 관코드 선택 불필요)';
+  } else {
+    hint.textContent = '(원장/부원장/CS는 소속 관코드만 접근 → 선택 필수)';
+  }
+}
+
+// 계정 생성
+function createAccount() {
+  const id     = document.getElementById('newacc_id').value.trim();
+  const pw     = document.getElementById('newacc_pw').value.trim();
+  const name   = document.getElementById('newacc_name').value.trim();
+  const dept   = document.getElementById('newacc_dept').value;
+  const region = document.getElementById('newacc_region').value;
+  const title  = document.getElementById('newacc_title').value;
+  const campus = [...document.querySelectorAll('.newacc_campus_chk:checked')].map(c=>c.value);
+  const msg    = document.getElementById('newacc_msg');
+  const rank   = titleToRank(title);
+
+  if (!id || !pw || !name) { msg.style.color='#e03131'; msg.textContent='아이디/비밀번호/이름은 필수입니다.'; return; }
+  if (!title) { msg.style.color='#e03131'; msg.textContent='직급/직책을 선택해주세요.'; return; }
+  if (ACCOUNTS[id] || BASE_ACCOUNTS[id]) { msg.style.color='#e03131'; msg.textContent='이미 존재하는 아이디입니다.'; return; }
+
+  const isHQ = dept === '본사';
+  const allChkOn = document.getElementById('newacc_campus_all')?.checked;
+  // 본사 / 이사·본부장 / 과장·대리·사원 / 전체체크 → 전체, 원장·부원장·CS는 선택 관코드
+  const campusVal = (isHQ || rank === 'exec' || rank === 'staff' || allChkOn)
+    ? 'all'
+    : (campus.length ? campus : 'all');
+  const regionVal = isHQ ? '전체' : region;
+
+  const extra = JSON.parse(localStorage.getItem('extraAccounts') || '{}');
+  extra[id] = { pw, name, rank, title, dept, region: regionVal, campus: campusVal };
+  localStorage.setItem('extraAccounts', JSON.stringify(extra));
+  ACCOUNTS = loadAccounts();
+
+  msg.style.color = '#2d6a4f';
+  msg.textContent = `✅ ${name}(${id}) 계정 생성 완료 — 즉시 로그인 가능`;
+  document.getElementById('newacc_id').value = '';
+  document.getElementById('newacc_pw').value = '';
+  document.getElementById('newacc_name').value = '';
+  document.querySelectorAll('.newacc_campus_chk:checked').forEach(c=>c.checked=false);
+  const allChk = document.getElementById('newacc_campus_all'); if (allChk) allChk.checked = false;
+  updateNewAccCampusLabel();
+  renderAccountList();
+}
+
+// 계정 목록 렌더
+function renderAccountList() {
+  const tbody = document.getElementById('account_list_tbody');
+  if (!tbody) return;
+  ACCOUNTS = loadAccounts();
+  const extra = JSON.parse(localStorage.getItem('extraAccounts') || '{}');
+
+  tbody.innerHTML = Object.entries(ACCOUNTS).map(([id, a]) => {
+    const isBase = !!BASE_ACCOUNTS[id];
+    const campusStr = a.campus === 'all' ? '전체' : (Array.isArray(a.campus) ? a.campus.join(', ') : a.campus);
+    return `<tr>
+      <td style="font-weight:700">${id}</td>
+      <td>${a.name}</td>
+      <td>${a.dept||'-'}</td>
+      <td>${a.region||'-'}</td>
+      <td style="font-size:11px;max-width:160px">${campusStr}</td>
+      <td><span style="padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;
+        background:${a.rank==='admin'?'#fee2e2':a.rank==='exec'?'#dbeafe':'#f1f3f5'};
+        color:${a.rank==='admin'?'#b91c1c':a.rank==='exec'?'#1971c2':'#495057'}">${rankLabel(a.rank)}</span></td>
+      <td>${isBase ? '<span style="font-size:11px;color:#adb5bd">기본계정</span>'
+        : `<button onclick="deleteAccount('${id}')" style="padding:3px 10px;border:1px solid #fca5a5;border-radius:5px;background:none;font-size:11px;cursor:pointer;color:#e03131;font-family:'Nanum Gothic',sans-serif">삭제</button>`}</td>
+    </tr>`;
+  }).join('');
+}
+
+function deleteAccount(id) {
+  if (BASE_ACCOUNTS[id]) { showToast('기본 계정은 삭제할 수 없습니다.', true); return; }
+  if (!confirm(`${id} 계정을 삭제하시겠습니까?`)) return;
+  const extra = JSON.parse(localStorage.getItem('extraAccounts') || '{}');
+  delete extra[id];
+  localStorage.setItem('extraAccounts', JSON.stringify(extra));
+  ACCOUNTS = loadAccounts();
+  renderAccountList();
+  showToast('✅ 계정 삭제 완료');
+}
+
+// 권한요청 내역 렌더
+function renderPermRequests() {
+  const tbody = document.getElementById('perm_req_tbody');
+  if (!tbody) return;
+  const requests = JSON.parse(localStorage.getItem('permRequests') || '[]');
+  if (!requests.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="color:var(--text-sub);text-align:center;padding:24px">요청 없음</td></tr>';
+    return;
+  }
+  tbody.innerHTML = requests.map((r, idx) => {
+    const d = new Date(r.requestedAt);
+    const dateStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const statusColor = r.status==='승인'?'#2d6a4f':r.status==='거절'?'#e03131':'#e67700';
+    return `<tr>
+      <td style="font-size:11px">${dateStr}</td>
+      <td style="font-weight:700">${r.name}</td>
+      <td style="font-size:11px">${r.dept}</td>
+      <td style="font-size:11px">${r.region}</td>
+      <td style="font-size:11px;max-width:140px">${r.campus==='all'?'전체':(r.campus||[]).join(', ')}</td>
+      <td style="font-size:11px">${r.title}</td>
+      <td><span style="padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;color:${statusColor}">${r.status}</span></td>
+      <td>${r.status==='대기'
+        ? `<button onclick="approveRequest(${idx})" style="padding:3px 8px;border:1px solid #2d6a4f;border-radius:5px;background:none;font-size:11px;cursor:pointer;color:#2d6a4f;font-family:'Nanum Gothic',sans-serif">승인→계정생성</button>
+           <button onclick="rejectRequest(${idx})" style="padding:3px 8px;border:1px solid #fca5a5;border-radius:5px;background:none;font-size:11px;cursor:pointer;color:#e03131;margin-left:3px;font-family:'Nanum Gothic',sans-serif">거절</button>`
+        : '-'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// 권한요청 승인 → 계정 생성 폼에 자동 채우기
+function approveRequest(idx) {
+  const requests = JSON.parse(localStorage.getItem('permRequests') || '[]');
+  const r = requests[idx];
+  if (!r) return;
+  // 계정 생성 폼에 자동 입력
+  document.getElementById('newacc_name').value = r.name;
+  document.getElementById('newacc_dept').value = r.dept;
+  document.getElementById('newacc_title').value = r.title;
+  if (r.region && r.region !== '전체') document.getElementById('newacc_region').value = r.region;
+  onNewAccDeptChange();  // 본사면 지역/관코드 숨김
+  onNewAccTitleChange();
+  // 관코드 체크 (본사/all이면 전체)
+  if (r.campus === 'all' || r.dept === '본사') {
+    const allChk = document.getElementById('newacc_campus_all');
+    if (allChk) { allChk.checked = true; toggleNewAccAllCampus(true); }
+  } else {
+    document.querySelectorAll('.newacc_campus_chk').forEach(c => {
+      c.checked = (r.campus||[]).includes(c.value);
+    });
+    updateNewAccCampusLabel();
+  }
+  // 상태 변경
+  requests[idx].status = '승인';
+  localStorage.setItem('permRequests', JSON.stringify(requests));
+  renderPermRequests();
+  showToast(`${r.name}님 정보가 계정 생성 폼에 입력되었습니다. 아이디/비번 입력 후 생성하세요.`);
+  document.getElementById('newacc_id').focus();
+}
+
+function rejectRequest(idx) {
+  const requests = JSON.parse(localStorage.getItem('permRequests') || '[]');
+  if (!requests[idx]) return;
+  if (!confirm('이 요청을 거절하시겠습니까?')) return;
+  requests[idx].status = '거절';
+  localStorage.setItem('permRequests', JSON.stringify(requests));
+  renderPermRequests();
+}
+
+// ══════════════════════════════════════════════
+// 접속 로그 렌더
+// ══════════════════════════════════════════════
+function renderAccessLogs() {
+  const tbody = document.getElementById('access_log_tbody');
+  if (!tbody) return;
+  const logs = JSON.parse(localStorage.getItem('accessLogs') || '[]');
+  if (!logs.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-sub);text-align:center;padding:24px">로그 없음</td></tr>';
+    return;
+  }
+  tbody.innerHTML = logs.map(l => {
+    const d = new Date(l.time);
+    const dateStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+    return `<tr>
+      <td style="font-size:11px;white-space:nowrap">${dateStr}</td>
+      <td style="font-size:12px">${l.user}</td>
+      <td style="font-size:11px">${l.rank}</td>
+      <td style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-sub)">${l.ip||'-'}</td>
+      <td style="font-size:12px">${l.action}</td>
+    </tr>`;
+  }).join('');
+}
+
+function clearAccessLogs() {
+  if (!confirm('접속 로그를 모두 삭제하시겠습니까?')) return;
+  localStorage.removeItem('accessLogs');
+  renderAccessLogs();
 }
 
 // ── 효율 분석 초기화
@@ -3655,6 +4290,7 @@ function updateEffCampusOptions() {
 }
 
 function applyEffFilter() {
+  addAccessLog('🔍 강의실 효율 조회');
   effFilter = { ...effFilterPending };
   renderDeptKPI();
   renderEffKPI();
@@ -4608,6 +5244,7 @@ function deleteEffRow(id) {
 
 // ── 템플릿 다운로드 (SheetJS 활용)
 function downloadEffTemplate() {
+  addAccessLog('📋 템플릿 다운로드');
   // SheetJS CDN 동적 로드
   if (!window.XLSX) {
     const script = document.createElement('script');
@@ -4740,6 +5377,7 @@ function resolveBldgKey(building, floor) {
 }
 
 function uploadEffExcel(input) {
+  addAccessLog('📤 엑셀 업로드');
   const file = input.files[0];
   if (!file) return;
   input.value = '';
@@ -4904,6 +5542,7 @@ function uploadEffExcel(input) {
 
 // ── 엑셀 다운로드 (CSV)
 function exportEffExcel() {
+  addAccessLog('📥 강의실 데이터 다운로드');
   const data = getFilteredEff();
   const headers = ['지역','사업부','관코드','건물','층수','공간타입','호실','평수','최대수용','현재인원','수업명/반명','수용효율%','표준수강료','표준매출','발생매출(추정)','매출효율%'];
   const rows = data.map(r => {
