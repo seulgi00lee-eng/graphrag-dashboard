@@ -3053,6 +3053,10 @@ function renderAdmin() {
         <!-- 조회 버튼 -->
         <button onclick="applyMetricFilter()" class="btn btn-primary"
           style="font-size:13px;padding:8px 24px;font-weight:800">🔍 조회</button>
+        <button onclick="openMetricChart()"
+          style="font-size:13px;padding:8px 20px;font-weight:800;margin-left:6px;border:none;border-radius:8px;
+                 background:linear-gradient(135deg,#7048e8,#4263eb);color:#fff;cursor:pointer;
+                 font-family:'Nanum Gothic',sans-serif">📊 차트 보기</button>
         <span id="metric_filter_summary" style="margin-left:12px;font-size:12px;color:var(--text-sub)"></span>
       </div>
 
@@ -3214,6 +3218,43 @@ function renderAdmin() {
           </tr></thead>
           <tbody id="account_list_tbody"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 매출·호실·학생수 차트 모달 -->
+  <div class="modal-bg" id="metricChartModal">
+    <div class="modal" style="width:90%;max-width:900px;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <h3 style="margin:0">📊 매출·호실·학생수 차트</h3>
+        <button onclick="document.getElementById('metricChartModal').classList.remove('open')"
+          style="border:none;background:none;font-size:22px;cursor:pointer;color:var(--text-sub)">✕</button>
+      </div>
+      <div id="metric_chart_summary" style="font-size:12px;color:var(--text-sub);margin-bottom:16px"></div>
+
+      <!-- 지표 선택 -->
+      <div style="display:flex;gap:4px;margin-bottom:16px">
+        <button id="mc_metric_sales" onclick="setMetricChartType('sales')"
+          style="padding:6px 16px;border-radius:14px;border:1px solid #c05621;background:#c05621;color:#fff;
+                 font-size:12px;font-weight:700;cursor:pointer;font-family:'Nanum Gothic',sans-serif">💰 발생매출</button>
+        <button id="mc_metric_rooms" onclick="setMetricChartType('rooms')"
+          style="padding:6px 16px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text-sub);
+                 font-size:12px;font-weight:700;cursor:pointer;font-family:'Nanum Gothic',sans-serif">🏫 가동 호실</button>
+        <button id="mc_metric_students" onclick="setMetricChartType('students')"
+          style="padding:6px 16px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text-sub);
+                 font-size:12px;font-weight:700;cursor:pointer;font-family:'Nanum Gothic',sans-serif">👥 수강생</button>
+      </div>
+
+      <!-- 요일별 추이 -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title" style="font-size:13px">📈 요일별 추이</div>
+        <div id="metric_chart_trend"></div>
+      </div>
+
+      <!-- 사업부별 비교 -->
+      <div class="card">
+        <div class="card-title" style="font-size:13px">📊 사업부별 비교</div>
+        <div id="metric_chart_compare"></div>
       </div>
     </div>
   </div>
@@ -4251,6 +4292,159 @@ function applyMetricFilter() {
       <div style="font-size:11px;color:var(--text-sub);margin-top:4px">표준매출 ${fmt(a.maxSales)}원</div>
     </div>
   </div>`;
+
+  // 차트 모달이 열려 있으면 같이 갱신 (연동)
+  const chartModal = document.getElementById('metricChartModal');
+  if (chartModal && chartModal.classList.contains('open')) renderMetricCharts();
+}
+// ══════════════════════════════════════════════
+let _metricChartType = 'sales'; // sales | rooms | students
+
+function openMetricChart() {
+  document.getElementById('metricChartModal').classList.add('open');
+  _metricChartType = 'sales';
+  setMetricChartType('sales');
+}
+
+function setMetricChartType(type) {
+  _metricChartType = type;
+  ['sales','rooms','students'].forEach(t => {
+    const btn = document.getElementById('mc_metric_'+t);
+    if (!btn) return;
+    const sel = t === type;
+    const color = t==='sales'?'#c05621':t==='rooms'?'#4263eb':'#2f9e44';
+    btn.style.background  = sel ? color : 'transparent';
+    btn.style.color       = sel ? '#fff' : 'var(--text-sub)';
+    btn.style.borderColor = sel ? color : 'var(--border)';
+  });
+  renderMetricCharts();
+}
+
+// 선택된 필터 가져오기 (applyMetricFilter와 동일 로직)
+function getMetricSelection() {
+  const data = window._occMetricData || [];
+  const deptAll = document.getElementById('metric_dept_all')?.checked;
+  const dayAll  = document.getElementById('metric_day_all')?.checked;
+  const selDepts = [...document.querySelectorAll('.metric_dept_chk:checked')].map(c=>c.value);
+  const selDays  = [...document.querySelectorAll('.metric_day_chk:checked')].map(c=>c.value);
+  const useDepts = (deptAll || selDepts.length === 0) ? null : selDepts;
+  const useDays  = (dayAll  || selDays.length === 0)  ? null : selDays;
+  return { data, useDepts, useDays };
+}
+
+function metricValue(agg, type) {
+  if (type === 'sales')    return agg.curSales;
+  if (type === 'rooms')    return agg.rooms;
+  if (type === 'students') return agg.students;
+  return 0;
+}
+function metricColor(type) {
+  return type==='sales'?'#c05621':type==='rooms'?'#4263eb':'#2f9e44';
+}
+function metricUnit(type) {
+  return type==='sales'?'원':type==='rooms'?'개':'명';
+}
+function metricLabel(type) {
+  return type==='sales'?'발생매출(추정)':type==='rooms'?'가동 호실':'수강생';
+}
+
+function renderMetricCharts() {
+  const { data, useDepts, useDays } = getMetricSelection();
+  const DEPT_ORDER = ['초등사업부','중등사업부','고등사업부','테디사업부'];
+  const DAYS = ['월','화','수','목','금','토','일'];
+  const type = _metricChartType;
+  const color = metricColor(type);
+  const unit = metricUnit(type);
+  const fmt = n => Math.round(n||0).toLocaleString('ko-KR');
+
+  // 필터 적용된 데이터
+  const filtered = data.filter(r =>
+    (!useDepts || useDepts.includes(r.dept)) &&
+    (!useDays  || useDays.includes(r.day))
+  );
+
+  // 요약
+  const deptLabel = useDepts ? useDepts.map(d=>d.replace('사업부','')).join('+') : '전체 사업부';
+  const dayLabel  = useDays  ? useDays.join('·')+'요일' : '전체 요일';
+  document.getElementById('metric_chart_summary').textContent =
+    `▸ ${deptLabel} / ${dayLabel} · 지표: ${metricLabel(type)}`;
+
+  // ── 요일별 추이 (선택 요일만, 없으면 전체)
+  const trendDays = useDays || DAYS;
+  const trendData = trendDays.map(d => {
+    const rows = filtered.filter(r => r.day === d);
+    return { label: d, value: metricValue(aggOccMetric(rows), type) };
+  });
+  document.getElementById('metric_chart_trend').innerHTML = svgLineChart(trendData, color, unit, fmt);
+
+  // ── 사업부별 비교 (선택 사업부만, 없으면 전체)
+  const cmpDepts = useDepts || [...new Set(data.map(r=>r.dept).filter(Boolean))]
+    .sort((a,b)=>(DEPT_ORDER.indexOf(a)<0?99:DEPT_ORDER.indexOf(a))-(DEPT_ORDER.indexOf(b)<0?99:DEPT_ORDER.indexOf(b)));
+  const cmpData = cmpDepts.map(dp => {
+    const rows = filtered.filter(r => r.dept === dp);
+    return { label: dp.replace('사업부',''), value: metricValue(aggOccMetric(rows), type) };
+  });
+  document.getElementById('metric_chart_compare').innerHTML = svgBarChart(cmpData, color, unit, fmt);
+}
+
+// ── SVG 선 그래프 (요일별 추이)
+function svgLineChart(items, color, unit, fmt) {
+  if (!items.length || items.every(d=>d.value===0))
+    return '<div style="padding:30px;text-align:center;color:var(--text-sub)">데이터 없음</div>';
+  const W = 760, H = 260, padL = 70, padR = 30, padT = 20, padB = 36;
+  const max = Math.max(...items.map(d=>d.value), 1);
+  const niceMax = Math.ceil(max / 4) * 4 || 4;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const x = i => padL + (items.length === 1 ? plotW/2 : (plotW * i / (items.length-1)));
+  const y = v => padT + plotH - (plotH * v / niceMax);
+
+  // 격자 + Y축 라벨
+  let grid = '';
+  for (let i=0;i<=4;i++) {
+    const gv = niceMax * i / 4;
+    const gy = y(gv);
+    grid += `<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="#e9ecef" stroke-width="1"/>`;
+    grid += `<text x="${padL-8}" y="${gy+4}" text-anchor="end" font-size="10" fill="#868e96" font-family="monospace">${fmt(gv)}</text>`;
+  }
+  // 선 path
+  const linePath = items.map((d,i)=>`${i===0?'M':'L'}${x(i)},${y(d.value)}`).join(' ');
+  // 점 + X 라벨 + 값
+  let dots = '';
+  items.forEach((d,i) => {
+    dots += `<circle cx="${x(i)}" cy="${y(d.value)}" r="4" fill="${color}"/>`;
+    dots += `<text x="${x(i)}" y="${H-padB+20}" text-anchor="middle" font-size="11" fill="#495057" font-weight="700">${d.label}</text>`;
+    if (d.value > 0)
+      dots += `<text x="${x(i)}" y="${y(d.value)-10}" text-anchor="middle" font-size="10" fill="${color}" font-weight="800" font-family="monospace">${fmt(d.value)}</text>`;
+  });
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">
+    ${grid}
+    <path d="${linePath}" fill="none" stroke="${color}" stroke-width="2.5"/>
+    ${dots}
+  </svg>
+  <div style="text-align:right;font-size:10px;color:var(--text-sub);margin-top:4px">단위: ${unit}</div>`;
+}
+
+// ── SVG 막대 그래프 (사업부별 비교)
+function svgBarChart(items, color, unit, fmt) {
+  if (!items.length || items.every(d=>d.value===0))
+    return '<div style="padding:30px;text-align:center;color:var(--text-sub)">데이터 없음</div>';
+  const W = 760, barH = 38, gap = 14, padL = 70, padR = 90, padT = 10;
+  const H = padT + items.length * (barH + gap);
+  const max = Math.max(...items.map(d=>d.value), 1);
+  const plotW = W - padL - padR;
+
+  let bars = '';
+  items.forEach((d,i) => {
+    const yPos = padT + i * (barH + gap);
+    const w = plotW * d.value / max;
+    bars += `<text x="${padL-8}" y="${yPos+barH/2+4}" text-anchor="end" font-size="12" fill="#495057" font-weight="700">${d.label}</text>`;
+    bars += `<rect x="${padL}" y="${yPos}" width="${w}" height="${barH}" rx="6" fill="${color}" opacity="0.85"/>`;
+    bars += `<text x="${padL+w+8}" y="${yPos+barH/2+4}" font-size="12" fill="${color}" font-weight="800" font-family="monospace">${fmt(d.value)}</text>`;
+  });
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">${bars}</svg>
+  <div style="text-align:right;font-size:10px;color:var(--text-sub);margin-top:4px">단위: ${unit}</div>`;
 }
 
 // 사업부 × 요일 교차표
