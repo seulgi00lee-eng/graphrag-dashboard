@@ -2778,6 +2778,32 @@ function renderAdmin() {
       <div class="card-title">🏫 호실 × 요일 가동률 히트맵</div>
       <div id="occ_heatmap" style="overflow-x:auto"></div>
     </div>
+
+    <!-- 매출·호실·학생수 분석 -->
+    <div class="card" style="margin-top:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div class="card-title" style="margin-bottom:0">💰 매출 · 호실 · 학생수 분석</div>
+        <div style="display:flex;gap:4px">
+          <button id="occ_metric_tab_dept" onclick="switchOccMetric('dept')"
+            style="padding:5px 14px;border-radius:14px;border:1px solid #4263eb;background:#4263eb;
+                   color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Nanum Gothic',sans-serif">
+            사업부별
+          </button>
+          <button id="occ_metric_tab_day" onclick="switchOccMetric('day')"
+            style="padding:5px 14px;border-radius:14px;border:1px solid var(--border);background:transparent;
+                   color:var(--text-sub);font-size:12px;font-weight:700;cursor:pointer;font-family:'Nanum Gothic',sans-serif">
+            요일별
+          </button>
+        </div>
+      </div>
+      <div id="occ_metric_content"></div>
+
+      <!-- 교차표 (사업부 × 요일) -->
+      <div style="margin-top:16px">
+        <div class="card-title" style="font-size:13px">📋 사업부 × 요일 교차표</div>
+        <div id="occ_crosstab" style="overflow-x:auto"></div>
+      </div>
+    </div>
   </div>
 
   <!-- 서브탭 2: 월별 데이터 등록 -->
@@ -3458,10 +3484,134 @@ function renderOccupancy() {
       </tbody>
     </table>`;
   }
+
+  // 매출·호실·학생수 분석 렌더
+  window._occMetricData = data;
+  renderOccMetric(window._occMetricMode || 'dept');
+  renderOccCrosstab(data);
 }
 
-// 필터 임시값 (조회 버튼 누르기 전까지 적용 안됨)
-let effFilterPending = { region:'', building:'', dept:'', campus:'', spaceType:'' };
+// ── 매출·호실·학생수 집계 헬퍼 (classKey 기준 1회)
+function aggOccMetric(rows) {
+  const seenClass = new Set();
+  const uniqueRooms = new Set();
+  let students = 0, maxSales = 0, curSales = 0;
+  rows.forEach(r => {
+    uniqueRooms.add((r.bldgKey||'')+'::'+(r.room||''));
+    const ck = r.classKey || `${r.bldgKey||''}_${r.room}_${r.campus}_${r.className}`;
+    if (seenClass.has(ck)) return;
+    seenClass.add(ck);
+    const st = calcEffStats(r);
+    students += st.totalStudents;
+    maxSales += st.totalMaxSales;
+    curSales += st.totalCurSales;
+  });
+  return { rooms: uniqueRooms.size, classes: seenClass.size, students, maxSales, curSales };
+}
+
+function switchOccMetric(mode) {
+  window._occMetricMode = mode;
+  ['dept','day'].forEach(m => {
+    const btn = document.getElementById('occ_metric_tab_'+m);
+    if (!btn) return;
+    const sel = m === mode;
+    btn.style.background  = sel ? '#4263eb' : 'transparent';
+    btn.style.color       = sel ? '#fff' : 'var(--text-sub)';
+    btn.style.borderColor = sel ? '#4263eb' : 'var(--border)';
+  });
+  renderOccMetric(mode);
+}
+
+function renderOccMetric(mode) {
+  const data = window._occMetricData || [];
+  const el = document.getElementById('occ_metric_content');
+  if (!el) return;
+
+  const DEPT_ORDER = ['초등사업부','중등사업부','고등사업부','테디사업부'];
+  const DAYS = ['월','화','수','목','금','토','일'];
+
+  let groups;
+  if (mode === 'dept') {
+    const byDept = {};
+    data.forEach(r => { const k=r.dept||'미분류'; if(!byDept[k]) byDept[k]=[]; byDept[k].push(r); });
+    groups = Object.entries(byDept).sort((a,b)=>(DEPT_ORDER.indexOf(a[0])<0?99:DEPT_ORDER.indexOf(a[0]))-(DEPT_ORDER.indexOf(b[0])<0?99:DEPT_ORDER.indexOf(b[0])));
+  } else {
+    // 요일별: 해당 요일에 수업 있는 행만
+    groups = DAYS.map(d => [d+'요일', data.filter(r => r.day === d)]);
+  }
+
+  const fmt = n => Math.round(n||0).toLocaleString('ko-KR');
+  const cards = groups.map(([label, rows]) => {
+    const a = aggOccMetric(rows);
+    return `
+    <div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface)">
+      <div style="font-size:13px;font-weight:800;color:#4263eb;margin-bottom:10px">${label}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">
+        <div style="padding:8px;background:#f0f4ff;border-radius:6px">
+          <div style="font-size:10px;color:var(--text-sub)">🏫 가동 호실</div>
+          <div style="font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace">${a.rooms}개</div>
+        </div>
+        <div style="padding:8px;background:#f0faf4;border-radius:6px">
+          <div style="font-size:10px;color:var(--text-sub)">👥 수강생</div>
+          <div style="font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace">${a.students}명</div>
+        </div>
+        <div style="padding:8px;background:#fff9f0;border-radius:6px;grid-column:span 2">
+          <div style="font-size:10px;color:var(--text-sub)">💰 발생매출(추정)</div>
+          <div style="font-size:16px;font-weight:800;color:#c05621;font-family:'JetBrains Mono',monospace">${fmt(a.curSales)}원</div>
+          <div style="font-size:10px;color:var(--text-sub);margin-top:2px">표준매출 ${fmt(a.maxSales)}원 · 수업 ${a.classes}개</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">${cards}</div>`;
+}
+
+// 사업부 × 요일 교차표
+function renderOccCrosstab(data) {
+  const el = document.getElementById('occ_crosstab');
+  if (!el) return;
+  const DEPT_ORDER = ['초등사업부','중등사업부','고등사업부','테디사업부'];
+  const DAYS = ['월','화','수','목','금','토','일'];
+  const depts = [...new Set(data.map(r=>r.dept).filter(Boolean))]
+    .sort((a,b)=>(DEPT_ORDER.indexOf(a)<0?99:DEPT_ORDER.indexOf(a))-(DEPT_ORDER.indexOf(b)<0?99:DEPT_ORDER.indexOf(b)));
+  const fmt = n => Math.round(n||0).toLocaleString('ko-KR');
+
+  // 셀: 발생매출 / 호실 / 학생수
+  const cell = (rows) => {
+    const a = aggOccMetric(rows);
+    if (!rows.length) return '<span style="color:#ccc">-</span>';
+    return `<div style="font-size:11px;line-height:1.5">
+      <div style="font-weight:800;color:#c05621">${fmt(a.curSales)}원</div>
+      <div style="color:var(--text-sub)">${a.rooms}호실 · ${a.students}명</div>
+    </div>`;
+  };
+
+  el.innerHTML = `
+  <table style="border-collapse:collapse;font-size:11px;width:100%;min-width:700px">
+    <thead><tr>
+      <th style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border);text-align:left;white-space:nowrap">사업부 \\ 요일</th>
+      ${DAYS.map(d=>`<th style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border);text-align:center">${d}</th>`).join('')}
+      <th style="padding:8px 10px;background:#eef2ff;border:1px solid var(--border);text-align:center;font-weight:800">합계</th>
+    </tr></thead>
+    <tbody>
+      ${depts.map(dept => {
+        const deptRows = data.filter(r=>r.dept===dept);
+        return `<tr>
+          <td style="padding:8px 10px;font-weight:800;border:1px solid var(--border);color:#4263eb;white-space:nowrap">${dept}</td>
+          ${DAYS.map(d => `<td style="padding:6px 8px;border:1px solid var(--border);text-align:center;vertical-align:top">${cell(deptRows.filter(r=>r.day===d))}</td>`).join('')}
+          <td style="padding:6px 8px;border:1px solid var(--border);text-align:center;background:#f8faff;vertical-align:top">${cell(deptRows)}</td>
+        </tr>`;
+      }).join('')}
+      <tr style="background:#f8faff">
+        <td style="padding:8px 10px;font-weight:800;border:1px solid var(--border)">전체 합계</td>
+        ${DAYS.map(d => `<td style="padding:6px 8px;border:1px solid var(--border);text-align:center;vertical-align:top">${cell(data.filter(r=>r.day===d))}</td>`).join('')}
+        <td style="padding:6px 8px;border:1px solid var(--border);text-align:center;background:#eef2ff;vertical-align:top;font-weight:800">${cell(data)}</td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="font-size:10px;color:var(--text-sub);margin-top:6px">※ 각 칸: 발생매출(추정) / 가동 호실 / 수강생 · 매출과 학생수는 수업(반) 기준 1회 집계</div>`;
+}
 
 function onEffFilterChange(k, val) {
   effFilterPending[k] = val;
